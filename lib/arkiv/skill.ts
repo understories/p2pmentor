@@ -7,9 +7,11 @@
  * Reference: refs/doc/learner_communities_QUESTIONS.md
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr, getEntityByKey } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { createArkivEntity } from './write';
 import { SPACE_ID } from '@/lib/config';
 
 export type Skill = {
@@ -55,7 +57,6 @@ export async function createSkill({
   spaceId?: string;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const createdAt = new Date().toISOString();
   // Always create slug - this is required for topic/learning community pages
   const slug = normalizeSkillSlug(name_canonical);
@@ -66,29 +67,21 @@ export async function createSkill({
   }
   const status = 'active';
 
-  // Skills should persist long-term (1 year)
-  const expiresIn = 31536000; // 1 year in seconds
-
+  // Skills should persist long-term (type default lifetime from schema.ts, renewed)
   const result = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(
-        JSON.stringify({
-          description: description || undefined,
-        })
-      ),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'skill' },
-        { key: 'name_canonical', value: name_canonical },
-        { key: 'slug', value: slug },
-        { key: 'status', value: status },
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: createdAt },
-        ...(created_by_profile
-          ? [{ key: 'created_by_profile', value: created_by_profile.toLowerCase() }]
-          : []),
-      ],
-      expiresIn,
+    return await createArkivEntity(walletClient, {
+      type: 'skill',
+      attributes: {
+        name_canonical,
+        slug,
+        status,
+        space_id: spaceId,
+        created_at: createdAt,
+        created_by_profile: created_by_profile ? created_by_profile.toLowerCase() : undefined,
+      },
+      payload: {
+        description: description || undefined,
+      },
     });
   });
 
@@ -96,16 +89,14 @@ export async function createSkill({
 
   // Store txHash in separate entity for reliable querying
   try {
-    await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify({ txHash })),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'skill_txhash' },
-        { key: 'skillKey', value: entityKey },
-        { key: 'slug', value: slug },
-        { key: 'spaceId', value: spaceId },
-      ],
-      expiresIn,
+    await createArkivEntity(walletClient, {
+      type: 'skill_txhash',
+      attributes: {
+        skill_key: entityKey,
+        slug,
+        space_id: spaceId,
+      },
+      payload: { txHash },
     });
   } catch (error: any) {
     console.warn('[skill] Failed to create skill_txhash entity, but skill was created:', error);
@@ -225,33 +216,30 @@ export async function listSkills({
     const publicClient = getPublicClient();
 
     // Build query with space ID filtering
-    let queryBuilder = publicClient
-      .buildQuery()
-      .where(eq('type', 'skill'))
-      .withAttributes(true)
-      .withPayload(true);
+    let queryBuilder = arkivSelect('skill', publicClient);
+
+    // Filter by slug server-side (slug is a queryable attribute), so a small limit
+    // (e.g. getSkillBySlug's limit: 1) still finds the matching skill
+    if (slug) {
+      queryBuilder = queryBuilder.where(eqAttr('slug', normalizeSkillSlug(slug)));
+    }
 
     // Support multiple spaceIds (builder mode) or single spaceId
     if (spaceIds && spaceIds.length > 0) {
-      // Query all, filter client-side (Arkiv doesn't support OR queries)
-      // Use higher limit for builder mode to ensure we get all skills
-      queryBuilder = queryBuilder.limit(limit || 500);
+      // Query all, filter client-side (OR queries are not used here)
     } else {
       // Use provided spaceId or default to SPACE_ID from config
       const finalSpaceId = spaceId || SPACE_ID;
-      // Use provided limit or default to 500 to ensure we get all skills
-      queryBuilder = queryBuilder.where(eq('spaceId', finalSpaceId)).limit(limit || 500);
+      queryBuilder = queryBuilder.where(eqAttr('space_id', finalSpaceId));
     }
+
+    // Use provided limit or default to 500 to ensure we get all skills
+    const maxResults = limit || 500;
 
     // Fetch skill entities and txHash entities in parallel
     const [result, txHashResult] = await Promise.all([
-      queryBuilder.fetch(),
-      publicClient
-        .buildQuery()
-        .where(eq('type', 'skill_txhash'))
-        .withAttributes(true)
-        .withPayload(true)
-        .fetch(),
+      fetchAll(queryBuilder, maxResults, publicClient),
+      fetchAll(arkivSelect('skill_txhash', publicClient), Math.max(maxResults, 500), publicClient),
     ]);
 
     if (!result || !result.entities || !Array.isArray(result.entities)) {
@@ -271,15 +259,8 @@ export async function listSkills({
     const txHashMap: Record<string, string> = {};
     if (txHashResult?.entities && Array.isArray(txHashResult.entities)) {
       txHashResult.entities.forEach((entity: any) => {
-        const attrs = entity.attributes || {};
-        const getAttr = (key: string): string => {
-          if (Array.isArray(attrs)) {
-            const attr = attrs.find((a: any) => a.key === key);
-            return String(attr?.value || '');
-          }
-          return String(attrs[key] || '');
-        };
-        const skillKey = getAttr('skillKey');
+        const getAttr = (key: string): string => readAttr(entity, key);
+        const skillKey = getAttr('skill_key');
         try {
           if (entity.payload) {
             const decoded =
@@ -315,14 +296,7 @@ export async function listSkills({
         console.error('[listSkills] Error decoding skill payload:', e);
       }
 
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (key: string): string => readAttr(entity, key);
 
       return {
         key: entity.key,
@@ -331,8 +305,8 @@ export async function listSkills({
         description: payload.description || undefined,
         created_by_profile: getAttr('created_by_profile') || undefined,
         status: (getAttr('status') || 'active') as 'active' | 'archived',
-        spaceId: getAttr('spaceId') || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
-        createdAt: getAttr('createdAt'),
+        spaceId: getAttr('space_id') || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
+        createdAt: getAttr('created_at'),
         txHash: txHashMap[entity.key] || payload.txHash || entity.txHash || undefined,
       };
     });
@@ -434,8 +408,8 @@ export async function getSkillByKey(key: string): Promise<Skill | null> {
     });
     const publicClient = getPublicClient();
 
-    // Use getEntity for direct entity key lookup (more reliable than querying)
-    const entity = await publicClient.getEntity(key as `0x${string}`);
+    // Direct entity key lookup (more reliable than querying); null if missing/expired
+    const entity = await getEntityByKey(key, publicClient);
 
     if (!entity) {
       console.log('[getSkillByKey] Entity not found for key:', key);
@@ -443,14 +417,7 @@ export async function getSkillByKey(key: string): Promise<Skill | null> {
     }
 
     // Verify this is a skill entity
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (key: string): string => readAttr(entity, key);
 
     const entityType = getAttr('type');
     if (entityType !== 'skill') {
@@ -464,12 +431,8 @@ export async function getSkillByKey(key: string): Promise<Skill | null> {
     });
 
     // Fetch txHash
-    const txHashResult = await publicClient
-      .buildQuery()
-      .where(eq('type', 'skill_txhash'))
-      .where(eq('skillKey', key))
-      .withAttributes(true)
-      .withPayload(true)
+    const txHashResult = await arkivSelect('skill_txhash', publicClient)
+      .where(eqAttr('skill_key', key))
       .limit(1)
       .fetch();
 
@@ -518,8 +481,8 @@ export async function getSkillByKey(key: string): Promise<Skill | null> {
       description: payload.description || undefined,
       created_by_profile: getAttr('created_by_profile') || undefined,
       status: (getAttr('status') || 'active') as 'active' | 'archived',
-      spaceId: getAttr('spaceId') || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
-      createdAt: getAttr('createdAt'),
+      spaceId: getAttr('space_id') || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
+      createdAt: getAttr('created_at'),
       txHash: txHash || payload.txHash || undefined,
     };
   } catch (error: any) {

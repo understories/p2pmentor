@@ -7,9 +7,21 @@
  * Reference: refs/docs/beta_code_gating_plan.md
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
-import { getPrivateKey, SPACE_ID } from '@/lib/config';
+import { getPrivateKey, SERVER_SIGNER_ADDRESS, SPACE_ID } from '@/lib/config';
+import { createArkivEntity } from './write';
+
+/**
+ * Start a beta_access query.
+ * beta_access entities are only written with the server key, so reads are scoped
+ * to the server signer when it is configured.
+ */
+function selectBetaAccess(publicClient: ReturnType<typeof getPublicClient>) {
+  const q = arkivSelect('beta_access', publicClient);
+  return SERVER_SIGNER_ADDRESS ? q.createdBy(SERVER_SIGNER_ADDRESS) : q;
+}
 import { handleTransactionWithTimeout } from './transaction-utils';
 
 export type BetaAccess = {
@@ -42,7 +54,7 @@ export async function createBetaAccess({
   spaceId?: string;
 }): Promise<{ key: string; txHash: string }> {
   // CRITICAL: Verify we're using server signer, not user wallet
-  const { privateKeyToAccount } = await import('@arkiv-network/sdk/accounts');
+  const { privateKeyToAccount } = await import('viem/accounts');
   const serverSignerAccount = privateKeyToAccount(privateKey);
   const serverSignerAddress = serverSignerAccount.address.toLowerCase();
 
@@ -68,7 +80,6 @@ export async function createBetaAccess({
     note: 'wallet is the grant recipient, serverSignerAddress signs the transaction',
   });
 
-  const enc = new TextEncoder();
   const grantedAt = new Date().toISOString();
   const normalizedCode = code.toLowerCase().trim();
   const normalizedWallet = wallet.toLowerCase();
@@ -79,40 +90,32 @@ export async function createBetaAccess({
     grantedAt,
   };
 
-  // 1 year TTL (effectively permanent for beta)
-  const expiresIn = 31536000;
-
+  // Lifetime: type default (see lib/arkiv/schema.ts)
   const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify(payload)),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'beta_access' },
-        { key: 'wallet', value: normalizedWallet },
-        { key: 'code', value: normalizedCode },
-        { key: 'spaceId', value: spaceId },
-        { key: 'grantedAt', value: grantedAt },
-      ],
-      expiresIn,
+    return await createArkivEntity(walletClient, {
+      type: 'beta_access',
+      attributes: {
+        wallet: normalizedWallet,
+        code: normalizedCode,
+        space_id: spaceId,
+        granted_at: grantedAt,
+      },
+      payload,
     });
   });
 
   // Create separate txhash entity (optional metadata, don't wait)
-  walletClient
-    .createEntity({
-      payload: enc.encode(JSON.stringify({ txHash })),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'beta_access_txhash' },
-        { key: 'accessKey', value: entityKey },
-        { key: 'wallet', value: normalizedWallet },
-        { key: 'spaceId', value: spaceId },
-      ],
-      expiresIn,
-    })
-    .catch((error: any) => {
-      console.warn('[createBetaAccess] Failed to create txhash entity:', error);
-    });
+  createArkivEntity(walletClient, {
+    type: 'beta_access_txhash',
+    attributes: {
+      access_key: entityKey,
+      wallet: normalizedWallet,
+      space_id: spaceId,
+    },
+    payload: { txHash },
+  }).catch((error: any) => {
+    console.warn('[createBetaAccess] Failed to create txhash entity:', error);
+  });
 
   return { key: entityKey, txHash };
 }
@@ -134,13 +137,9 @@ export async function getBetaAccessByWallet(
   const finalSpaceId = spaceId || SPACE_ID;
 
   try {
-    const result = await publicClient
-      .buildQuery()
-      .where(eq('type', 'beta_access'))
-      .where(eq('wallet', normalizedWallet))
-      .where(eq('spaceId', finalSpaceId))
-      .withAttributes(true)
-      .withPayload(true)
+    const result = await selectBetaAccess(publicClient)
+      .where(eqAttr('wallet', normalizedWallet))
+      .where(eqAttr('space_id', finalSpaceId))
       .limit(1)
       .fetch();
 
@@ -164,23 +163,12 @@ export async function getBetaAccessByWallet(
       console.error('[getBetaAccessByWallet] Error decoding payload:', e);
     }
 
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (key: string): string => readAttr(entity, key);
 
     // Get txHash
-    const txHashResult = await publicClient
-      .buildQuery()
-      .where(eq('type', 'beta_access_txhash'))
-      .where(eq('accessKey', entity.key))
-      .where(eq('spaceId', finalSpaceId))
-      .withAttributes(true)
-      .withPayload(true)
+    const txHashResult = await arkivSelect('beta_access_txhash', publicClient)
+      .where(eqAttr('access_key', entity.key))
+      .where(eqAttr('space_id', finalSpaceId))
       .limit(1)
       .fetch();
 
@@ -205,8 +193,8 @@ export async function getBetaAccessByWallet(
       key: entity.key,
       wallet: getAttr('wallet') || payload.wallet || normalizedWallet,
       code: getAttr('code') || payload.code || '',
-      grantedAt: getAttr('grantedAt') || payload.grantedAt || new Date().toISOString(),
-      spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID,
+      grantedAt: getAttr('granted_at') || payload.grantedAt || new Date().toISOString(),
+      spaceId: getAttr('space_id') || payload.spaceId || SPACE_ID,
       txHash,
     };
   } catch (error: any) {
@@ -232,15 +220,13 @@ export async function listBetaAccessByCode(code: string, spaceId?: string): Prom
   const finalSpaceId = spaceId || SPACE_ID;
 
   try {
-    const result = await publicClient
-      .buildQuery()
-      .where(eq('type', 'beta_access'))
-      .where(eq('code', normalizedCode))
-      .where(eq('spaceId', finalSpaceId))
-      .withAttributes(true)
-      .withPayload(true)
-      .limit(1000)
-      .fetch();
+    const result = await fetchAll(
+      selectBetaAccess(publicClient)
+        .where(eqAttr('code', normalizedCode))
+        .where(eqAttr('space_id', finalSpaceId)),
+      1000,
+      publicClient
+    );
 
     if (!result?.entities || !Array.isArray(result.entities)) {
       return [];
@@ -262,14 +248,7 @@ export async function listBetaAccessByCode(code: string, spaceId?: string): Prom
         console.error('[listBetaAccessByCode] Error decoding payload:', e);
       }
 
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (key: string): string => readAttr(entity, key);
 
       // Always use normalized wallet from attributes (Arkiv-native pattern)
       // Attributes are queryable and normalized, payload may contain original case
@@ -284,8 +263,8 @@ export async function listBetaAccessByCode(code: string, spaceId?: string): Prom
         key: entity.key,
         wallet: normalizedWallet,
         code: getAttr('code') || payload.code || normalizedCode,
-        grantedAt: getAttr('grantedAt') || payload.grantedAt || new Date().toISOString(),
-        spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID,
+        grantedAt: getAttr('granted_at') || payload.grantedAt || new Date().toISOString(),
+        spaceId: getAttr('space_id') || payload.spaceId || SPACE_ID,
       };
     });
   } catch (error: any) {

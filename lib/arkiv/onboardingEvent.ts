@@ -7,13 +7,11 @@
  * Reference: refs/doc/onboarding_levelup_TECHNICAL_QUESTIONS.md
  */
 
-import { eq } from '@arkiv-network/sdk/query';
-import {
-  getPublicClient,
-  getWalletClientFromPrivateKey,
-  getWalletClientFromMetaMask,
-} from './client';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr } from '@/lib/arkiv/read';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { createArkivEntity } from './write';
 import { SPACE_ID } from '@/lib/config';
 
 export type OnboardingEventType =
@@ -49,11 +47,9 @@ export async function createOnboardingEvent({
   spaceId?: string;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const createdAt = new Date().toISOString();
 
-  // 1 year TTL (effectively permanent for beta)
-  const expiresIn = 31536000;
+  // Lifetime: onboarding_event type default (see lib/arkiv/schema.ts); readonly type
 
   const payload = {
     eventType,
@@ -61,34 +57,28 @@ export async function createOnboardingEvent({
   };
 
   const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify(payload)),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'onboarding_event' },
-        { key: 'wallet', value: wallet.toLowerCase() },
-        { key: 'eventType', value: eventType },
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: createdAt },
-      ],
-      expiresIn,
+    return await createArkivEntity(walletClient, {
+      type: 'onboarding_event',
+      attributes: {
+        wallet: wallet.toLowerCase(),
+        event_type: eventType,
+        space_id: spaceId,
+        created_at: createdAt,
+      },
+      payload,
     });
   });
 
   // Create separate txhash entity (optional metadata, don't wait)
-  walletClient
-    .createEntity({
-      payload: enc.encode(JSON.stringify({ txHash })),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'onboarding_event_txhash' },
-        { key: 'eventKey', value: entityKey },
-        { key: 'wallet', value: wallet.toLowerCase() },
-        { key: 'spaceId', value: spaceId },
-      ],
-      expiresIn,
-    })
-    .catch((error: any) => {
+  createArkivEntity(walletClient, {
+    type: 'onboarding_event_txhash',
+    attributes: {
+      event_key: entityKey,
+      wallet: wallet.toLowerCase(),
+      space_id: spaceId,
+    },
+    payload: { txHash },
+  }).catch((error: any) => {
       console.warn('[createOnboardingEvent] Failed to create txhash entity:', error);
     });
 
@@ -115,11 +105,9 @@ export async function createOnboardingEventClient({
 }): Promise<{ key: string; txHash: string }> {
   const { getWalletClientFromMetaMask } = await import('./client');
   const walletClient = getWalletClientFromMetaMask(account);
-  const enc = new TextEncoder();
   const createdAt = new Date().toISOString();
 
-  // 1 year TTL (effectively permanent for beta)
-  const expiresIn = 31536000;
+  // Lifetime: onboarding_event type default (see lib/arkiv/schema.ts); readonly type
 
   const payload = {
     eventType,
@@ -127,34 +115,28 @@ export async function createOnboardingEventClient({
   };
 
   const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify(payload)),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'onboarding_event' },
-        { key: 'wallet', value: wallet.toLowerCase() },
-        { key: 'eventType', value: eventType },
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: createdAt },
-      ],
-      expiresIn,
+    return await createArkivEntity(walletClient, {
+      type: 'onboarding_event',
+      attributes: {
+        wallet: wallet.toLowerCase(),
+        event_type: eventType,
+        space_id: spaceId,
+        created_at: createdAt,
+      },
+      payload,
     });
   });
 
   // Create separate txhash entity (optional metadata, don't wait)
-  walletClient
-    .createEntity({
-      payload: enc.encode(JSON.stringify({ txHash })),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'onboarding_event_txhash' },
-        { key: 'eventKey', value: entityKey },
-        { key: 'wallet', value: wallet.toLowerCase() },
-        { key: 'spaceId', value: spaceId },
-      ],
-      expiresIn,
-    })
-    .catch((error: any) => {
+  createArkivEntity(walletClient, {
+    type: 'onboarding_event_txhash',
+    attributes: {
+      event_key: entityKey,
+      wallet: wallet.toLowerCase(),
+      space_id: spaceId,
+    },
+    payload: { txHash },
+  }).catch((error: any) => {
       console.warn('[createOnboardingEventClient] Failed to create txhash entity:', error);
     });
 
@@ -179,22 +161,16 @@ export async function listOnboardingEvents({
   spaceId?: string;
 }): Promise<OnboardingEvent[]> {
   const publicClient = getPublicClient();
-  const query = publicClient.buildQuery();
-
   try {
-    let queryBuilder = query
-      .where(eq('type', 'onboarding_event'))
-      .where(eq('wallet', wallet.toLowerCase()))
-      .where(eq('spaceId', spaceId))
-      .withAttributes(true)
-      .withPayload(true)
-      .limit(limit);
+    let queryBuilder = arkivSelect('onboarding_event', publicClient)
+      .where(eqAttr('wallet', wallet.toLowerCase()))
+      .where(eqAttr('space_id', spaceId));
 
     if (eventType) {
-      queryBuilder = queryBuilder.where(eq('eventType', eventType));
+      queryBuilder = queryBuilder.where(eqAttr('event_type', eventType));
     }
 
-    const result = await queryBuilder.fetch();
+    const result = await fetchAll(queryBuilder, limit, publicClient);
 
     if (!result?.entities || !Array.isArray(result.entities)) {
       console.warn('[listOnboardingEvents] Invalid result structure, returning empty array', {
@@ -219,21 +195,14 @@ export async function listOnboardingEvents({
         console.error('[listOnboardingEvents] Error decoding payload:', e);
       }
 
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (key: string): string => readAttr(entity, key);
 
       return {
         key: entity.key,
         wallet: getAttr('wallet'),
-        eventType: getAttr('eventType') as OnboardingEventType,
-        spaceId: getAttr('spaceId'),
-        createdAt: getAttr('createdAt'),
+        eventType: getAttr('event_type') as OnboardingEventType,
+        spaceId: getAttr('space_id'),
+        createdAt: getAttr('created_at'),
         txHash: payload.txHash || undefined,
       };
     });

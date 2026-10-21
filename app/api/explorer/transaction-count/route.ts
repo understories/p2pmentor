@@ -2,13 +2,14 @@
  * Explorer Transaction Count Endpoint
  *
  * Returns total count of transactions (entities) written by the server wallet.
- * Queries Arkiv network directly to get the actual count matching Braga explorer.
+ * Queries Arkiv network directly (entities created by the server signer, p2pmentor project).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getPublicClient } from '@/lib/arkiv/client';
-import { eq } from '@arkiv-network/sdk/query';
-import { CURRENT_WALLET } from '@/lib/config';
+import { PROJECT, eqAttr } from '@/lib/arkiv/schema';
+import { fetchAll } from '@/lib/arkiv/read';
+import { CURRENT_WALLET, SERVER_SIGNER_ADDRESS } from '@/lib/config';
 import { checkRateLimit } from '@/lib/explorer/rateLimit';
 import { SPACE_ID } from '@/lib/config';
 
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const spaceId = searchParams.get('spaceId') || undefined;
 
-    if (!CURRENT_WALLET) {
+    if (!CURRENT_WALLET || !SERVER_SIGNER_ADDRESS) {
       return NextResponse.json(
         { ok: false, error: 'Server wallet not configured' },
         { status: 500 }
@@ -43,26 +44,23 @@ export async function GET(request: NextRequest) {
     const publicClient = getPublicClient();
     const finalSpaceId = spaceId && spaceId !== 'all' ? spaceId : SPACE_ID;
 
-    // Query Arkiv directly for all entities written by the server wallet
-    // This gives us the actual transaction count from the blockchain
-    // We use a high limit to get as many as possible in one query
-    // Note: If the wallet has more than 5000 entities, we'll get a partial count
+    // Query Arkiv directly for all p2pmentor entities created by the server wallet
+    // (Arkiv 0.8 has no count query: select keys only and count them)
+    // Note: capped at MAX_COUNT entities; above that we report a partial count
     // This is acceptable for the explorer stats - it shows "at least X" transactions
+    const MAX_COUNT = 1000;
 
     let query = publicClient
-      .buildQuery()
-      .where(eq('wallet', CURRENT_WALLET.toLowerCase()))
-      .limit(5000); // High limit to get most/all entities in one query
+      .select({ key: true }) // We don't need attributes or payload, just count
+      .where(eqAttr('project', PROJECT))
+      .createdBy(SERVER_SIGNER_ADDRESS);
 
     // Add spaceId filter if provided
     if (finalSpaceId) {
-      query = query.where(eq('spaceId', finalSpaceId));
+      query = query.where(eqAttr('space_id', finalSpaceId));
     }
 
-    const result = await query
-      .withAttributes(false) // We don't need attributes, just count
-      .withPayload(false) // We don't need payload, just count
-      .fetch();
+    const result = await fetchAll(query, MAX_COUNT, publicClient);
 
     if (!result?.entities || !Array.isArray(result.entities)) {
       return NextResponse.json(

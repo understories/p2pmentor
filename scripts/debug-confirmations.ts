@@ -4,7 +4,8 @@
 
 import { listSessions } from '../lib/arkiv/sessions';
 import { getPublicClient } from '../lib/arkiv/client';
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, getAttr as readAttr } from '@/lib/arkiv/read';
 
 async function debugConfirmations() {
   console.log('=== Debugging Confirmations ===\n');
@@ -24,12 +25,8 @@ async function debugConfirmations() {
     console.log(`Learner confirmed (from session): ${session.learnerConfirmed}`);
 
     // Query confirmations directly
-    const confirmationsQuery = await publicClient
-      .buildQuery()
-      .where(eq('type', 'session_confirmation'))
-      .where(eq('sessionKey', session.key))
-      .withAttributes(true)
-      .withPayload(true)
+    const confirmationsQuery = await arkivSelect('session_confirmation', publicClient)
+      .where(eqAttr('session_key', session.key))
       .limit(10)
       .fetch();
 
@@ -38,19 +35,12 @@ async function debugConfirmations() {
 
     if (confirmationsQuery.entities.length > 0) {
       confirmationsQuery.entities.forEach((entity: any, idx: number) => {
-        const attrs = entity.attributes || {};
-        const getAttr = (key: string): string => {
-          if (Array.isArray(attrs)) {
-            const attr = attrs.find((a: any) => a.key === key);
-            return String(attr?.value || '');
-          }
-          return String(attrs[key] || '');
-        };
+        const getAttr = (key: string): string => readAttr(entity, key);
 
-        const sessionKey = getAttr('sessionKey');
-        const confirmedBy = getAttr('confirmedBy');
-        const mentorWallet = getAttr('mentorWallet');
-        const learnerWallet = getAttr('learnerWallet');
+        const sessionKey = getAttr('session_key');
+        const confirmedBy = getAttr('confirmed_by');
+        const mentorWallet = getAttr('mentor_wallet');
+        const learnerWallet = getAttr('learner_wallet');
 
         console.log(`\n  Confirmation ${idx + 1}:`);
         console.log(`    Session key: ${sessionKey}`);
@@ -68,10 +58,7 @@ async function debugConfirmations() {
       console.log(`  No confirmations found!`);
 
       // Check if there are any confirmations at all
-      const allConfirmations = await publicClient
-        .buildQuery()
-        .where(eq('type', 'session_confirmation'))
-        .withAttributes(true)
+      const allConfirmations = await arkivSelect('session_confirmation', publicClient)
         .limit(20)
         .fetch();
 
@@ -79,15 +66,8 @@ async function debugConfirmations() {
       if (allConfirmations.entities.length > 0) {
         console.log(`  Sample confirmation sessionKeys:`);
         allConfirmations.entities.slice(0, 5).forEach((entity: any) => {
-          const attrs = entity.attributes || {};
-          const getAttr = (key: string): string => {
-            if (Array.isArray(attrs)) {
-              const attr = attrs.find((a: any) => a.key === key);
-              return String(attr?.value || '');
-            }
-            return String(attrs[key] || '');
-          };
-          console.log(`    - ${getAttr('sessionKey')}`);
+          const getAttr = (key: string): string => readAttr(entity, key);
+          console.log(`    - ${getAttr('session_key')}`);
         });
       }
     }

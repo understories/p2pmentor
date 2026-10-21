@@ -67,13 +67,9 @@ Implementation: `lib/arkiv/badge.ts` - `issueBadge()` uses stable key derivation
 Fetch all badges for a wallet:
 
 ```typescript
-const query = publicClient.buildQuery();
-const result = await query
-  .where(eq('type', 'proof_of_skill_badge'))
-  .where(eq('wallet', wallet.toLowerCase()))
-  .where(eq('spaceId', spaceId))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('proof_of_skill_badge')
+  .where(eqAttr('wallet', wallet.toLowerCase()))
+  .where(eqAttr('space_id', spaceId))
   .limit(100)
   .fetch();
 ```
@@ -81,14 +77,10 @@ const result = await query
 Fetch specific badge:
 
 ```typescript
-const query = publicClient.buildQuery();
-const result = await query
-  .where(eq('type', 'proof_of_skill_badge'))
-  .where(eq('wallet', wallet.toLowerCase()))
-  .where(eq('badgeType', 'arkiv_builder'))
-  .where(eq('spaceId', spaceId))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('proof_of_skill_badge')
+  .where(eqAttr('wallet', wallet.toLowerCase()))
+  .where(eqAttr('badge_type', 'arkiv_builder'))
+  .where(eqAttr('space_id', spaceId))
   .limit(1)
   .fetch();
 ```
@@ -96,13 +88,9 @@ const result = await query
 Fetch badges by quest:
 
 ```typescript
-const query = publicClient.buildQuery();
-const result = await query
-  .where(eq('type', 'proof_of_skill_badge'))
-  .where(eq('questId', 'arkiv_builder'))
-  .where(eq('spaceId', spaceId))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('proof_of_skill_badge')
+  .where(eqAttr('quest_id', 'arkiv_builder'))
+  .where(eqAttr('space_id', spaceId))
   .limit(100)
   .fetch();
 ```

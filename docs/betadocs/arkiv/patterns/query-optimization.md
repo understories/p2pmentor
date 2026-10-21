@@ -19,17 +19,15 @@ These attributes are indexed and should be used in queries:
 
 ```typescript
 // ✅ Good: Type first (indexed)
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'user_profile'))
-  .where(eq('wallet', wallet))
+const result = await arkivSelect('user_profile')
+  .where(eqAttr('wallet', wallet))
   .fetch();
 
 // ❌ Bad: Wallet first
 const result = await publicClient
   .buildQuery()
-  .where(eq('wallet', wallet))
-  .where(eq('type', 'user_profile'))
+  .where(eqAttr('wallet', wallet))
+  .where(eqAttr('type', 'user_profile'))
   .fetch();
 ```
 
@@ -37,10 +35,10 @@ const result = await publicClient
 
 ```typescript
 // ✅ Good: Always use limit
-const result = await publicClient.buildQuery().where(eq('type', 'ask')).limit(100).fetch();
+const result = await arkivSelect('ask').limit(100).fetch();
 
 // ❌ Bad: No limit (unbounded)
-const result = await publicClient.buildQuery().where(eq('type', 'ask')).fetch();
+const result = await arkivSelect('ask').fetch();
 ```
 
 ### Normalize Wallet Addresses
@@ -48,17 +46,13 @@ const result = await publicClient.buildQuery().where(eq('type', 'ask')).fetch();
 ```typescript
 // ✅ Good: Normalize to lowercase
 const wallet = userWallet.toLowerCase();
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'user_profile'))
-  .where(eq('wallet', wallet))
+const result = await arkivSelect('user_profile')
+  .where(eqAttr('wallet', wallet))
   .fetch();
 
 // ❌ Bad: Case-sensitive
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'user_profile'))
-  .where(eq('wallet', userWallet))
+const result = await arkivSelect('user_profile')
+  .where(eqAttr('wallet', userWallet))
   .fetch();
 ```
 
@@ -68,12 +62,8 @@ For complex filters, query broadly and filter client-side:
 
 ```typescript
 // 1. Query indexed attributes
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'session'))
-  .where(eq('mentorWallet', wallet))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('session')
+  .where(eqAttr('mentor_wallet', wallet))
   .limit(100)
   .fetch();
 
@@ -91,12 +81,8 @@ For large result sets, use pagination:
 async function getSessionsPaginated(wallet: string, page: number = 0, pageSize: number = 20) {
   const offset = page * pageSize;
 
-  const result = await publicClient
-    .buildQuery()
-    .where(eq('type', 'session'))
-    .where(eq('mentorWallet', wallet))
-    .withAttributes(true)
-    .withPayload(true)
+  const result = await arkivSelect('session')
+    .where(eqAttr('mentor_wallet', wallet))
     .limit(pageSize)
     .fetch();
 

@@ -12,7 +12,7 @@
 'use client';
 
 import { EthereumProvider } from '@walletconnect/ethereum-provider';
-import { braga } from '@arkiv-network/sdk/chains';
+import { ARKIV_ADD_CHAIN_PARAMS, ARKIV_CHAIN_ID_HEX, arkivChain } from '@/lib/arkiv/chain';
 import { isMobileBrowser } from './mobile-detection';
 
 /**
@@ -53,24 +53,24 @@ export async function connectWalletConnect(): Promise<`0x${string}`> {
       );
     }
 
-    // Initialize WalletConnect provider with Braga chain only
-    // Reuse braga config from SDK for consistency
+    // Initialize WalletConnect provider with Arkiv Tiramisu chain only
+    // Reuse Arkiv chain config for consistency
     console.log('[WalletConnect] Initializing provider', {
       projectId: projectId ? `${projectId.substring(0, 8)}...` : 'missing',
-      chainId: braga.id,
-      chainName: braga.name,
-      rpcUrl: braga.rpcUrls.default.http[0],
+      chainId: arkivChain.id,
+      chainName: arkivChain.name,
+      rpcUrl: arkivChain.rpcUrls.default.http[0],
     });
 
     // Include Ethereum mainnet (1) as a fallback chain so wallets can connect
-    // Braga is a custom chain not in WalletConnect registry, so wallets may not recognize it
-    // We'll add Braga after connection using wallet_addEthereumChain
+    // Arkiv Tiramisu is a custom chain not in WalletConnect registry, so wallets may not recognize it
+    // We'll add Arkiv Tiramisu after connection using wallet_addEthereumChain
     const provider = await EthereumProvider.init({
       projectId,
-      chains: [1, braga.id], // Ethereum mainnet (1) + Braga
+      chains: [1, arkivChain.id], // Ethereum mainnet (1) + Arkiv Tiramisu
       rpcMap: {
         1: 'https://eth.llamarpc.com', // Public Ethereum RPC
-        [braga.id]: braga.rpcUrls.default.http[0],
+        [arkivChain.id]: arkivChain.rpcUrls.default.http[0],
       },
       showQrModal: true, // Use built-in QR modal for Phase 0
       metadata: {
@@ -120,15 +120,17 @@ export async function connectWalletConnect(): Promise<`0x${string}`> {
       setWalletConnectProvider(null);
     });
 
-    // After connection, add Braga to wallet and switch to it
-    // This ensures wallets can add Braga even if they don't recognize it during connection
-    // We include Ethereum mainnet (1) in chains array so wallets can connect, then add Braga
+    // After connection, add Arkiv Tiramisu to wallet and switch to it
+    // This ensures wallets can add Arkiv Tiramisu even if they don't recognize it during connection
+    // We include Ethereum mainnet (1) in chains array so wallets can connect, then add Arkiv Tiramisu
     try {
       const chainId = await provider.request({ method: 'eth_chainId' });
-      const expectedChainId = `0x${braga.id.toString(16)}`;
+      const expectedChainId: string = ARKIV_CHAIN_ID_HEX;
 
       if (chainId !== expectedChainId) {
-        console.log('[WalletConnect] Not on Braga, attempting to add/switch to Braga');
+        console.log(
+          '[WalletConnect] Not on Arkiv Tiramisu, attempting to add/switch to Arkiv Tiramisu'
+        );
         const chainIdHex = expectedChainId;
 
         try {
@@ -137,38 +139,30 @@ export async function connectWalletConnect(): Promise<`0x${string}`> {
             method: 'wallet_switchEthereumChain',
             params: [{ chainId: chainIdHex }],
           });
-          console.log('[WalletConnect] Successfully switched to Braga');
+          console.log('[WalletConnect] Successfully switched to Arkiv Tiramisu');
         } catch (switchError: any) {
           // If switch fails (chain doesn't exist), try to add it
-          // This will prompt the wallet to add Braga network
-          console.log('[WalletConnect] Switch failed, attempting to add Braga chain to wallet');
+          // This will prompt the wallet to add Arkiv Tiramisu network
+          console.log(
+            '[WalletConnect] Switch failed, attempting to add Arkiv Tiramisu chain to wallet'
+          );
           try {
             await provider.request({
               method: 'wallet_addEthereumChain',
-              params: [
-                {
-                  chainId: chainIdHex,
-                  chainName: braga.name,
-                  nativeCurrency: braga.nativeCurrency,
-                  rpcUrls: braga.rpcUrls.default.http,
-                  blockExplorerUrls: braga.blockExplorers?.default?.url
-                    ? [braga.blockExplorers.default.url]
-                    : [],
-                },
-              ],
+              params: [ARKIV_ADD_CHAIN_PARAMS],
             });
-            console.log('[WalletConnect] Successfully added Braga chain to wallet');
+            console.log('[WalletConnect] Successfully added Arkiv Tiramisu chain to wallet');
           } catch (addError: any) {
             // Non-critical - user may have rejected or wallet doesn't support adding chains
-            console.warn('[WalletConnect] Failed to add/switch to Braga (non-critical):', {
+            console.warn('[WalletConnect] Failed to add/switch to Arkiv Tiramisu (non-critical):', {
               switchError: switchError?.message || switchError,
               addError: addError?.message || addError,
             });
-            // Connection still succeeds, user can manually switch to Braga later
+            // Connection still succeeds, user can manually switch to Arkiv Tiramisu later
           }
         }
       } else {
-        console.log('[WalletConnect] Already on Braga chain');
+        console.log('[WalletConnect] Already on Arkiv Tiramisu chain');
       }
     } catch (chainError) {
       // Non-critical - continue even if chain check fails
@@ -210,7 +204,7 @@ export async function connectWalletConnect(): Promise<`0x${string}`> {
       error?.message?.includes('namespaces')
     ) {
       throw new Error(
-        'WalletConnect session error. Please try again. If the issue persists, your wallet may not support the Braga testnet. Try using MetaMask instead.'
+        'WalletConnect session error. Please try again. If the issue persists, your wallet may not support the Arkiv Tiramisu testnet. Try using MetaMask instead.'
       );
     }
 

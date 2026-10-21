@@ -102,14 +102,10 @@ Implementation: `lib/arkiv/questProgress.ts` - `createQuestStepProgress()` uses 
 Fetch all progress for a quest:
 
 ```typescript
-const query = publicClient.buildQuery();
-const result = await query
-  .where(eq('type', 'quest_step_progress'))
-  .where(eq('wallet', wallet.toLowerCase()))
-  .where(eq('questId', 'arkiv_builder'))
-  .where(eq('spaceId', spaceId))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('quest_step_progress')
+  .where(eqAttr('wallet', wallet.toLowerCase()))
+  .where(eqAttr('quest_id', 'arkiv_builder'))
+  .where(eqAttr('space_id', spaceId))
   .limit(100)
   .fetch();
 ```
@@ -117,15 +113,11 @@ const result = await query
 Check if a specific step is completed:
 
 ```typescript
-const query = publicClient.buildQuery();
-const result = await query
-  .where(eq('type', 'quest_step_progress'))
-  .where(eq('wallet', wallet.toLowerCase()))
-  .where(eq('questId', 'arkiv_builder'))
-  .where(eq('stepId', 'intro'))
-  .where(eq('spaceId', spaceId))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('quest_step_progress')
+  .where(eqAttr('wallet', wallet.toLowerCase()))
+  .where(eqAttr('quest_id', 'arkiv_builder'))
+  .where(eqAttr('step_id', 'intro'))
+  .where(eqAttr('space_id', spaceId))
   .limit(1)
   .fetch();
 ```

@@ -27,6 +27,7 @@
     "node_modules",
     "refs",
     "subgraph",
+    "extractions",
     "vitest.config.ts",
     "vitest.setup.ts",
     "playwright.config.ts",

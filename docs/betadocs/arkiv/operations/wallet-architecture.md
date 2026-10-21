@@ -170,10 +170,10 @@ All entities and transactions are viewable on the [Arkiv Explorer](https://explo
 // Profile wallet used in attributes
 const entity = {
   attributes: [
-    { key: 'type', value: 'user_profile' },
-    { key: 'wallet', value: profileWallet.toLowerCase() }, // Profile wallet
-    { key: 'spaceId', value: 'local-dev' }, // Default in library functions; API routes use SPACE_ID from config
-    { key: 'createdAt', value: new Date().toISOString() },
+    { type: 'user_profile' },
+    { wallet: profileWallet.toLowerCase() }, // Profile wallet
+    { space_id: 'local-dev' }, // Default in library functions; API routes use SPACE_ID from config
+    { created_at: new Date().toISOString() },
   ],
   payload: {
     displayName: 'Alice',
@@ -189,12 +189,8 @@ const txHash = await signingWallet.createEntity(entity);
 
 ```typescript
 // Query by profile wallet
-const query = publicClient
-  .buildQuery()
-  .where(eq('type', 'user_profile'))
-  .where(eq('wallet', profileWallet.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
+const query = arkivSelect('user_profile')
+  .where(eqAttr('wallet', profileWallet.toLowerCase()))
   .fetch();
 ```
 

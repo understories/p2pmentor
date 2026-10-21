@@ -5,18 +5,37 @@
  * Stores admin notifications with read/unread/archived state.
  *
  * Entity Type: `admin_notification`
- * Update Pattern: Pattern B (updateEntity with stable entity_key)
+ * Update Pattern: Pattern B (patchEntity via replaceArkivEntity with stable entity_key)
  *
  * Key Design:
  * - Stable entity_key derived from (wallet, notificationId)
- * - Uses updateEntity for state changes (read/unread/archived)
+ * - Uses replaceArkivEntity (patchEntity) for state changes (read/unread/archived)
  * - Full transaction history preserved
+ * - Always written with the server signer key; reads are scoped with
+ *   `.createdBy(SERVER_SIGNER_ADDRESS)` so copied attributes cannot spoof notifications
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { PROJECT, eqAttr } from '@/lib/arkiv/schema';
+import {
+  arkivSelect,
+  fetchAll,
+  getAttr as readAttr,
+  getEntityByKey,
+  parsePayload,
+} from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
-import { SPACE_ID } from '@/lib/config';
+import { SERVER_SIGNER_ADDRESS, SPACE_ID } from '@/lib/config';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { createArkivEntity, replaceArkivEntity } from './write';
+
+/**
+ * Start an admin_notification query, scoped to the server signer when known
+ * (admin notifications are only ever written with the server key).
+ */
+function adminNotificationQuery(publicClient: ReturnType<typeof getPublicClient>) {
+  const q = arkivSelect('admin_notification', publicClient);
+  return SERVER_SIGNER_ADDRESS ? q.createdBy(SERVER_SIGNER_ADDRESS) : q;
+}
 
 export type AdminNotificationType =
   | 'feedback_response' // Admin responded to user feedback
@@ -85,7 +104,6 @@ export async function createAdminNotification({
   spaceId?: string;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const now = new Date().toISOString();
   const normalizedWallet = wallet.toLowerCase();
 
@@ -94,19 +112,14 @@ export async function createAdminNotification({
 
   // Check if notification already exists
   const publicClient = getPublicClient();
-  const existing = await publicClient
-    .buildQuery()
-    .where(eq('type', 'admin_notification'))
-    .where(eq('wallet', normalizedWallet))
-    .where(eq('notificationId', notificationId))
-    .where(eq('spaceId', spaceId))
-    .withAttributes(true)
-    .withPayload(true)
+  const existing = await adminNotificationQuery(publicClient)
+    .where(eqAttr('wallet', normalizedWallet))
+    .where(eqAttr('notification_id', notificationId))
+    .where(eqAttr('space_id', spaceId))
     .limit(1)
     .fetch();
 
-  const expiresIn = 31536000; // 1 year
-
+  // Lifetime: admin_notification type default (see lib/arkiv/schema.ts)
   const payload = {
     title,
     message,
@@ -124,50 +137,39 @@ export async function createAdminNotification({
     // Notification exists - update it in place (Pattern B)
     const existingKey = existing.entities[0].key;
     const result = await handleTransactionWithTimeout(async () => {
-      return await walletClient.updateEntity({
-        entityKey: existingKey as `0x${string}`,
-        payload: enc.encode(JSON.stringify(payload)),
-        contentType: 'application/json',
-        attributes: [
-          { key: 'type', value: 'admin_notification' },
-          { key: 'wallet', value: normalizedWallet },
-          { key: 'notificationId', value: notificationId },
-          { key: 'notificationType', value: notificationType },
-          { key: 'spaceId', value: spaceId },
-          {
-            key: 'createdAt',
-            value:
-              existing.entities[0].attributes && Array.isArray(existing.entities[0].attributes)
-                ? existing.entities[0].attributes.find((a: any) => a.key === 'createdAt')?.value ||
-                  now
-                : (existing.entities[0].attributes as any)?.createdAt || now,
-          },
-          { key: 'updatedAt', value: now },
-          ...(sourceEntityType ? [{ key: 'sourceEntityType', value: sourceEntityType }] : []),
-          ...(sourceEntityKey ? [{ key: 'sourceEntityKey', value: sourceEntityKey }] : []),
-        ],
-        expiresIn,
+      return await replaceArkivEntity(walletClient, {
+        entityKey: existingKey,
+        type: 'admin_notification',
+        attributes: {
+          wallet: normalizedWallet,
+          notification_id: notificationId,
+          notification_type: notificationType,
+          space_id: spaceId,
+          created_at: readAttr(existing.entities[0], 'created_at') || now,
+          updated_at: now,
+          source_entity_type: sourceEntityType,
+          source_entity_key: sourceEntityKey,
+        },
+        payload,
       });
     });
     txHash = result.txHash;
   } else {
     // Create new notification entity
     const result = await handleTransactionWithTimeout(async () => {
-      return await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify(payload)),
-        contentType: 'application/json',
-        attributes: [
-          { key: 'type', value: 'admin_notification' },
-          { key: 'wallet', value: normalizedWallet },
-          { key: 'notificationId', value: notificationId },
-          { key: 'notificationType', value: notificationType },
-          { key: 'spaceId', value: spaceId },
-          { key: 'createdAt', value: now },
-          { key: 'updatedAt', value: now },
-          ...(sourceEntityType ? [{ key: 'sourceEntityType', value: sourceEntityType }] : []),
-          ...(sourceEntityKey ? [{ key: 'sourceEntityKey', value: sourceEntityKey }] : []),
-        ],
-        expiresIn,
+      return await createArkivEntity(walletClient, {
+        type: 'admin_notification',
+        attributes: {
+          wallet: normalizedWallet,
+          notification_id: notificationId,
+          notification_type: notificationType,
+          space_id: spaceId,
+          created_at: now,
+          updated_at: now,
+          source_entity_type: sourceEntityType,
+          source_entity_key: sourceEntityKey,
+        },
+        payload,
       });
     });
     txHash = result.txHash;
@@ -177,32 +179,25 @@ export async function createAdminNotification({
 
   // Get the actual entity key (from update or create result)
   // Query to get the key we just created/updated
-  const verifyResult = await publicClient
-    .buildQuery()
-    .where(eq('type', 'admin_notification'))
-    .where(eq('wallet', normalizedWallet))
-    .where(eq('notificationId', notificationId))
-    .where(eq('spaceId', spaceId))
-    .withAttributes(true)
+  const verifyResult = await adminNotificationQuery(publicClient)
+    .where(eqAttr('wallet', normalizedWallet))
+    .where(eqAttr('notification_id', notificationId))
+    .where(eqAttr('space_id', spaceId))
     .limit(1)
     .fetch();
 
   const actualKey = verifyResult?.entities?.[0]?.key || entityKey;
 
   // Store txHash in separate entity for reliable querying (non-blocking)
-  walletClient
-    .createEntity({
-      payload: enc.encode(JSON.stringify({ txHash })),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'admin_notification_txhash' },
-        { key: 'notificationKey', value: actualKey },
-        { key: 'wallet', value: normalizedWallet },
-        { key: 'spaceId', value: spaceId },
-      ],
-      expiresIn,
-    })
-    .catch((err: any) => {
+  createArkivEntity(walletClient, {
+    type: 'admin_notification_txhash',
+    attributes: {
+      notification_key: actualKey,
+      wallet: normalizedWallet,
+      space_id: spaceId,
+    },
+    payload: { txHash },
+  }).catch((err: any) => {
       console.warn('[createAdminNotification] Failed to create txHash entity (non-critical):', err);
     });
 
@@ -212,7 +207,7 @@ export async function createAdminNotification({
 /**
  * Update admin notification state (read/unread/archived)
  *
- * Uses Pattern B: updateEntity with stable entity_key
+ * Uses Pattern B: replaceArkivEntity (patchEntity) with stable entity_key
  * This updates the existing entity in place rather than creating a new one.
  */
 export async function updateAdminNotificationState({
@@ -231,19 +226,14 @@ export async function updateAdminNotificationState({
   spaceId?: string;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const now = new Date().toISOString();
   const normalizedWallet = wallet.toLowerCase();
 
   // Get current notification state by wallet + notificationId (stable query)
   const publicClient = getPublicClient();
-  const result = await publicClient
-    .buildQuery()
-    .where(eq('type', 'admin_notification'))
-    .where(eq('wallet', normalizedWallet))
-    .where(eq('notificationId', notificationId))
-    .withAttributes(true)
-    .withPayload(true)
+  const result = await adminNotificationQuery(publicClient)
+    .where(eqAttr('wallet', normalizedWallet))
+    .where(eqAttr('notification_id', notificationId))
     .limit(1)
     .fetch();
 
@@ -257,30 +247,10 @@ export async function updateAdminNotificationState({
   const entityKey = entity.key;
 
   // Decode current payload
-  let currentPayload: any = {};
-  try {
-    if (entity.payload) {
-      const decoded =
-        entity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(entity.payload)
-          : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
-      currentPayload = JSON.parse(decoded);
-    }
-  } catch (e) {
-    console.error('[updateAdminNotificationState] Error decoding payload:', e);
-  }
+  const currentPayload: any = parsePayload(entity);
 
   // Get current attributes
-  const attrs = entity.attributes || {};
-  const getAttr = (key: string): string => {
-    if (Array.isArray(attrs)) {
-      const attr = attrs.find((a: any) => a.key === key);
-      return String(attr?.value || '');
-    }
-    return String(attrs[key] || '');
-  };
+  const getAttr = (key: string): string => readAttr(entity, key);
 
   // Build updated payload
   const updatedPayload = {
@@ -290,29 +260,22 @@ export async function updateAdminNotificationState({
     updatedAt: now,
   };
 
-  // Update entity in place (Pattern B)
-  const expiresIn = 31536000; // 1 year
+  // Update entity in place (Pattern B; patches do not change expiry)
   const { txHash } = await handleTransactionWithTimeout(async () => {
-    return await walletClient.updateEntity({
-      entityKey: entityKey as `0x${string}`,
-      payload: enc.encode(JSON.stringify(updatedPayload)),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'admin_notification' },
-        { key: 'wallet', value: normalizedWallet },
-        { key: 'notificationId', value: notificationId },
-        { key: 'notificationType', value: getAttr('notificationType') },
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: getAttr('createdAt') || now },
-        { key: 'updatedAt', value: now },
-        ...(getAttr('sourceEntityType')
-          ? [{ key: 'sourceEntityType', value: getAttr('sourceEntityType') }]
-          : []),
-        ...(getAttr('sourceEntityKey')
-          ? [{ key: 'sourceEntityKey', value: getAttr('sourceEntityKey') }]
-          : []),
-      ],
-      expiresIn,
+    return await replaceArkivEntity(walletClient, {
+      entityKey,
+      type: 'admin_notification',
+      attributes: {
+        wallet: normalizedWallet,
+        notification_id: notificationId,
+        notification_type: getAttr('notification_type'),
+        space_id: spaceId,
+        created_at: getAttr('created_at') || now,
+        updated_at: now,
+        source_entity_type: getAttr('source_entity_type'),
+        source_entity_key: getAttr('source_entity_key'),
+      },
+      payload: updatedPayload,
     });
   });
 
@@ -325,20 +288,16 @@ export async function updateAdminNotificationState({
 export async function getAdminNotificationByKey(key: string): Promise<AdminNotification | null> {
   const publicClient = getPublicClient();
 
-  const result = await publicClient
-    .buildQuery()
-    .where(eq('type', 'admin_notification'))
-    .where(eq('key', key))
-    .withAttributes(true)
-    .withPayload(true)
-    .limit(1)
-    .fetch();
-
-  if (!result?.entities || result.entities.length === 0) {
+  const entity = await getEntityByKey(key, publicClient);
+  if (
+    !entity ||
+    readAttr(entity, 'type') !== 'admin_notification' ||
+    readAttr(entity, 'project') !== PROJECT ||
+    (SERVER_SIGNER_ADDRESS && entity.creator?.toLowerCase() !== SERVER_SIGNER_ADDRESS)
+  ) {
     return null;
   }
 
-  const entity = result.entities[0];
   return decodeAdminNotificationEntity(entity);
 }
 
@@ -362,26 +321,21 @@ export async function listAdminNotifications({
 } = {}): Promise<AdminNotification[]> {
   const publicClient = getPublicClient();
 
-  const query = publicClient
-    .buildQuery()
-    .where(eq('type', 'admin_notification'))
-    .withAttributes(true)
-    .withPayload(true)
-    .limit(limit || 100);
+  const query = adminNotificationQuery(publicClient);
 
   if (wallet) {
-    query.where(eq('wallet', wallet.toLowerCase()));
+    query.where(eqAttr('wallet', wallet.toLowerCase()));
   }
 
   if (notificationType) {
-    query.where(eq('notificationType', notificationType));
+    query.where(eqAttr('notification_type', notificationType));
   }
 
   if (spaceId) {
-    query.where(eq('spaceId', spaceId));
+    query.where(eqAttr('space_id', spaceId));
   }
 
-  const result = await query.fetch();
+  const result = await fetchAll(query, limit || 100, publicClient);
 
   if (!result?.entities || !Array.isArray(result.entities)) {
     return [];
@@ -408,46 +362,26 @@ export async function listAdminNotifications({
  * Decode admin notification entity from Arkiv response
  */
 function decodeAdminNotificationEntity(entity: any): AdminNotification {
-  const attrs = entity.attributes || {};
-  const getAttr = (key: string): string => {
-    if (Array.isArray(attrs)) {
-      const attr = attrs.find((a: any) => a.key === key);
-      return String(attr?.value || '');
-    }
-    return String(attrs[key] || '');
-  };
+  const getAttr = (key: string): string => readAttr(entity, key);
 
   // Decode payload
-  let payload: any = {};
-  try {
-    if (entity.payload) {
-      const decoded =
-        entity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(entity.payload)
-          : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
-      payload = JSON.parse(decoded);
-    }
-  } catch (e) {
-    console.error('[decodeAdminNotificationEntity] Error decoding payload:', e);
-  }
+  const payload: any = parsePayload(entity);
 
   return {
     key: entity.key,
     wallet: getAttr('wallet'),
-    notificationId: getAttr('notificationId'),
-    notificationType: getAttr('notificationType') as AdminNotificationType,
+    notificationId: getAttr('notification_id'),
+    notificationType: getAttr('notification_type') as AdminNotificationType,
     title: payload.title || '',
     message: payload.message || '',
     link: payload.link,
-    sourceEntityType: getAttr('sourceEntityType') || undefined,
-    sourceEntityKey: getAttr('sourceEntityKey') || undefined,
+    sourceEntityType: getAttr('source_entity_type') || undefined,
+    sourceEntityKey: getAttr('source_entity_key') || undefined,
     read: payload.read ?? false,
     archived: payload.archived ?? false,
     metadata: payload.metadata,
-    spaceId: getAttr('spaceId'),
-    createdAt: getAttr('createdAt'),
-    updatedAt: payload.updatedAt || getAttr('updatedAt') || getAttr('createdAt'),
+    spaceId: getAttr('space_id'),
+    createdAt: getAttr('created_at'),
+    updatedAt: payload.updatedAt || getAttr('updated_at') || getAttr('created_at'),
   };
 }

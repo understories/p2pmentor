@@ -44,7 +44,7 @@ export async function registerBackupWallet({
   // MetaMask wallet client can sign entity creation transactions directly
 
   const { handleTransactionWithTimeout } = await import('@/lib/arkiv/transaction-utils');
-  const enc = new TextEncoder();
+  const { createArkivEntity } = await import('@/lib/arkiv/write');
   const createdAt = new Date().toISOString();
 
   const payload = {
@@ -52,40 +52,32 @@ export async function registerBackupWallet({
     createdAt,
   };
 
-  // 1 year TTL (effectively permanent for beta)
-  const expiresIn = 31536000;
-
+  // Lifetime: auth_identity type default (see lib/arkiv/schema.ts)
   const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
-    return await backupWalletClient.createEntity({
-      payload: enc.encode(JSON.stringify(payload)),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'auth_identity' },
-        { key: 'subtype', value: 'backup_wallet' },
-        { key: 'wallet', value: wallet.toLowerCase() },
-        { key: 'spaceId', value: SPACE_ID },
-        { key: 'createdAt', value: createdAt },
-      ],
-      expiresIn,
+    return await createArkivEntity(backupWalletClient, {
+      type: 'auth_identity',
+      attributes: {
+        subtype: 'backup_wallet',
+        wallet: wallet.toLowerCase(),
+        space_id: SPACE_ID,
+        created_at: createdAt,
+      },
+      payload,
     });
   });
 
   // Create separate txhash entity (optional metadata, don't wait)
-  backupWalletClient
-    .createEntity({
-      payload: enc.encode(JSON.stringify({ txHash })),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'auth_identity_backup_wallet_txhash' },
-        { key: 'identityKey', value: entityKey },
-        { key: 'wallet', value: wallet.toLowerCase() },
-        { key: 'spaceId', value: SPACE_ID },
-      ],
-      expiresIn,
-    })
-    .catch((error: any) => {
-      console.warn('[registerBackupWallet] Failed to create txhash entity:', error);
-    });
+  createArkivEntity(backupWalletClient, {
+    type: 'auth_identity_backup_wallet_txhash',
+    attributes: {
+      identity_key: entityKey,
+      wallet: wallet.toLowerCase(),
+      space_id: SPACE_ID,
+    },
+    payload: { txHash },
+  }).catch((error: any) => {
+    console.warn('[registerBackupWallet] Failed to create txhash entity:', error);
+  });
 
   return { key: entityKey, txHash };
 }

@@ -46,12 +46,8 @@
 Query pattern for profile feedback:
 
 ```typescript
-const query = publicClient.buildQuery();
-const result = await query
-  .where(eq('type', 'session_feedback'))
-  .where(eq('feedbackTo', wallet.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('session_feedback')
+  .where(eqAttr('feedback_to', wallet.toLowerCase()))
   .limit(100)
   .fetch();
 
@@ -79,12 +75,8 @@ Implementation: `lib/arkiv/feedback.ts` - `createFeedback()` validates all rules
 Fetch feedback for a session:
 
 ```typescript
-const query = publicClient.buildQuery();
-const result = await query
-  .where(eq('type', 'session_feedback'))
-  .where(eq('sessionKey', sessionKey))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('session_feedback')
+  .where(eqAttr('session_key', sessionKey))
   .limit(10)
   .fetch();
 ```
@@ -92,12 +84,8 @@ const result = await query
 Fetch feedback received by a profile:
 
 ```typescript
-const query = publicClient.buildQuery();
-const result = await query
-  .where(eq('type', 'session_feedback'))
-  .where(eq('feedbackTo', wallet.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('session_feedback')
+  .where(eqAttr('feedback_to', wallet.toLowerCase()))
   .limit(100)
   .fetch();
 ```

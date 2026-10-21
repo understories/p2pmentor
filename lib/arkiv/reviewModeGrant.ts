@@ -8,10 +8,12 @@
  * This ensures only the app can issue grants, preventing users from issuing their own grants.
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, getAttr as readAttr, parsePayload } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
-import { SPACE_ID, getPrivateKey, CURRENT_WALLET } from '@/lib/config';
+import { SPACE_ID, getPrivateKey, CURRENT_WALLET, SERVER_SIGNER_ADDRESS } from '@/lib/config';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { createArkivEntity } from './write';
 import { isEntityRevoked } from './revocation';
 
 export type ReviewModeGrant = {
@@ -60,7 +62,7 @@ export async function issueReviewModeGrant({
   }
 
   // Derive server signer address from private key
-  const { privateKeyToAccount } = await import('@arkiv-network/sdk/accounts');
+  const { privateKeyToAccount } = await import('viem/accounts');
   const serverSignerAccount = privateKeyToAccount(privateKey);
   const serverSignerAddress = serverSignerAccount.address.toLowerCase();
 
@@ -94,7 +96,6 @@ export async function issueReviewModeGrant({
     match: walletClientAddress === serverSignerAddress,
   });
 
-  const enc = new TextEncoder();
   const issuedAt = new Date().toISOString(); // ISO-8601 UTC
   const spaceId = SPACE_ID;
   const issuedBy = serverSignerAddress; // Server signer address (explicit, not from CURRENT_WALLET)
@@ -112,41 +113,38 @@ export async function issueReviewModeGrant({
     issuedBy,
   };
 
-  const attributes: Array<{ key: string; value: string }> = [
-    { key: 'type', value: 'review_mode_grant' },
-    { key: 'typeVersion', value: '1' },
-    { key: 'space_id', value: spaceId }, // Use snake_case per Arkiv standards
-    { key: 'subject_wallet', value: subjectWallet.toLowerCase() },
-    { key: 'mode', value: 'arkiv_review' },
-    { key: 'issued_at', value: issuedAt }, // snake_case for consistency
-    { key: 'expires_at', value: defaultExpiresAt }, // snake_case for consistency
-    { key: 'issuer_wallet', value: issuedBy }, // snake_case, explicit issuer
-    { key: 'reason', value: grantReason }, // Optional: arkiv_team_review
-  ];
-  if (appBuild) {
-    attributes.push({ key: 'appBuild', value: appBuild });
-  }
+  // Attributes: short, queryable fields only (grantReason is payload-only)
+  const attributes = {
+    type_version: '1',
+    space_id: spaceId,
+    subject_wallet: subjectWallet.toLowerCase(),
+    mode: 'arkiv_review',
+    issued_at: issuedAt,
+    expires_at: defaultExpiresAt,
+    issuer_wallet: issuedBy, // explicit issuer
+    app_build: appBuild,
+  };
 
-  // CRITICAL: Calculate expiresIn and ensure it's always an integer (BigInt requirement)
+  // CRITICAL: Calculate entity lifetime and ensure it's always an integer (BigInt requirement)
   // Division produces float, must floor immediately and validate
   const expirationTime = new Date(defaultExpiresAt).getTime();
   const now = Date.now();
-  const expiresInSecondsRaw = (expirationTime - now) / 1000;
-  const expiresInSeconds = Math.max(1, Math.floor(expiresInSecondsRaw));
+  const lifetimeSecondsRaw = (expirationTime - now) / 1000;
+  const lifetimeSeconds = Math.max(1, Math.floor(lifetimeSecondsRaw));
 
   // Final safety check: ensure it's definitely an integer for BigInt conversion
-  if (!Number.isInteger(expiresInSeconds) || expiresInSeconds < 1) {
+  if (!Number.isInteger(lifetimeSeconds) || lifetimeSeconds < 1) {
     throw new Error(
-      `expiresIn must be a positive integer, got: ${expiresInSeconds} (raw: ${expiresInSecondsRaw})`
+      `lifetimeSeconds must be a positive integer, got: ${lifetimeSeconds} (raw: ${lifetimeSecondsRaw})`
     );
   }
 
   const result = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify(payload)),
-      contentType: 'application/json',
+    return await createArkivEntity(walletClient, {
+      type: 'review_mode_grant',
       attributes,
-      expiresIn: expiresInSeconds,
+      payload,
+      lifetimeSeconds, // Entity expires with the grant
     });
   });
 
@@ -173,16 +171,17 @@ export async function getLatestValidReviewModeGrant(
   spaceId?: string
 ): Promise<ReviewModeGrant | null> {
   const publicClient = getPublicClient();
-  const query = publicClient.buildQuery();
+  // Grants are only written with the server key: scope to the server signer when configured
+  const baseQuery = arkivSelect('review_mode_grant', publicClient);
+  const query = SERVER_SIGNER_ADDRESS ? baseQuery.createdBy(SERVER_SIGNER_ADDRESS) : baseQuery;
   const finalSpaceId = spaceId || SPACE_ID;
 
   let queryBuilder = query
-    .where(eq('type', 'review_mode_grant'))
-    .where(eq('subject_wallet', wallet.toLowerCase()))
-    .where(eq('space_id', finalSpaceId)); // Use snake_case per Arkiv standards
+    .where(eqAttr('subject_wallet', wallet.toLowerCase()))
+    .where(eqAttr('space_id', finalSpaceId)); // Use snake_case per Arkiv standards
 
   try {
-    const result = await queryBuilder.withAttributes(true).withPayload(true).limit(100).fetch();
+    const result = await queryBuilder.limit(100).fetch();
 
     if (!result || !result.entities || !Array.isArray(result.entities)) {
       return null;
@@ -219,7 +218,7 @@ export async function getLatestValidReviewModeGrant(
         }
 
         // Check expiration (required check)
-        const expiresAt = entity.attributes?.find((attr: any) => attr.key === 'expires_at')?.value;
+        const expiresAt = readAttr(entity, 'expires_at');
         if (expiresAt) {
           try {
             if (expiresAt <= now) {
@@ -233,9 +232,7 @@ export async function getLatestValidReviewModeGrant(
 
         // CRITICAL: Verify issuer is server signer (non-optional, prevents user-issued grants)
         // This check is mandatory - grants without issuer_wallet or with wrong issuer are rejected
-        const issuerWallet = entity.attributes?.find(
-          (attr: any) => attr.key === 'issuer_wallet'
-        )?.value;
+        const issuerWallet = readAttr(entity, 'issuer_wallet');
         if (!issuerWallet) {
           return false; // Missing issuer_wallet - reject
         }
@@ -252,8 +249,8 @@ export async function getLatestValidReviewModeGrant(
       .map(({ entity }) => entity)
       .sort((a: any, b: any) => {
         // Get issued_at, treat missing as oldest
-        const aTime = a.attributes?.find((attr: any) => attr.key === 'issued_at')?.value || '';
-        const bTime = b.attributes?.find((attr: any) => attr.key === 'issued_at')?.value || '';
+        const aTime = readAttr(a, 'issued_at');
+        const bTime = readAttr(b, 'issued_at');
         // Missing timestamps sort to end (oldest)
         if (!aTime && !bTime) return 0;
         if (!aTime) return 1; // a is older
@@ -266,10 +263,8 @@ export async function getLatestValidReviewModeGrant(
     }
 
     const latest = validGrants[0];
-    const getAttr = (key: string): string => {
-      const attr = latest.attributes?.find((attr: any) => attr.key === key);
-      return attr?.value ? String(attr.value) : '';
-    };
+    const getAttr = (key: string): string => readAttr(latest, key);
+    const payload = parsePayload<any>(latest);
 
     return {
       key: latest.key || (latest as any).entityKey || '', // Support both key and entityKey
@@ -278,7 +273,7 @@ export async function getLatestValidReviewModeGrant(
       issuedAt: getAttr('issued_at') || '',
       expiresAt: getAttr('expires_at') || undefined,
       appBuild: getAttr('app_build') || undefined,
-      grantReason: getAttr('reason') || 'arkiv_team_review',
+      grantReason: payload.grantReason || 'arkiv_team_review',
       issuerWallet: getAttr('issuer_wallet') || serverSignerAddress, // Required for verification
       spaceId: getAttr('space_id') || finalSpaceId, // Use snake_case per Arkiv standards
       txHash: (latest as any).txHash || '',

@@ -16,8 +16,9 @@ export function BetaBanner({ className = '' }: { className?: string }) {
             Beta Environment
           </p>
           <p className="text-sm text-yellow-800 dark:text-yellow-300">
-            This is a test environment on the Braga testnet. All data is observable and may be
-            reset. Never use wallets with real funds.
+            This is a test environment on the Arkiv Tiramisu testnet. All data is observable and may
+            be reset. We moved to Tiramisu in October 2026 and started fresh: if your profile is
+            missing, please create it again. Never use wallets with real funds.
           </p>
         </div>
       </div>

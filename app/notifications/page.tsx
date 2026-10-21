@@ -2,7 +2,7 @@
  * Notifications page
  *
  * Complete overhaul following admin notification pattern (Pattern B).
- * Uses updateEntity for state changes with state stored in notification payload.
+ * Replaces the notification entity in place for state changes with state stored in notification payload.
  *
  * Key changes:
  * - Removed separate notification_preference entities

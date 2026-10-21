@@ -90,8 +90,8 @@ const profile = await arkivUpsertEntity({
 const feedback = await createEntity({
   type: 'feedback',
   attributes: [
-    { key: 'profileKey', value: profile.key }, // Stable reference
-    { key: 'wallet', value: wallet }, // Also store wallet for querying
+    { profile_key: profile.key }, // Stable reference
+    { wallet: wallet }, // Also store wallet for querying
   ],
   payload,
   privateKey,
@@ -101,8 +101,8 @@ const feedback = await createEntity({
 const session = await createEntity({
   type: 'session',
   attributes: [
-    { key: 'mentorWallet', value: mentorWallet }, // Stable reference
-    { key: 'learnerWallet', value: learnerWallet }, // Stable reference
+    { mentor_wallet: mentorWallet }, // Stable reference
+    { learner_wallet: learnerWallet }, // Stable reference
     // Don't reference profile entity_key (may change with Pattern A)
   ],
   payload,
@@ -117,8 +117,8 @@ const session = await createSession({...});
 const confirmation = await createEntity({
   type: 'session_confirmation',
   attributes: [
-    { key: 'sessionKey', value: session.key }, // Forward reference
-    { key: 'confirmedBy', value: wallet }, // Stable identifier
+    { session_key: session.key }, // Forward reference
+    { confirmed_by: wallet }, // Stable identifier
   ],
   payload,
   privateKey,

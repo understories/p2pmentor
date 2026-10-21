@@ -12,6 +12,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { getArkivExplorerAddressUrl, getArkivExplorerTxUrl } from '@/lib/arkiv/explorer';
 
 interface AppFeedback {
   id: string;
@@ -662,7 +663,7 @@ export default function AdminFeedbackPage() {
                       </td>
                       <td className="px-4 py-2 font-mono text-sm text-xs">
                         <a
-                          href={`https://explorer.braga.hoodi.arkiv.network/address/${feedback.wallet}`}
+                          href={getArkivExplorerAddressUrl(feedback.wallet)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-600 hover:underline dark:text-blue-400"
@@ -743,7 +744,7 @@ export default function AdminFeedbackPage() {
                       <td className="px-4 py-2 text-sm">
                         {feedback.txHash ? (
                           <a
-                            href={`https://explorer.braga.hoodi.arkiv.network/tx/${feedback.txHash}`}
+                            href={getArkivExplorerTxUrl(feedback.txHash)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="font-mono text-xs text-blue-600 hover:underline dark:text-blue-400"

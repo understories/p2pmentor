@@ -7,9 +7,11 @@
  * Reference: refs/docs/jan26plan.md - Week 2 Badge Implementation
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr, lifetimeSecondsFor } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr, parsePayload } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { createArkivEntity } from './write';
 import { SPACE_ID } from '../config';
 import { getQuestStepProgress } from './questProgress';
 import { getRequiredStepIds } from '../quests';
@@ -63,7 +65,7 @@ export async function issueBadge({
   evidenceRefs,
   privateKey,
   spaceId = SPACE_ID,
-  ttlSeconds = 31536000, // 1 year default
+  ttlSeconds = lifetimeSecondsFor('badge'), // Durable credential lifetime (schema.ts 'badge')
 }: {
   wallet: string;
   badgeType: BadgeType;
@@ -83,17 +85,15 @@ export async function issueBadge({
 
   try {
     const walletClient = getWalletClientFromPrivateKey(privateKey);
-    const enc = new TextEncoder();
 
     // Build attributes (queryable fields)
-    const attributes = [
-      { key: 'type', value: 'proof_of_skill_badge' },
-      { key: 'wallet', value: normalizedWallet },
-      { key: 'badgeType', value: badgeType },
-      { key: 'questId', value: questId },
-      { key: 'spaceId', value: finalSpaceId },
-      { key: 'issuedAt', value: createdAt },
-    ];
+    const attributes = {
+      wallet: normalizedWallet,
+      badge_type: badgeType,
+      quest_id: questId,
+      space_id: finalSpaceId,
+      issued_at: createdAt,
+    };
 
     // Build payload (non-queryable content)
     const payload = {
@@ -105,31 +105,29 @@ export async function issueBadge({
 
     // Submit with timeout wrapper
     const result = await handleTransactionWithTimeout(async () => {
-      return await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify(payload)),
-        contentType: 'application/json',
+      return await createArkivEntity(walletClient, {
+        type: 'proof_of_skill_badge',
         attributes,
-        expiresIn: ttlSeconds,
+        payload,
+        lifetimeSeconds: ttlSeconds,
       });
     });
 
     const txHash = result.txHash;
 
     // Create parallel txhash entity for observability (fire and forget)
-    walletClient
-      .createEntity({
-        payload: enc.encode(JSON.stringify({ txHash, badgeKey: entityKey })),
-        contentType: 'application/json',
-        attributes: [
-          { key: 'type', value: 'proof_of_skill_badge_txhash' },
-          { key: 'badgeKey', value: entityKey },
-          { key: 'txHash', value: txHash },
-          { key: 'wallet', value: normalizedWallet },
-          { key: 'spaceId', value: finalSpaceId },
-          { key: 'createdAt', value: createdAt },
-        ],
-        expiresIn: ttlSeconds,
-      })
+    createArkivEntity(walletClient, {
+      type: 'proof_of_skill_badge_txhash',
+      attributes: {
+        badge_key: entityKey,
+        tx_hash: txHash,
+        wallet: normalizedWallet,
+        space_id: finalSpaceId,
+        created_at: createdAt,
+      },
+      payload: { txHash, badgeKey: entityKey },
+      lifetimeSeconds: ttlSeconds,
+    })
       .catch((err) => {
         // Non-blocking - log but don't fail
         console.warn('[issueBadge] Failed to create txhash entity:', err);
@@ -230,14 +228,11 @@ export async function getUserBadges({
 
   try {
     const publicClient = getPublicClient();
-    const query = publicClient.buildQuery();
+    const query = arkivSelect('proof_of_skill_badge', publicClient);
 
     const result = await query
-      .where(eq('type', 'proof_of_skill_badge'))
-      .where(eq('wallet', normalizedWallet))
-      .where(eq('spaceId', finalSpaceId))
-      .withAttributes(true)
-      .withPayload(true)
+      .where(eqAttr('wallet', normalizedWallet))
+      .where(eqAttr('space_id', finalSpaceId))
       .limit(100)
       .fetch();
 
@@ -248,32 +243,21 @@ export async function getUserBadges({
     }
 
     return result.entities.map((entity: any) => {
-      const getAttr = (key: string) => entity.attributes?.find((a: any) => a.key === key)?.value;
+      const getAttr = (key: string) => readAttr(entity, key);
 
-      let payload: any = {};
-      try {
-        if (entity.payload) {
-          const payloadStr =
-            typeof entity.payload === 'string'
-              ? entity.payload
-              : new TextDecoder().decode(entity.payload);
-          payload = JSON.parse(payloadStr);
-        }
-      } catch (e) {
-        console.warn('[getUserBadges] Failed to parse payload:', e);
-      }
+      const payload: any = parsePayload(entity);
 
       return {
         key: entity.key || '',
         wallet: getAttr('wallet') || normalizedWallet,
-        badgeType: (getAttr('badgeType') || 'arkiv_builder') as BadgeType,
-        questId: getAttr('questId') || '',
-        issuedAt: getAttr('issuedAt') || '',
+        badgeType: (getAttr('badge_type') || 'arkiv_builder') as BadgeType,
+        questId: getAttr('quest_id') || '',
+        issuedAt: getAttr('issued_at') || '',
         evidenceRefs: payload.evidenceRefs || [],
         questVersion: payload.questVersion || '1', // Default to '1' for backward compatibility
         version: payload.version || '1',
         issuer: payload.issuer || 'p2pmentor',
-        spaceId: getAttr('spaceId') || finalSpaceId,
+        spaceId: getAttr('space_id') || finalSpaceId,
         txHash: entity.txHash,
       };
     });
@@ -315,28 +299,17 @@ export async function listAllBadges({
     const publicClient = getPublicClient();
 
     const fetchForSpace = async (spaceId: string): Promise<ProofOfSkillBadge[]> => {
-      const result = await publicClient
-        .buildQuery()
-        .where(eq('type', 'proof_of_skill_badge'))
-        .where(eq('spaceId', spaceId))
-        .withAttributes(true)
-        .withPayload(true)
-        .limit(limit)
-        .fetch();
+      const result = await fetchAll(
+        arkivSelect('proof_of_skill_badge', publicClient).where(eqAttr('space_id', spaceId)),
+        limit,
+        publicClient
+      );
 
       if (!result?.entities || !Array.isArray(result.entities)) return [];
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return result.entities.map((entity: any) => {
-        const attrs = entity.attributes || {};
-        const getAttr = (key: string): string => {
-          if (Array.isArray(attrs)) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const attr = attrs.find((a: any) => a.key === key);
-            return String(attr?.value || '');
-          }
-          return String(attrs[key] || '');
-        };
+        const getAttr = (key: string): string => readAttr(entity, key);
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let payload: any = {};
@@ -357,14 +330,14 @@ export async function listAllBadges({
         return {
           key: entity.key,
           wallet: getAttr('wallet'),
-          badgeType: getAttr('badgeType') as BadgeType,
-          questId: getAttr('questId'),
-          issuedAt: getAttr('issuedAt'),
+          badgeType: getAttr('badge_type') as BadgeType,
+          questId: getAttr('quest_id'),
+          issuedAt: getAttr('issued_at'),
           evidenceRefs: payload.evidenceRefs || [],
           questVersion: payload.questVersion || '1',
           version: payload.version || '1',
           issuer: payload.issuer || 'p2pmentor',
-          spaceId: getAttr('spaceId') || spaceId,
+          spaceId: getAttr('space_id') || spaceId,
           txHash: entity.txHash,
         };
       });

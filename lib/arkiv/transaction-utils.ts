@@ -3,7 +3,48 @@
  *
  * Handles transaction receipt timeouts and rate limits gracefully (common on testnets).
  * Based on the pattern used in sessions.ts
+ *
+ * Arkiv SDK 0.8 wraps every failed mutation in an `EntityMutationError`
+ * ("Transaction failed: <inner message>", with `cause` and `txHash`), so RPC codes such as
+ * 429 / -32016 live on the `cause` chain, not on the top-level error. The helpers below
+ * read messages and codes across the whole chain.
  */
+
+/** Errors on the `cause` chain, outermost first (bounded to avoid cycles) */
+function errorChain(error: any): any[] {
+  const chain: any[] = [];
+  let current = error;
+  while (current && chain.length < 10 && !chain.includes(current)) {
+    chain.push(current);
+    current = typeof current === 'object' ? current.cause : undefined;
+  }
+  return chain;
+}
+
+/** All messages on the error chain, joined (also accepts a plain string) */
+function errorText(error: any): string {
+  if (typeof error === 'string') return error;
+  return errorChain(error)
+    .map((e) => (typeof e === 'string' ? e : [e?.message, e?.shortMessage, e?.details].join(' ')))
+    .join(' | ');
+}
+
+/** First numeric/string error code found on the error chain */
+function errorCodeOf(error: any): any {
+  for (const e of errorChain(error)) {
+    const code = e?.code ?? e?.status ?? e?.statusCode;
+    if (code !== undefined && code !== null) return code;
+  }
+  return undefined;
+}
+
+/** Transaction hash carried by the error (SDK 0.8 `EntityMutationError.txHash`), if any */
+function errorTxHash(error: any): string | undefined {
+  for (const e of errorChain(error)) {
+    if (typeof e?.txHash === 'string' && e.txHash.startsWith('0x')) return e.txHash;
+  }
+  return undefined;
+}
 
 /**
  * Checks if an error is a rate limit error
@@ -12,16 +53,16 @@
  * @returns True if this is a rate limit error (429)
  */
 export function isRateLimitError(error: any): boolean {
-  const errorMessage = typeof error === 'string' ? error : error?.message || '';
-  const errorCode = error?.code || error?.status || error?.statusCode;
+  const errorMessage = errorText(error).toLowerCase();
+  const errorCodes = typeof error === 'string' ? [] : errorChain(error).map((e) => e?.code ?? e?.status ?? e?.statusCode);
 
   return (
-    errorCode === 429 ||
-    errorCode === -32016 || // Arkiv rate limit error code
+    errorCodes.includes(429) ||
+    errorCodes.includes(-32016) || // Arkiv rate limit error code
     errorMessage.includes('rate limit') ||
     errorMessage.includes('over rate limit') ||
     errorMessage.includes('too many requests') ||
-    (errorMessage.includes('429') && errorMessage.toLowerCase().includes('limit'))
+    (errorMessage.includes('429') && errorMessage.includes('limit'))
   );
 }
 
@@ -32,7 +73,7 @@ export function isRateLimitError(error: any): boolean {
  * @returns True if this is a replacement transaction or nonce error
  */
 export function isTransactionReplacementError(error: any): boolean {
-  const errorMessage = typeof error === 'string' ? error : error?.message || '';
+  const errorMessage = errorText(error);
   return (
     errorMessage.includes('replacement transaction underpriced') ||
     errorMessage.includes('nonce too low') ||
@@ -77,9 +118,10 @@ async function retryWithBackoff<T>(
 }
 
 /**
- * Wraps createEntity calls to handle transaction receipt timeouts and rate limits
+ * Wraps entity writes (createArkivEntity / replaceArkivEntity / SDK mutations) to handle
+ * transaction receipt timeouts and rate limits
  *
- * @param createEntityFn - Function that returns a promise with createEntity call
+ * @param createEntityFn - Function that returns a promise with the write call
  * @returns Entity key and transaction hash, or throws user-friendly error
  */
 export async function handleTransactionWithTimeout<T extends { entityKey: string; txHash: string }>(
@@ -89,8 +131,8 @@ export async function handleTransactionWithTimeout<T extends { entityKey: string
     // Retry with backoff for rate limit errors
     return await retryWithBackoff(createEntityFn, 3, 1000);
   } catch (error: any) {
-    const errorMessage = error?.message || String(error || '');
-    const errorCode = error?.code || error?.status || error?.statusCode;
+    const errorMessage = errorText(error) || String(error || '');
+    const errorCode = errorCodeOf(error);
 
     // Log the full error for debugging
     console.error('[handleTransactionWithTimeout] Error details:', {
@@ -107,12 +149,18 @@ export async function handleTransactionWithTimeout<T extends { entityKey: string
       );
     }
 
+    // A transaction that the SDK reports as applied must never be retried
+    // (e.g. "Transaction 0x… succeeded — do not retry it — but emitted …")
+    if (errorMessage.includes('do not retry')) {
+      throw error;
+    }
+
     // Handle RPC/network errors (viem errors)
     if (
       errorMessage.includes('An internal error was received') ||
       errorMessage.includes('did not get any valid response from any backend') ||
       errorMessage.includes('Internal error') ||
-      (errorCode && errorCode < 0)
+      (typeof errorCode === 'number' && errorCode < 0)
     ) {
       console.error(
         '[handleTransactionWithTimeout] RPC error detected, this may be a temporary network issue'
@@ -141,18 +189,20 @@ export async function handleTransactionWithTimeout<T extends { entityKey: string
     }
 
     // Handle transaction receipt timeout - common on testnets
-    // If error mentions receipt not found, the transaction was likely submitted
+    // If error mentions receipt not found / wait timed out, the transaction was likely submitted
     const receiptError =
-      errorMessage.includes('Transaction receipt') &&
-      (errorMessage.includes('could not be found') || errorMessage.includes('not be processed'));
+      (errorMessage.includes('Transaction receipt') &&
+        (errorMessage.includes('could not be found') ||
+          errorMessage.includes('not be processed'))) ||
+      errorMessage.includes('Timed out while waiting for transaction');
 
     if (receiptError) {
-      // Try to extract txHash from error message (format: "hash 0x...")
-      const txHashMatch = errorMessage.match(/0x[a-fA-F0-9]{40,64}/);
-      if (txHashMatch) {
+      // Prefer the SDK's txHash; otherwise extract it from the message (format: "hash 0x...")
+      const txHash = errorTxHash(error) || errorMessage.match(/0x[a-fA-F0-9]{40,64}/)?.[0];
+      if (txHash) {
         // We have a txHash, transaction was submitted - throw user-friendly error
         throw new Error(
-          `Transaction submitted (${txHashMatch[0].slice(0, 10)}...) but confirmation pending. Please wait a moment and refresh.`
+          `Transaction submitted (${txHash.slice(0, 10)}...) but confirmation pending. Please wait a moment and refresh.`
         );
       }
       // No txHash found, throw generic user-friendly error
@@ -173,9 +223,10 @@ export async function handleTransactionWithTimeout<T extends { entityKey: string
  * @returns True if this is a transaction receipt timeout error
  */
 export function isTransactionTimeoutError(error: any): boolean {
-  const errorMessage = typeof error === 'string' ? error : error?.message || '';
+  const errorMessage = errorText(error);
   return (
     errorMessage.includes('Transaction receipt') ||
+    errorMessage.includes('Timed out while waiting for transaction') ||
     errorMessage.includes('confirmation pending') ||
     errorMessage.includes('Transaction submitted') ||
     (errorMessage.includes('could not be found') && errorMessage.includes('hash'))

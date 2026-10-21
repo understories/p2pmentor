@@ -11,7 +11,7 @@
 import { listNotifications, updateNotificationState } from '../lib/arkiv/notifications';
 import { getPrivateKey, SPACE_ID } from '../lib/config';
 import { getPublicClient } from '../lib/arkiv/client';
-import { eq } from '@arkiv-network/sdk/query';
+import { getEntityByKey, getAttr as readAttr } from '@/lib/arkiv/read';
 
 async function diagnoseNotifications(wallet: string) {
   console.log(`\n=== Diagnosing notifications for wallet: ${wallet} ===\n`);
@@ -42,17 +42,9 @@ async function diagnoseNotifications(wallet: string) {
 
     // Query the raw entity to see what's actually stored
     const publicClient = getPublicClient();
-    const result = await publicClient
-      .buildQuery()
-      .where(eq('type', 'notification'))
-      .where(eq('key', notif.key))
-      .withAttributes(true)
-      .withPayload(true)
-      .limit(1)
-      .fetch();
+    const entity = await getEntityByKey(notif.key, publicClient);
 
-    if (result?.entities && result.entities.length > 0) {
-      const entity = result.entities[0];
+    if (entity && readAttr(entity, 'type') === 'notification') {
       let payload: any = {};
       try {
         if (entity.payload) {

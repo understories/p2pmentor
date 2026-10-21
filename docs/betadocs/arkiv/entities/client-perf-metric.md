@@ -53,12 +53,8 @@ import { eq } from '@arkiv-network/sdk/query';
 import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'client_perf_metric'))
-  .where(eq('page', '/network'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('client_perf_metric')
+  .where(eqAttr('page', '/network'))
   .limit(100)
   .fetch();
 
@@ -71,11 +67,7 @@ const metrics = result.entities.map((e) => ({
 ### Get Recent Metrics
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'client_perf_metric'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('client_perf_metric')
   .limit(50)
   .fetch();
 

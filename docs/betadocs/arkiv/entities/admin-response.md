@@ -43,12 +43,8 @@ import { eq } from '@arkiv-network/sdk/query';
 import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'admin_response'))
-  .where(eq('feedbackKey', feedbackKey))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('admin_response')
+  .where(eqAttr('feedback_key', feedbackKey))
   .limit(10)
   .fetch();
 
@@ -61,11 +57,8 @@ const responses = result.entities
 ### Check if Feedback Has Response
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'admin_response'))
-  .where(eq('feedbackKey', feedbackKey))
-  .withAttributes(true)
+const result = await arkivSelect('admin_response')
+  .where(eqAttr('feedback_key', feedbackKey))
   .limit(1)
   .fetch();
 

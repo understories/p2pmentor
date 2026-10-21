@@ -7,11 +7,24 @@
  * Reference: refs/docs/quest-architecture-questions.md
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr, lifetimeSecondsFor } from '@/lib/arkiv/schema';
+import { arkivSelect, getAttr as readAttr } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
-import { SPACE_ID } from '../config';
+import { createArkivEntity } from './write';
+import { SERVER_SIGNER_ADDRESS } from '../config';
 import type { QuestDefinition } from '../quests/questFormat';
+
+/**
+ * Start a query over quest_definition entities.
+ *
+ * Quest definitions are only written with the server key (scripts/sync-quest-entities.ts),
+ * so reads are scoped to the server signer when it is known.
+ */
+function questDefinitionSelect(publicClient: ReturnType<typeof getPublicClient>) {
+  const q = arkivSelect('quest_definition', publicClient);
+  return SERVER_SIGNER_ADDRESS ? q.createdBy(SERVER_SIGNER_ADDRESS) : q;
+}
 
 /**
  * Quest definition entity stored on Arkiv
@@ -56,7 +69,6 @@ export async function createQuestDefinition({
       throw new Error('Failed to get wallet client');
     }
 
-    const enc = new TextEncoder();
     const createdAt = new Date().toISOString();
     const finalSpaceId = spaceId || 'global';
 
@@ -64,19 +76,21 @@ export async function createQuestDefinition({
     const entityKey = `quest_definition:${quest.track}:v${quest.version}`;
 
     // Build attributes (queryable fields)
-    const attributes = [
-      { key: 'type', value: 'quest_definition' },
-      { key: 'questId', value: quest.questId },
-      { key: 'track', value: quest.track },
-      { key: 'version', value: quest.version },
-      ...(quest.track === 'mandarin' || quest.track === 'spanish'
-        ? [{ key: 'language', value: quest.track === 'mandarin' ? 'zh' : 'es' }]
-        : []),
-      { key: 'spaceId', value: finalSpaceId },
-      { key: 'status', value: 'active' },
-      { key: 'createdAt', value: createdAt },
-      ...(creatorWallet ? [{ key: 'creatorWallet', value: creatorWallet.toLowerCase() }] : []),
-    ];
+    const attributes = {
+      quest_id: quest.questId,
+      track: quest.track,
+      version: quest.version,
+      language:
+        quest.track === 'mandarin' || quest.track === 'spanish'
+          ? quest.track === 'mandarin'
+            ? 'zh'
+            : 'es'
+          : undefined,
+      space_id: finalSpaceId,
+      status: 'active',
+      created_at: createdAt,
+      creator_wallet: creatorWallet ? creatorWallet.toLowerCase() : undefined,
+    };
 
     // Payload: Full quest definition with inline markdown content
     // Note: Markdown content should already be inlined in quest.steps[].content
@@ -84,29 +98,26 @@ export async function createQuestDefinition({
     const payload = quest;
 
     const { txHash } = await handleTransactionWithTimeout(async () => {
-      return await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify(payload)),
-        contentType: 'application/json',
+      // Lifetime: quest_definition type default (curated content, renewed)
+      return await createArkivEntity(walletClient, {
+        type: 'quest_definition',
         attributes,
-        // Long-term TTL (10 years - quest definitions are curated content)
-        expiresIn: 315360000, // 10 years in seconds
+        payload,
       });
     });
 
     // Create txhash entity for observability (fire and forget)
-    walletClient
-      .createEntity({
-        payload: enc.encode(JSON.stringify({ txHash, questKey: entityKey })),
-        contentType: 'application/json',
-        attributes: [
-          { key: 'type', value: 'quest_definition_txhash' },
-          { key: 'questKey', value: entityKey },
-          { key: 'txHash', value: txHash },
-          { key: 'spaceId', value: finalSpaceId },
-          { key: 'createdAt', value: createdAt },
-        ],
-        expiresIn: 315360000, // 10 years (matches quest entity)
-      })
+    createArkivEntity(walletClient, {
+      type: 'quest_definition_txhash',
+      attributes: {
+        quest_key: entityKey,
+        tx_hash: txHash,
+        space_id: finalSpaceId,
+        created_at: createdAt,
+      },
+      payload: { txHash, questKey: entityKey },
+      lifetimeSeconds: lifetimeSecondsFor('quest_definition'), // matches quest entity
+    })
       .catch((err) => {
         // Non-blocking - log but don't fail
         console.warn('[createQuestDefinition] Failed to create txhash entity:', err);
@@ -135,18 +146,15 @@ export async function getQuestDefinition({
 }): Promise<QuestDefinitionEntity | null> {
   try {
     const publicClient = getPublicClient();
-    const query = publicClient.buildQuery();
+    const query = questDefinitionSelect(publicClient);
 
     const finalSpaceId = spaceId || 'global';
 
     const result = await query
-      .where(eq('type', 'quest_definition'))
-      .where(eq('questId', questId))
-      .where(eq('version', version))
-      .where(eq('spaceId', finalSpaceId))
-      .where(eq('status', 'active'))
-      .withAttributes(true)
-      .withPayload(true)
+      .where(eqAttr('quest_id', questId))
+      .where(eqAttr('version', version))
+      .where(eqAttr('space_id', finalSpaceId))
+      .where(eqAttr('status', 'active'))
       .limit(1)
       .fetch();
 
@@ -176,17 +184,14 @@ export async function getLatestQuestDefinition({
 }): Promise<QuestDefinitionEntity | null> {
   try {
     const publicClient = getPublicClient();
-    const query = publicClient.buildQuery();
+    const query = questDefinitionSelect(publicClient);
 
     const finalSpaceId = spaceId || 'global';
 
     const result = await query
-      .where(eq('type', 'quest_definition'))
-      .where(eq('questId', questId))
-      .where(eq('spaceId', finalSpaceId))
-      .where(eq('status', 'active'))
-      .withAttributes(true)
-      .withPayload(true)
+      .where(eqAttr('quest_id', questId))
+      .where(eqAttr('space_id', finalSpaceId))
+      .where(eqAttr('status', 'active'))
       .limit(100) // Get all versions, sort client-side
       .fetch();
 
@@ -223,27 +228,23 @@ export async function listQuestDefinitions({
 } = {}): Promise<QuestDefinitionEntity[]> {
   try {
     const publicClient = getPublicClient();
-    const query = publicClient.buildQuery();
+    const query = questDefinitionSelect(publicClient);
 
     const finalSpaceId = spaceId || 'global';
 
     let queryBuilder = query
-      .where(eq('type', 'quest_definition'))
-      .where(eq('status', 'active'))
-      .where(eq('spaceId', finalSpaceId))
-      .withAttributes(true)
-      .withPayload(true)
-      .limit(100);
+      .where(eqAttr('status', 'active'))
+      .where(eqAttr('space_id', finalSpaceId));
 
     if (track) {
-      queryBuilder = queryBuilder.where(eq('track', track));
+      queryBuilder = queryBuilder.where(eqAttr('track', track));
     }
 
     if (language) {
-      queryBuilder = queryBuilder.where(eq('language', language));
+      queryBuilder = queryBuilder.where(eqAttr('language', language));
     }
 
-    const result = await queryBuilder.fetch();
+    const result = await queryBuilder.limit(100).fetch();
 
     if (!result?.entities || !Array.isArray(result.entities)) {
       return [];
@@ -274,7 +275,7 @@ export async function listQuestDefinitions({
  */
 function parseQuestDefinitionEntity(entity: any): QuestDefinitionEntity | null {
   try {
-    const getAttr = (key: string) => entity.attributes?.find((a: any) => a.key === key)?.value;
+    const getAttr = (key: string) => readAttr(entity, key);
 
     let payload: QuestDefinition;
     try {
@@ -294,14 +295,14 @@ function parseQuestDefinitionEntity(entity: any): QuestDefinitionEntity | null {
 
     return {
       key: entity.key || '',
-      questId: getAttr('questId') || payload.questId,
+      questId: getAttr('quest_id') || payload.questId,
       track: getAttr('track') || payload.track,
       version: getAttr('version') || payload.version,
       language: getAttr('language') || undefined,
-      spaceId: getAttr('spaceId') || 'global',
+      spaceId: getAttr('space_id') || 'global',
       status: (getAttr('status') || 'active') as 'active' | 'archived',
-      createdAt: getAttr('createdAt') || '',
-      creatorWallet: getAttr('creatorWallet') || undefined,
+      createdAt: getAttr('created_at') || '',
+      creatorWallet: getAttr('creator_wallet') || undefined,
       txHash: entity.txHash,
       quest: payload,
     };

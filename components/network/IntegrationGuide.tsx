@@ -359,7 +359,7 @@ const data = await graphRequest(\`
             <li>
               • <strong>Same data source:</strong> Queries still hit{' '}
               <code className="rounded bg-gray-200 px-1 dark:bg-gray-700">
-                https://braga.hoodi.arkiv.network/rpc
+                https://rpc.tiramisu.db-chain.testnet.arkiv.network
               </code>
             </li>
             <li>

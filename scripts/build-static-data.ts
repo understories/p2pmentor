@@ -11,9 +11,7 @@
  * - Expiration filtering for TTL entities
  */
 
-import { getPublicClient } from '../lib/arkiv/client';
-import { eq } from '@arkiv-network/sdk/query';
-import { listUserProfiles, getProfileByWallet } from '../lib/arkiv/profile';
+import { listUserProfiles } from '../lib/arkiv/profile';
 import { listSkills } from '../lib/arkiv/skill';
 import { listAsks } from '../lib/arkiv/asks';
 import { listOffers } from '../lib/arkiv/offers';

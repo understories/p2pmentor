@@ -6,11 +6,14 @@
  * Reference: refs/language-quest-implementation-plan.md
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr, parsePayload } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { createArkivEntity } from './write';
+import { getArkivExplorerEntityUrl } from './explorer';
 import { getAssessmentProgress } from './languageQuest';
-import { getLearnerQuest } from './learnerQuest';
+import { getLearnerQuest, learnerQuestSelect } from './learnerQuest';
 import { parseLanguageAssessmentQuest } from './languageQuest';
 import type { LanguageAssessmentQuest } from './languageQuest';
 import { SPACE_ID } from '@/lib/config';
@@ -85,13 +88,9 @@ export async function calculateAssessmentScore({
 
     // Get full quest entity to parse language assessment data
     const publicClient = getPublicClient();
-    const result = await publicClient
-      .buildQuery()
-      .where(eq('type', 'learner_quest'))
-      .where(eq('questId', questId))
-      .where(eq('status', 'active'))
-      .withAttributes(true)
-      .withPayload(true)
+    const result = await learnerQuestSelect(publicClient)
+      .where(eqAttr('quest_id', questId))
+      .where(eqAttr('status', 'active'))
       .limit(1)
       .fetch();
 
@@ -100,13 +99,7 @@ export async function calculateAssessmentScore({
     }
 
     const entity = result.entities[0];
-    const decoded =
-      entity.payload instanceof Uint8Array
-        ? new TextDecoder().decode(entity.payload)
-        : typeof entity.payload === 'string'
-          ? entity.payload
-          : JSON.stringify(entity.payload);
-    const payload = JSON.parse(decoded);
+    const payload = parsePayload<any>(entity);
 
     if (payload.questType !== 'language_assessment') {
       throw new Error('Quest is not a language assessment');
@@ -209,13 +202,9 @@ export async function completeAssessment({
 
     // Get full quest entity
     const publicClient = getPublicClient();
-    const result = await publicClient
-      .buildQuery()
-      .where(eq('type', 'learner_quest'))
-      .where(eq('questId', questId))
-      .where(eq('status', 'active'))
-      .withAttributes(true)
-      .withPayload(true)
+    const result = await learnerQuestSelect(publicClient)
+      .where(eqAttr('quest_id', questId))
+      .where(eqAttr('status', 'active'))
       .limit(1)
       .fetch();
 
@@ -224,13 +213,7 @@ export async function completeAssessment({
     }
 
     const entity = result.entities[0];
-    const decoded =
-      entity.payload instanceof Uint8Array
-        ? new TextDecoder().decode(entity.payload)
-        : typeof entity.payload === 'string'
-          ? entity.payload
-          : JSON.stringify(entity.payload);
-    const payload = JSON.parse(decoded);
+    const payload = parsePayload<any>(entity);
 
     if (payload.questType !== 'language_assessment') {
       throw new Error('Quest is not a language assessment');
@@ -240,12 +223,9 @@ export async function completeAssessment({
 
     // Get existing results to determine attempt number
     const normalizedWallet = wallet.toLowerCase();
-    const existingResults = await publicClient
-      .buildQuery()
-      .where(eq('type', 'learner_quest_assessment_result'))
-      .where(eq('wallet', normalizedWallet))
-      .where(eq('questId', questId))
-      .withAttributes(true)
+    const existingResults = await arkivSelect('learner_quest_assessment_result', publicClient)
+      .where(eqAttr('wallet', normalizedWallet))
+      .where(eqAttr('quest_id', questId))
       .limit(100)
       .fetch();
 
@@ -259,47 +239,44 @@ export async function completeAssessment({
       throw new Error('Failed to get wallet client');
     }
 
-    const enc = new TextEncoder();
+    // Attributes shared by the result entity and the certification entity
+    const resultAttributes = {
+      wallet: normalizedWallet,
+      quest_id: questId,
+      quest_type: 'language_assessment',
+      language: languageQuest.language,
+      proficiency_level: languageQuest.proficiencyLevel,
+      status,
+      space_id: spaceId,
+      created_at: now,
+      completed_at: now,
+    };
 
     const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
-      return await walletClient.createEntity({
-        payload: enc.encode(
-          JSON.stringify({
-            wallet: normalizedWallet,
-            questId,
-            questType: 'language_assessment',
-            language: languageQuest.language,
-            proficiencyLevel: languageQuest.proficiencyLevel,
-            status,
-            sections: scoreData.sections,
-            totalScore: scoreData.totalScore,
-            totalPoints: scoreData.totalPoints,
-            percentage: scoreData.percentage,
-            passed: scoreData.passed,
-            // Certification will be added in second entity if passed
-            certification: undefined,
-            metadata: {
-              attemptNumber,
-              totalTimeSpent: scoreData.totalTimeSpent,
-              startedAt,
-              completedAt: now,
-            },
-          })
-        ),
-        contentType: 'application/json',
-        attributes: [
-          { key: 'type', value: 'learner_quest_assessment_result' },
-          { key: 'wallet', value: normalizedWallet },
-          { key: 'questId', value: questId },
-          { key: 'questType', value: 'language_assessment' },
-          { key: 'language', value: languageQuest.language },
-          { key: 'proficiencyLevel', value: languageQuest.proficiencyLevel },
-          { key: 'status', value: status },
-          { key: 'spaceId', value: spaceId },
-          { key: 'createdAt', value: now },
-          { key: 'completedAt', value: now },
-        ],
-        expiresIn: 31536000, // 1 year
+      return await createArkivEntity(walletClient, {
+        type: 'learner_quest_assessment_result',
+        attributes: resultAttributes,
+        payload: {
+          wallet: normalizedWallet,
+          questId,
+          questType: 'language_assessment',
+          language: languageQuest.language,
+          proficiencyLevel: languageQuest.proficiencyLevel,
+          status,
+          sections: scoreData.sections,
+          totalScore: scoreData.totalScore,
+          totalPoints: scoreData.totalPoints,
+          percentage: scoreData.percentage,
+          passed: scoreData.passed,
+          // Certification will be added in second entity if passed
+          certification: undefined,
+          metadata: {
+            attemptNumber,
+            totalTimeSpent: scoreData.totalTimeSpent,
+            startedAt,
+            completedAt: now,
+          },
+        },
       });
     });
 
@@ -316,17 +293,15 @@ export async function completeAssessment({
     // Create txhash entity
     try {
       await handleTransactionWithTimeout(async () => {
-        return await walletClient.createEntity({
-          payload: enc.encode(JSON.stringify({})),
-          contentType: 'application/json',
-          attributes: [
-            { key: 'type', value: 'learner_quest_assessment_result_txhash' },
-            { key: 'resultKey', value: entityKey },
-            { key: 'txHash', value: txHash },
-            { key: 'spaceId', value: spaceId },
-            { key: 'createdAt', value: now },
-          ],
-          expiresIn: 31536000, // 1 year
+        return await createArkivEntity(walletClient, {
+          type: 'learner_quest_assessment_result_txhash',
+          attributes: {
+            result_key: entityKey,
+            tx_hash: txHash,
+            space_id: spaceId,
+            created_at: now,
+          },
+          payload: {},
         });
       });
     } catch (error) {
@@ -335,48 +310,34 @@ export async function completeAssessment({
 
     if (scoreData.passed && certificateIdBase) {
       const certResult = await handleTransactionWithTimeout(async () => {
-        return await walletClient.createEntity({
-          payload: enc.encode(
-            JSON.stringify({
-              wallet: normalizedWallet,
-              questId,
-              questType: 'language_assessment',
-              language: languageQuest.language,
-              proficiencyLevel: languageQuest.proficiencyLevel,
-              status,
-              sections: scoreData.sections,
-              totalScore: scoreData.totalScore,
-              totalPoints: scoreData.totalPoints,
-              percentage: scoreData.percentage,
-              passed: scoreData.passed,
-              certification: {
-                issued: true,
-                certificateId: certificateIdBase,
-                issuedAt: now,
-                verificationUrl: `https://explorer.braga.hoodi.arkiv.network/entity/${entityKey}`,
-              },
-              metadata: {
-                attemptNumber,
-                totalTimeSpent: scoreData.totalTimeSpent,
-                startedAt,
-                completedAt: now,
-              },
-            })
-          ),
-          contentType: 'application/json',
-          attributes: [
-            { key: 'type', value: 'learner_quest_assessment_result' },
-            { key: 'wallet', value: normalizedWallet },
-            { key: 'questId', value: questId },
-            { key: 'questType', value: 'language_assessment' },
-            { key: 'language', value: languageQuest.language },
-            { key: 'proficiencyLevel', value: languageQuest.proficiencyLevel },
-            { key: 'status', value: status },
-            { key: 'spaceId', value: spaceId },
-            { key: 'createdAt', value: now },
-            { key: 'completedAt', value: now },
-          ],
-          expiresIn: 31536000, // 1 year
+        return await createArkivEntity(walletClient, {
+          type: 'learner_quest_assessment_result',
+          attributes: resultAttributes,
+          payload: {
+            wallet: normalizedWallet,
+            questId,
+            questType: 'language_assessment',
+            language: languageQuest.language,
+            proficiencyLevel: languageQuest.proficiencyLevel,
+            status,
+            sections: scoreData.sections,
+            totalScore: scoreData.totalScore,
+            totalPoints: scoreData.totalPoints,
+            percentage: scoreData.percentage,
+            passed: scoreData.passed,
+            certification: {
+              issued: true,
+              certificateId: certificateIdBase,
+              issuedAt: now,
+              verificationUrl: getArkivExplorerEntityUrl(entityKey),
+            },
+            metadata: {
+              attemptNumber,
+              totalTimeSpent: scoreData.totalTimeSpent,
+              startedAt,
+              completedAt: now,
+            },
+          },
         });
       });
 
@@ -386,17 +347,15 @@ export async function completeAssessment({
       // Create txhash entity for certification result
       try {
         await handleTransactionWithTimeout(async () => {
-          return await walletClient.createEntity({
-            payload: enc.encode(JSON.stringify({})),
-            contentType: 'application/json',
-            attributes: [
-              { key: 'type', value: 'learner_quest_assessment_result_txhash' },
-              { key: 'resultKey', value: finalEntityKey },
-              { key: 'txHash', value: finalTxHash },
-              { key: 'spaceId', value: spaceId },
-              { key: 'createdAt', value: now },
-            ],
-            expiresIn: 31536000, // 1 year
+          return await createArkivEntity(walletClient, {
+            type: 'learner_quest_assessment_result_txhash',
+            attributes: {
+              result_key: finalEntityKey,
+              tx_hash: finalTxHash,
+              space_id: spaceId,
+              created_at: now,
+            },
+            payload: {},
           });
         });
       } catch (error) {
@@ -423,7 +382,7 @@ export async function completeAssessment({
               issued: true,
               certificateId: certificateIdBase,
               issuedAt: now,
-              verificationUrl: `https://explorer.braga.hoodi.arkiv.network/entity/${finalEntityKey}`,
+              verificationUrl: getArkivExplorerEntityUrl(finalEntityKey),
             }
           : undefined,
       metadata: {
@@ -457,13 +416,9 @@ export async function getAssessmentResult({
   try {
     const publicClient = getPublicClient();
     const normalizedWallet = wallet.toLowerCase();
-    const result = await publicClient
-      .buildQuery()
-      .where(eq('type', 'learner_quest_assessment_result'))
-      .where(eq('wallet', normalizedWallet))
-      .where(eq('questId', questId))
-      .withAttributes(true)
-      .withPayload(true)
+    const result = await arkivSelect('learner_quest_assessment_result', publicClient)
+      .where(eqAttr('wallet', normalizedWallet))
+      .where(eqAttr('quest_id', questId))
       .limit(100)
       .fetch();
 
@@ -472,14 +427,7 @@ export async function getAssessmentResult({
     }
 
     // Helper to get attribute value
-    const getAttr = (entity: any, key: string): string => {
-      const attrs = entity.attributes || {};
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (entity: any, key: string): string => readAttr(entity, key);
 
     // Get most recent result (immutability pattern)
     const results = result.entities
@@ -496,10 +444,10 @@ export async function getAssessmentResult({
           return {
             key: entity.key,
             wallet: getAttr(entity, 'wallet'),
-            questId: getAttr(entity, 'questId'),
+            questId: getAttr(entity, 'quest_id'),
             questType: 'language_assessment' as const,
             language: getAttr(entity, 'language'),
-            proficiencyLevel: getAttr(entity, 'proficiencyLevel'),
+            proficiencyLevel: getAttr(entity, 'proficiency_level'),
             status: getAttr(entity, 'status') as 'in_progress' | 'completed' | 'passed' | 'failed',
             sections: payload.sections || [],
             totalScore: payload.totalScore || 0,
@@ -508,8 +456,8 @@ export async function getAssessmentResult({
             passed: payload.passed || false,
             certification: payload.certification,
             metadata: payload.metadata || {},
-            createdAt: getAttr(entity, 'createdAt'),
-            completedAt: getAttr(entity, 'completedAt'),
+            createdAt: getAttr(entity, 'created_at'),
+            completedAt: getAttr(entity, 'completed_at'),
             txHash: (entity as any).txHash || undefined,
           } as AssessmentResult;
         } catch (e) {
@@ -541,14 +489,13 @@ export async function listAllAssessmentResults({
     const publicClient = getPublicClient();
 
     const fetchForSpace = async (spaceId: string): Promise<AssessmentResult[]> => {
-      const result = await publicClient
-        .buildQuery()
-        .where(eq('type', 'learner_quest_assessment_result'))
-        .where(eq('spaceId', spaceId))
-        .withAttributes(true)
-        .withPayload(true)
-        .limit(limit)
-        .fetch();
+      const result = await fetchAll(
+        arkivSelect('learner_quest_assessment_result', publicClient).where(
+          eqAttr('space_id', spaceId)
+        ),
+        limit,
+        publicClient
+      );
 
       if (!result?.entities || !Array.isArray(result.entities)) return [];
 
@@ -557,15 +504,7 @@ export async function listAllAssessmentResults({
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .map((entity: any) => {
             try {
-              const attrs = entity.attributes || {};
-              const getAttr = (key: string): string => {
-                if (Array.isArray(attrs)) {
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  const attr = attrs.find((a: any) => a.key === key);
-                  return String(attr?.value || '');
-                }
-                return String(attrs[key] || '');
-              };
+              const getAttr = (key: string): string => readAttr(entity, key);
 
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               let payload: any = {};
@@ -586,10 +525,10 @@ export async function listAllAssessmentResults({
               return {
                 key: entity.key,
                 wallet: getAttr('wallet'),
-                questId: getAttr('questId'),
+                questId: getAttr('quest_id'),
                 questType: 'language_assessment' as const,
                 language: getAttr('language'),
-                proficiencyLevel: getAttr('proficiencyLevel'),
+                proficiencyLevel: getAttr('proficiency_level'),
                 status: (getAttr('status') || 'completed') as AssessmentResult['status'],
                 sections: payload.sections || [],
                 totalScore: payload.totalScore || 0,
@@ -598,8 +537,8 @@ export async function listAllAssessmentResults({
                 passed: payload.passed || false,
                 certification: payload.certification,
                 metadata: payload.metadata || {},
-                createdAt: getAttr('createdAt'),
-                completedAt: getAttr('completedAt') || undefined,
+                createdAt: getAttr('created_at'),
+                completedAt: getAttr('completed_at') || undefined,
                 txHash: entity.txHash || undefined,
               } as AssessmentResult;
             } catch {

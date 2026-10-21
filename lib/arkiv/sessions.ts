@@ -8,8 +8,10 @@
  * Reference: refs/mentor-graph/src/arkiv/sessions.ts
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { PROJECT, eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr, getEntityByKey } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { createArkivEntity } from './write';
 import { generateJitsiMeeting } from '../jitsi';
 import { JITSI_BASE_URL, SPACE_ID } from '../config';
 
@@ -118,7 +120,6 @@ export async function createSession({
   }
 
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const spaceId = SPACE_ID;
   const status = 'pending'; // Start as pending, requires confirmation
   const createdAt = new Date().toISOString();
@@ -149,9 +150,9 @@ export async function createSession({
     expiresInSecondsInt = DEFAULT_SESSION_TTL_SECONDS;
   }
 
-  // CRITICAL: Final validation - expiresIn must be a positive integer
+  // CRITICAL: Final validation - lifetime must be a positive integer
   if (!Number.isInteger(expiresInSecondsInt) || expiresInSecondsInt <= 0) {
-    throw new Error(`Invalid expiresIn: ${expiresInSecondsInt}. Must be a positive integer.`);
+    throw new Error(`Invalid lifetime: ${expiresInSecondsInt}. Must be a positive integer.`);
   }
 
   // CRITICAL: Validate sessionDate is valid (still needed for sessionDate attribute)
@@ -180,39 +181,31 @@ export async function createSession({
   let txHash: string;
 
   try {
-    // Build attributes array with validation
-    const attributes = [
-      { key: 'type', value: 'session' },
-      { key: 'mentorWallet', value: normalizedMentorWallet },
-      { key: 'learnerWallet', value: normalizedLearnerWallet },
-      { key: 'skill', value: skill.trim() }, // Legacy: keep for backward compatibility
-      { key: 'spaceId', value: spaceId.trim() },
-      { key: 'createdAt', value: createdAt },
-      { key: 'sessionDate', value: sessionDate },
-      { key: 'status', value: status },
-      ...(skill_id ? [{ key: 'skill_id', value: String(skill_id).trim() }] : []),
-      ...(questId ? [{ key: 'questId', value: String(questId).trim() }] : []),
-      ...(requiresPayment ? [{ key: 'requiresPayment', value: 'true' }] : []),
-      ...(paymentAddress ? [{ key: 'paymentAddress', value: String(paymentAddress).trim() }] : []),
-      ...(cost ? [{ key: 'cost', value: String(cost).trim() }] : []),
-    ];
-
-    // Validate all attribute values are non-empty strings
-    for (const attr of attributes) {
-      if (typeof attr.value !== 'string' || attr.value.length === 0) {
-        throw new Error(`Invalid attribute ${attr.key}: value must be a non-empty string`);
-      }
-    }
+    // Build attributes (optional entries are omitted when undefined)
+    const attributes = {
+      mentor_wallet: normalizedMentorWallet,
+      learner_wallet: normalizedLearnerWallet,
+      skill: skill.trim(), // Legacy: keep for backward compatibility
+      space_id: spaceId.trim(),
+      created_at: createdAt,
+      session_date: sessionDate,
+      status,
+      skill_id: skill_id ? String(skill_id).trim() : undefined,
+      quest_id: questId ? String(questId).trim() : undefined,
+      requires_payment: requiresPayment ? 'true' : undefined,
+      payment_address: paymentAddress ? String(paymentAddress).trim() : undefined,
+      cost: cost ? String(cost).trim() : undefined,
+    };
 
     // Add signer metadata (U1.x.2: Central Signer Metadata)
     const { addSignerMetadata } = await import('./signer-metadata');
     const attributesWithSigner = addSignerMetadata(attributes, privateKey);
 
-    const result = await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify(payload)),
-      contentType: 'application/json',
+    const result = await createArkivEntity(walletClient, {
+      type: 'session',
       attributes: attributesWithSigner,
-      expiresIn: expiresInSecondsInt,
+      payload,
+      lifetimeSeconds: expiresInSecondsInt,
     });
     entityKey = result.entityKey;
     txHash = result.txHash;
@@ -257,21 +250,16 @@ export async function createSession({
 
   // Store txHash in a separate entity for verifiability (same expiration)
   try {
-    await walletClient.createEntity({
-      payload: enc.encode(
-        JSON.stringify({
-          txHash,
-        })
-      ),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'session_txhash' },
-        { key: 'sessionKey', value: entityKey },
-        { key: 'mentorWallet', value: normalizedMentorWallet },
-        { key: 'learnerWallet', value: normalizedLearnerWallet },
-        { key: 'spaceId', value: spaceId },
-      ],
-      expiresIn: expiresInSecondsInt,
+    await createArkivEntity(walletClient, {
+      type: 'session_txhash',
+      attributes: {
+        session_key: entityKey,
+        mentor_wallet: normalizedMentorWallet,
+        learner_wallet: normalizedLearnerWallet,
+        space_id: spaceId,
+      },
+      payload: { txHash },
+      lifetimeSeconds: expiresInSecondsInt,
     });
   } catch (error: any) {
     // If txHash entity creation fails but we have the main entity, log and continue
@@ -293,29 +281,21 @@ export async function createSession({
       );
     } else {
       try {
-        const confirmationEnc = new TextEncoder();
         const confirmationCreatedAt = new Date().toISOString();
 
-        // Calculate expiration same as session
-        const confirmationExpiresIn = expiresInSecondsInt;
-
-        await walletClient.createEntity({
-          payload: confirmationEnc.encode(
-            JSON.stringify({
-              confirmedAt: confirmationCreatedAt,
-            })
-          ),
-          contentType: 'application/json',
-          attributes: [
-            { key: 'type', value: 'session_confirmation' },
-            { key: 'sessionKey', value: entityKey },
-            { key: 'confirmedBy', value: requesterWalletNormalized },
-            { key: 'mentorWallet', value: normalizedMentorWallet },
-            { key: 'learnerWallet', value: normalizedLearnerWallet },
-            { key: 'spaceId', value: spaceId },
-            { key: 'createdAt', value: confirmationCreatedAt },
-          ],
-          expiresIn: confirmationExpiresIn,
+        // Same lifetime as the session
+        await createArkivEntity(walletClient, {
+          type: 'session_confirmation',
+          attributes: {
+            session_key: entityKey,
+            confirmed_by: requesterWalletNormalized,
+            mentor_wallet: normalizedMentorWallet,
+            learner_wallet: normalizedLearnerWallet,
+            space_id: spaceId,
+            created_at: confirmationCreatedAt,
+          },
+          payload: { confirmedAt: confirmationCreatedAt },
+          lifetimeSeconds: expiresInSecondsInt,
         });
 
         console.log(
@@ -377,60 +357,41 @@ export async function listSessions(params?: {
   spaceIds?: string[];
 }): Promise<Session[]> {
   const publicClient = getPublicClient();
-  const query = publicClient.buildQuery();
-  let queryBuilder = query.where(eq('type', 'session'));
+  let queryBuilder = arkivSelect('session', publicClient);
 
   // Support multiple spaceIds (builder mode) or single spaceId
   if (params?.spaceIds && params.spaceIds.length > 0) {
     // Query all, filter client-side (Arkiv doesn't support OR queries)
-    queryBuilder = queryBuilder.limit(500);
   } else {
     // Use provided spaceId or default to SPACE_ID from config
     const spaceId = params?.spaceId || SPACE_ID;
-    queryBuilder = queryBuilder.where(eq('spaceId', spaceId));
+    queryBuilder = queryBuilder.where(eqAttr('space_id', spaceId));
   }
   if (params?.mentorWallet) {
     // Normalize wallet address to lowercase for querying
-    queryBuilder = queryBuilder.where(eq('mentorWallet', params.mentorWallet.toLowerCase()));
+    queryBuilder = queryBuilder.where(eqAttr('mentor_wallet', params.mentorWallet.toLowerCase()));
   }
   if (params?.learnerWallet) {
     // Normalize wallet address to lowercase for querying
-    queryBuilder = queryBuilder.where(eq('learnerWallet', params.learnerWallet.toLowerCase()));
+    queryBuilder = queryBuilder.where(eqAttr('learner_wallet', params.learnerWallet.toLowerCase()));
   }
   if (params?.skill) {
-    queryBuilder = queryBuilder.where(eq('skill', params.skill));
+    queryBuilder = queryBuilder.where(eqAttr('skill', params.skill));
   }
   if (params?.status) {
-    queryBuilder = queryBuilder.where(eq('status', params.status));
+    queryBuilder = queryBuilder.where(eqAttr('status', params.status));
   }
 
   const [result, txHashResult] = await Promise.all([
-    queryBuilder
-      .withAttributes(true)
-      .withPayload(true)
-      .limit(500) // Increased limit to ensure RSVP sessions are included
-      .fetch(),
-    publicClient
-      .buildQuery()
-      .where(eq('type', 'session_txhash'))
-      .withAttributes(true)
-      .withPayload(true)
-      .limit(100)
-      .fetch(),
+    fetchAll(queryBuilder, 500, publicClient), // Increased limit to ensure RSVP sessions are included
+    arkivSelect('session_txhash', publicClient).limit(100).fetch(),
   ]);
 
   // Build txHash map
   const txHashMap: Record<string, string> = {};
   txHashResult.entities.forEach((entity: any) => {
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
-    const sessionKey = getAttr('sessionKey');
+    const getAttr = (key: string): string => readAttr(entity, key);
+    const sessionKey = getAttr('session_key');
     if (sessionKey) {
       try {
         const payload =
@@ -465,45 +426,27 @@ export async function listSessions(params?: {
   ] = await Promise.all([
     sessionKeys.length > 0
       ? (() => {
-          let confirmationQuery = publicClient
-            .buildQuery()
-            .where(eq('type', 'session_confirmation'))
-            .withAttributes(true);
+          let confirmationQuery = arkivSelect('session_confirmation', publicClient);
           if (targetSpaceId) {
-            confirmationQuery = confirmationQuery.where(eq('spaceId', targetSpaceId));
+            confirmationQuery = confirmationQuery.where(eqAttr('space_id', targetSpaceId));
           }
           return confirmationQuery.limit(100).fetch();
         })()
       : { entities: [] },
     sessionKeys.length > 0
       ? (() => {
-          let rejectionQuery = publicClient
-            .buildQuery()
-            .where(eq('type', 'session_rejection'))
-            .withAttributes(true);
+          let rejectionQuery = arkivSelect('session_rejection', publicClient);
           if (targetSpaceId) {
-            rejectionQuery = rejectionQuery.where(eq('spaceId', targetSpaceId));
+            rejectionQuery = rejectionQuery.where(eqAttr('space_id', targetSpaceId));
           }
           return rejectionQuery.limit(100).fetch();
         })()
       : { entities: [] },
     sessionKeys.length > 0
-      ? publicClient
-          .buildQuery()
-          .where(eq('type', 'session_payment_submission'))
-          .withAttributes(true)
-          .withPayload(true)
-          .limit(100)
-          .fetch()
+      ? arkivSelect('session_payment_submission', publicClient).limit(100).fetch()
       : { entities: [] },
     sessionKeys.length > 0
-      ? publicClient
-          .buildQuery()
-          .where(eq('type', 'session_payment_validation'))
-          .withAttributes(true)
-          .withPayload(true)
-          .limit(100)
-          .fetch()
+      ? arkivSelect('session_payment_validation', publicClient).limit(100).fetch()
       : { entities: [] },
   ]);
 
@@ -512,14 +455,13 @@ export async function listSessions(params?: {
   // CRITICAL: Filter by spaceId to ensure we only find Jitsi entities in the correct space
   const jitsiQueries = await Promise.all(
     sessionKeys.map((sessionKey) => {
-      let jitsiQuery = publicClient
-        .buildQuery()
-        .where(eq('type', 'session_jitsi'))
-        .where(eq('sessionKey', sessionKey));
+      let jitsiQuery = arkivSelect('session_jitsi', publicClient).where(
+        eqAttr('session_key', sessionKey)
+      );
       if (targetSpaceId) {
-        jitsiQuery = jitsiQuery.where(eq('spaceId', targetSpaceId));
+        jitsiQuery = jitsiQuery.where(eqAttr('space_id', targetSpaceId));
       }
-      return jitsiQuery.withAttributes(true).withPayload(true).limit(1).fetch();
+      return jitsiQuery.limit(1).fetch();
     })
   );
 
@@ -531,16 +473,9 @@ export async function listSessions(params?: {
   // Build confirmation map: sessionKey -> Set of confirmedBy wallets
   const confirmationMap: Record<string, Set<string>> = {};
   confirmationsResult.entities.forEach((entity: any) => {
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
-    const sessionKey = getAttr('sessionKey');
-    const confirmedBy = getAttr('confirmedBy');
+    const getAttr = (key: string): string => readAttr(entity, key);
+    const sessionKey = getAttr('session_key');
+    const confirmedBy = getAttr('confirmed_by');
     // CRITICAL: Check if sessionKey matches any of our sessions (case-insensitive comparison)
     // Also log if we're filtering out confirmations
     if (sessionKey && confirmedBy) {
@@ -559,16 +494,9 @@ export async function listSessions(params?: {
   // Build rejection map: sessionKey -> Set of rejectedBy wallets
   const rejectionMap: Record<string, Set<string>> = {};
   rejectionsResult.entities.forEach((entity: any) => {
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
-    const sessionKey = getAttr('sessionKey');
-    const rejectedBy = getAttr('rejectedBy');
+    const getAttr = (key: string): string => readAttr(entity, key);
+    const sessionKey = getAttr('session_key');
+    const rejectedBy = getAttr('rejected_by');
     if (sessionKey && rejectedBy) {
       const matchingSessionKey = sessionKeys.find(
         (sk) => sk.toLowerCase() === sessionKey.toLowerCase()
@@ -585,14 +513,7 @@ export async function listSessions(params?: {
   // Build payment submission map: sessionKey -> payment submission info (by learner)
   const paymentSubmissionMap: Record<string, { paymentTxHash?: string; submittedBy?: string }> = {};
   paymentSubmissionsResult.entities.forEach((entity: any) => {
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (key: string): string => readAttr(entity, key);
 
     let payload: any = {};
     try {
@@ -609,15 +530,15 @@ export async function listSessions(params?: {
       console.error('Error decoding payment submission payload:', e);
     }
 
-    const sessionKey = getAttr('sessionKey');
+    const sessionKey = getAttr('session_key');
     if (sessionKey) {
       const matchingSessionKey = sessionKeys.find(
         (sk) => sk.toLowerCase() === sessionKey.toLowerCase()
       );
       if (matchingSessionKey) {
         paymentSubmissionMap[matchingSessionKey] = {
-          paymentTxHash: payload.paymentTxHash || getAttr('paymentTxHash'),
-          submittedBy: payload.submittedBy || getAttr('submittedBy'),
+          paymentTxHash: payload.paymentTxHash || getAttr('payment_tx_hash'),
+          submittedBy: payload.submittedBy || getAttr('submitted_by'),
         };
       }
     }
@@ -626,14 +547,7 @@ export async function listSessions(params?: {
   // Build payment validation map: sessionKey -> payment validation info (by mentor)
   const paymentValidationMap: Record<string, { paymentTxHash?: string; validatedBy?: string }> = {};
   paymentValidationsResult.entities.forEach((entity: any) => {
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (key: string): string => readAttr(entity, key);
 
     let payload: any = {};
     try {
@@ -650,15 +564,15 @@ export async function listSessions(params?: {
       console.error('Error decoding payment validation payload:', e);
     }
 
-    const sessionKey = getAttr('sessionKey');
+    const sessionKey = getAttr('session_key');
     if (sessionKey) {
       const matchingSessionKey = sessionKeys.find(
         (sk) => sk.toLowerCase() === sessionKey.toLowerCase()
       );
       if (matchingSessionKey) {
         paymentValidationMap[matchingSessionKey] = {
-          paymentTxHash: payload.paymentTxHash || getAttr('paymentTxHash'),
-          validatedBy: payload.validatedBy || getAttr('validatedBy'),
+          paymentTxHash: payload.paymentTxHash || getAttr('payment_tx_hash'),
+          validatedBy: payload.validatedBy || getAttr('validated_by'),
         };
       }
     }
@@ -681,14 +595,7 @@ export async function listSessions(params?: {
     const jitsiEntities = jitsiQueries[idx]?.entities || [];
     if (jitsiEntities.length > 0) {
       const entity = jitsiEntities[0]; // Should only be one per session
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (key: string): string => readAttr(entity, key);
 
       let payload: any = {};
       try {
@@ -706,13 +613,14 @@ export async function listSessions(params?: {
       }
 
       // Verify sessionKey matches (should always match since we queried by it)
-      const entitySessionKey = getAttr('sessionKey');
+      const entitySessionKey = getAttr('session_key');
       if (entitySessionKey && entitySessionKey.toLowerCase() === sessionKey.toLowerCase()) {
         jitsiMap[sessionKey] = {
-          videoProvider: payload.videoProvider || getAttr('videoProvider') || 'jitsi',
-          videoRoomName: payload.videoRoomName || getAttr('videoRoomName'),
-          videoJoinUrl: payload.videoJoinUrl || getAttr('videoJoinUrl'),
-          videoJwtToken: payload.videoJwtToken || getAttr('videoJwtToken'),
+          // Video fields (join URL, room name, token) live in the payload only
+          videoProvider: payload.videoProvider || getAttr('video_provider') || 'jitsi',
+          videoRoomName: payload.videoRoomName,
+          videoJoinUrl: payload.videoJoinUrl,
+          videoJwtToken: payload.videoJwtToken,
         };
       }
     }
@@ -734,17 +642,10 @@ export async function listSessions(params?: {
       console.error('Error decoding payload:', e);
     }
 
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (key: string): string => readAttr(entity, key);
 
-    const mentorWallet = getAttr('mentorWallet');
-    const learnerWallet = getAttr('learnerWallet');
+    const mentorWallet = getAttr('mentor_wallet');
+    const learnerWallet = getAttr('learner_wallet');
     const sessionKey = entity.key;
     const confirmations = confirmationMap[sessionKey] || new Set();
     const rejections = rejectionMap[sessionKey] || new Set();
@@ -759,15 +660,15 @@ export async function listSessions(params?: {
 
     // Extract payment info
     const requiresPayment =
-      getAttr('requiresPayment') === 'true' || payload.requiresPayment === true;
-    const paymentAddress = getAttr('paymentAddress') || payload.paymentAddress || undefined;
+      getAttr('requires_payment') === 'true' || payload.requiresPayment === true;
+    const paymentAddress = getAttr('payment_address') || payload.paymentAddress || undefined;
     const cost = getAttr('cost') || payload.cost || undefined;
     // Payment submission (by learner) takes precedence over session payload
     const paymentTxHash =
       paymentSubmission?.paymentTxHash ||
       paymentValidation?.paymentTxHash ||
       payload.paymentTxHash ||
-      getAttr('paymentTxHash') ||
+      getAttr('payment_tx_hash') ||
       undefined;
     const paymentValidated = !!paymentValidation;
     const paymentValidatedBy = paymentValidation?.validatedBy || undefined;
@@ -804,9 +705,9 @@ export async function listSessions(params?: {
 
     // Extract skill_id, quest, and community session fields
     const skill_id = getAttr('skill_id') || payload.skill_id || undefined;
-    const questId = getAttr('questId') || payload.questId || undefined;
+    const questId = getAttr('quest_id') || payload.questId || undefined;
     const questTitle = payload.questTitle || undefined;
-    const gatheringKey = getAttr('gatheringKey') || payload.gatheringKey || undefined;
+    const gatheringKey = getAttr('gathering_key') || payload.gatheringKey || undefined;
     const gatheringTitle = payload.gatheringTitle || undefined;
     const community =
       payload.community ||
@@ -820,9 +721,9 @@ export async function listSessions(params?: {
       learnerWallet,
       skill: getAttr('skill'),
       skill_id,
-      spaceId: getAttr('spaceId') || SPACE_ID,
-      createdAt: getAttr('createdAt'),
-      sessionDate: getAttr('sessionDate') || payload.sessionDate || '',
+      spaceId: getAttr('space_id') || SPACE_ID,
+      createdAt: getAttr('created_at'),
+      sessionDate: getAttr('session_date') || payload.sessionDate || '',
       status: finalStatus,
       duration: payload.duration || undefined,
       notes: payload.notes || undefined,
@@ -1016,18 +917,15 @@ export async function listSessionsForWallet(wallet: string, spaceId?: string): P
  */
 export async function getSessionByKey(key: string): Promise<Session | null> {
   const publicClient = getPublicClient();
-  const query = publicClient.buildQuery();
-  const result = await query
-    .where(eq('type', 'session'))
-    .where(eq('key', key))
-    .withAttributes(true)
-    .withPayload(true)
-    .limit(1)
-    .fetch();
+  const entity = await getEntityByKey(key, publicClient);
+  if (
+    !entity ||
+    readAttr(entity, 'type') !== 'session' ||
+    readAttr(entity, 'project') !== PROJECT
+  ) {
+    return null;
+  }
 
-  if (result.entities.length === 0) return null;
-
-  const entity = result.entities[0];
   let payload: any = {};
   try {
     if (entity.payload) {
@@ -1043,25 +941,14 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
     console.error('Error decoding payload:', e);
   }
 
-  const attrs = entity.attributes || {};
-  const getAttr = (key: string): string => {
-    if (Array.isArray(attrs)) {
-      const attr = attrs.find((a: any) => a.key === key);
-      return String(attr?.value || '');
-    }
-    return String(attrs[key] || '');
-  };
+  const getAttr = (key: string): string => readAttr(entity, key);
 
   // Get session spaceId for filtering queries
-  const sessionSpaceId = getAttr('spaceId') || SPACE_ID;
+  const sessionSpaceId = getAttr('space_id') || SPACE_ID;
 
   // Get txHash
-  const txHashResult = await publicClient
-    .buildQuery()
-    .where(eq('type', 'session_txhash'))
-    .where(eq('sessionKey', entity.key))
-    .withAttributes(true)
-    .withPayload(true)
+  const txHashResult = await arkivSelect('session_txhash', publicClient)
+    .where(eqAttr('session_key', entity.key))
     .limit(1)
     .fetch();
 
@@ -1094,66 +981,43 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
     paymentValidation,
     jitsiInfo,
   ] = await Promise.all([
-    publicClient
-      .buildQuery()
-      .where(eq('type', 'session_confirmation'))
-      .where(eq('sessionKey', entity.key))
-      .where(eq('confirmedBy', getAttr('mentorWallet')))
-      .where(eq('spaceId', sessionSpaceId))
-      .withAttributes(true)
+    arkivSelect('session_confirmation', publicClient)
+      .where(eqAttr('session_key', entity.key))
+      .where(eqAttr('confirmed_by', getAttr('mentor_wallet')))
+      .where(eqAttr('space_id', sessionSpaceId))
       .limit(1)
       .fetch(),
-    publicClient
-      .buildQuery()
-      .where(eq('type', 'session_confirmation'))
-      .where(eq('sessionKey', entity.key))
-      .where(eq('confirmedBy', getAttr('learnerWallet')))
-      .where(eq('spaceId', sessionSpaceId))
-      .withAttributes(true)
+    arkivSelect('session_confirmation', publicClient)
+      .where(eqAttr('session_key', entity.key))
+      .where(eqAttr('confirmed_by', getAttr('learner_wallet')))
+      .where(eqAttr('space_id', sessionSpaceId))
       .limit(1)
       .fetch(),
-    publicClient
-      .buildQuery()
-      .where(eq('type', 'session_rejection'))
-      .where(eq('sessionKey', entity.key))
-      .where(eq('rejectedBy', getAttr('mentorWallet')))
-      .where(eq('spaceId', sessionSpaceId))
-      .withAttributes(true)
+    arkivSelect('session_rejection', publicClient)
+      .where(eqAttr('session_key', entity.key))
+      .where(eqAttr('rejected_by', getAttr('mentor_wallet')))
+      .where(eqAttr('space_id', sessionSpaceId))
       .limit(1)
       .fetch(),
-    publicClient
-      .buildQuery()
-      .where(eq('type', 'session_rejection'))
-      .where(eq('sessionKey', entity.key))
-      .where(eq('rejectedBy', getAttr('learnerWallet')))
-      .where(eq('spaceId', sessionSpaceId))
-      .withAttributes(true)
+    arkivSelect('session_rejection', publicClient)
+      .where(eqAttr('session_key', entity.key))
+      .where(eqAttr('rejected_by', getAttr('learner_wallet')))
+      .where(eqAttr('space_id', sessionSpaceId))
       .limit(1)
       .fetch(),
-    publicClient
-      .buildQuery()
-      .where(eq('type', 'session_payment_submission'))
-      .where(eq('sessionKey', entity.key))
-      .where(eq('spaceId', sessionSpaceId))
-      .withAttributes(true)
-      .withPayload(true)
+    arkivSelect('session_payment_submission', publicClient)
+      .where(eqAttr('session_key', entity.key))
+      .where(eqAttr('space_id', sessionSpaceId))
       .limit(1)
       .fetch(),
-    publicClient
-      .buildQuery()
-      .where(eq('type', 'session_payment_validation'))
-      .where(eq('sessionKey', entity.key))
-      .where(eq('spaceId', sessionSpaceId))
-      .withAttributes(true)
-      .withPayload(true)
+    arkivSelect('session_payment_validation', publicClient)
+      .where(eqAttr('session_key', entity.key))
+      .where(eqAttr('space_id', sessionSpaceId))
       .limit(1)
       .fetch(),
-    publicClient
-      .buildQuery()
-      .where(eq('type', 'session_jitsi'))
-      .where(eq('sessionKey', entity.key))
-      .where(eq('spaceId', sessionSpaceId))
-      .withAttributes(true)
+    arkivSelect('session_jitsi', publicClient)
+      .where(eqAttr('session_key', entity.key))
+      .where(eqAttr('space_id', sessionSpaceId))
       .limit(1)
       .fetch(),
   ]);
@@ -1167,14 +1031,7 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
   let paymentTxHash: string | undefined;
   if (paymentSubmission.entities.length > 0) {
     const paymentEntity = paymentSubmission.entities[0];
-    const paymentAttrs = paymentEntity.attributes || {};
-    const getPaymentAttr = (key: string): string => {
-      if (Array.isArray(paymentAttrs)) {
-        const attr = paymentAttrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(paymentAttrs[key] || '');
-    };
+    const getPaymentAttr = (key: string): string => readAttr(paymentEntity, key);
 
     let paymentPayload: any = {};
     try {
@@ -1191,7 +1048,7 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
       console.error('Error decoding payment submission payload:', e);
     }
 
-    paymentTxHash = paymentPayload.paymentTxHash || getPaymentAttr('paymentTxHash') || undefined;
+    paymentTxHash = paymentPayload.paymentTxHash || getPaymentAttr('payment_tx_hash') || undefined;
   }
 
   // Extract payment validation info (by mentor)
@@ -1200,14 +1057,7 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
 
   if (paymentValidation.entities.length > 0) {
     const paymentEntity = paymentValidation.entities[0];
-    const paymentAttrs = paymentEntity.attributes || {};
-    const getPaymentAttr = (key: string): string => {
-      if (Array.isArray(paymentAttrs)) {
-        const attr = paymentAttrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(paymentAttrs[key] || '');
-    };
+    const getPaymentAttr = (key: string): string => readAttr(paymentEntity, key);
 
     let paymentPayload: any = {};
     try {
@@ -1226,18 +1076,20 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
 
     // Payment validation overrides submission (mentor validates the submitted payment)
     if (!paymentTxHash) {
-      paymentTxHash = paymentPayload.paymentTxHash || getPaymentAttr('paymentTxHash') || undefined;
+      paymentTxHash =
+        paymentPayload.paymentTxHash || getPaymentAttr('payment_tx_hash') || undefined;
     }
     paymentValidated = true; // If entity exists, payment is validated
-    paymentValidatedBy = paymentPayload.validatedBy || getPaymentAttr('validatedBy') || undefined;
+    paymentValidatedBy = paymentPayload.validatedBy || getPaymentAttr('validated_by') || undefined;
   } else if (!paymentTxHash) {
     // Fallback: Check if paymentTxHash is in session payload/attributes (legacy)
-    paymentTxHash = payload.paymentTxHash || getAttr('paymentTxHash') || undefined;
+    paymentTxHash = payload.paymentTxHash || getAttr('payment_tx_hash') || undefined;
   }
 
   // Extract payment requirement info
-  const requiresPayment = getAttr('requiresPayment') === 'true' || payload.requiresPayment === true;
-  const paymentAddress = getAttr('paymentAddress') || payload.paymentAddress || undefined;
+  const requiresPayment =
+    getAttr('requires_payment') === 'true' || payload.requiresPayment === true;
+  const paymentAddress = getAttr('payment_address') || payload.paymentAddress || undefined;
   const cost = getAttr('cost') || payload.cost || undefined;
 
   // Determine final status:
@@ -1251,7 +1103,7 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
   let finalStatus = entityStatus;
 
   // Check if session is expired (U4.3: Session State Machine)
-  const sessionDate = getAttr('sessionDate') || payload.sessionDate || '';
+  const sessionDate = getAttr('session_date') || payload.sessionDate || '';
   const duration = payload.duration || 60; // Default 60 minutes
   const sessionTime = sessionDate ? new Date(sessionDate).getTime() : 0;
   const durationMs = duration * 60 * 1000; // Convert minutes to milliseconds
@@ -1321,30 +1173,23 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
     } catch (e) {
       console.error('Error decoding Jitsi payload:', e);
     }
-    const jitsiAttrs = jitsiEntity.attributes || {};
-    const getJitsiAttr = (key: string): string => {
-      if (Array.isArray(jitsiAttrs)) {
-        const attr = jitsiAttrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(jitsiAttrs[key] || '');
-    };
+    // Video fields (join URL, room name, token) live in the payload only
     jitsiData = {
-      videoProvider: jitsiPayload.videoProvider || getJitsiAttr('videoProvider'),
-      videoRoomName: jitsiPayload.videoRoomName || getJitsiAttr('videoRoomName'),
-      videoJoinUrl: jitsiPayload.videoJoinUrl || getJitsiAttr('videoJoinUrl'),
-      videoJwtToken: jitsiPayload.videoJwtToken || getJitsiAttr('videoJwtToken'),
+      videoProvider: jitsiPayload.videoProvider || readAttr(jitsiEntity, 'video_provider'),
+      videoRoomName: jitsiPayload.videoRoomName,
+      videoJoinUrl: jitsiPayload.videoJoinUrl,
+      videoJwtToken: jitsiPayload.videoJwtToken,
     };
   }
 
   return {
     key: entity.key,
-    mentorWallet: getAttr('mentorWallet'),
-    learnerWallet: getAttr('learnerWallet'),
+    mentorWallet: getAttr('mentor_wallet'),
+    learnerWallet: getAttr('learner_wallet'),
     skill: getAttr('skill'),
-    spaceId: getAttr('spaceId') || SPACE_ID,
-    createdAt: getAttr('createdAt'),
-    sessionDate: getAttr('sessionDate') || payload.sessionDate || '',
+    spaceId: getAttr('space_id') || SPACE_ID,
+    createdAt: getAttr('created_at'),
+    sessionDate: getAttr('session_date') || payload.sessionDate || '',
     status: finalStatus,
     duration: payload.duration || undefined,
     notes: payload.notes || undefined,
@@ -1355,7 +1200,7 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
     paymentTxHash,
     paymentValidated,
     paymentValidatedBy,
-    questId: getAttr('questId') || payload.questId || undefined,
+    questId: getAttr('quest_id') || payload.questId || undefined,
     questTitle: payload.questTitle || undefined,
     videoProvider: jitsiData.videoProvider as 'jitsi' | 'none' | 'custom' | undefined,
     videoRoomName: jitsiData.videoRoomName,
@@ -1437,13 +1282,10 @@ export async function confirmSession({
   // Check if already confirmed
   // CRITICAL: Filter by spaceId to ensure we only find confirmations in the correct space
   const publicClient = getPublicClient();
-  const existingConfirmations = await publicClient
-    .buildQuery()
-    .where(eq('type', 'session_confirmation'))
-    .where(eq('sessionKey', sessionKey))
-    .where(eq('confirmedBy', confirmedByWallet))
-    .where(eq('spaceId', spaceId))
-    .withAttributes(true)
+  const existingConfirmations = await arkivSelect('session_confirmation', publicClient)
+    .where(eqAttr('session_key', sessionKey))
+    .where(eqAttr('confirmed_by', confirmedByWallet))
+    .where(eqAttr('space_id', spaceId))
     .limit(1)
     .fetch();
 
@@ -1452,7 +1294,7 @@ export async function confirmSession({
   }
 
   // Get session to calculate expiration based on sessionDate + duration
-  let sessionExpiration = 31536000; // Default 1 year fallback
+  let sessionExpiration: number | undefined; // undefined -> entity type default lifetime
   try {
     const session = await getSessionByKey(sessionKey);
     if (session && session.sessionDate) {
@@ -1467,7 +1309,7 @@ export async function confirmSession({
       const bufferMs = 60 * 60 * 1000; // 1 hour buffer
       const expirationTime = sessionStartTime + sessionDurationMs + bufferMs;
       const now = Date.now();
-      // Calculate expiresIn and ensure it's always an integer (BigInt requirement)
+      // Calculate lifetime and ensure it's always an integer
       const expiresInSecondsRaw = (expirationTime - now) / 1000;
       const calculatedExpiration = Math.max(1, Math.floor(expiresInSecondsRaw));
       // Final safety check: ensure it's definitely an integer
@@ -1478,30 +1320,22 @@ export async function confirmSession({
   } catch (e) {
     console.warn('Could not fetch session for expiration calculation, using default:', e);
   }
-  // Final safety check: ensure sessionExpiration is always an integer
-  sessionExpiration = Math.floor(sessionExpiration);
 
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const createdAt = new Date().toISOString();
 
-  const { entityKey, txHash } = await walletClient.createEntity({
-    payload: enc.encode(
-      JSON.stringify({
-        confirmedAt: createdAt,
-      })
-    ),
-    contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'session_confirmation' },
-      { key: 'sessionKey', value: sessionKey },
-      { key: 'confirmedBy', value: confirmedByWallet },
-      { key: 'mentorWallet', value: verifiedMentorWallet },
-      { key: 'learnerWallet', value: verifiedLearnerWallet },
-      { key: 'spaceId', value: spaceId },
-      { key: 'createdAt', value: createdAt },
-    ],
-    expiresIn: sessionExpiration,
+  const { entityKey, txHash } = await createArkivEntity(walletClient, {
+    type: 'session_confirmation',
+    attributes: {
+      session_key: sessionKey,
+      confirmed_by: confirmedByWallet,
+      mentor_wallet: verifiedMentorWallet,
+      learner_wallet: verifiedLearnerWallet,
+      space_id: spaceId,
+      created_at: createdAt,
+    },
+    payload: { confirmedAt: createdAt },
+    lifetimeSeconds: sessionExpiration,
   });
 
   // Check if both parties have now confirmed - if so, generate Jitsi meeting
@@ -1509,25 +1343,16 @@ export async function confirmSession({
   // because the query might not immediately return it due to eventual consistency
   // CRITICAL: Filter by spaceId to ensure we only find confirmations in the correct space
   // U4.3: Only generate Jitsi if session is scheduled (not expired)
-  const allConfirmations = await publicClient
-    .buildQuery()
-    .where(eq('type', 'session_confirmation'))
-    .where(eq('sessionKey', sessionKey))
-    .where(eq('spaceId', spaceId))
-    .withAttributes(true)
+  const allConfirmations = await arkivSelect('session_confirmation', publicClient)
+    .where(eqAttr('session_key', sessionKey))
+    .where(eqAttr('space_id', spaceId))
+    .limit(100)
     .fetch();
 
   const confirmedWallets = new Set(
     allConfirmations.entities.map((e: any) => {
-      const attrs = e.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
-      return getAttr('confirmedBy').toLowerCase();
+      const getAttr = (key: string): string => readAttr(e, key);
+      return getAttr('confirmed_by').toLowerCase();
     })
   );
 
@@ -1723,12 +1548,9 @@ export async function confirmSession({
   if (shouldGenerateJitsi) {
     // Check if Jitsi info already exists
     // CRITICAL: Filter by spaceId to ensure we only find Jitsi entities in the correct space
-    const existingJitsi = await publicClient
-      .buildQuery()
-      .where(eq('type', 'session_jitsi'))
-      .where(eq('sessionKey', sessionKey))
-      .where(eq('spaceId', spaceId))
-      .withAttributes(true)
+    const existingJitsi = await arkivSelect('session_jitsi', publicClient)
+      .where(eqAttr('session_key', sessionKey))
+      .where(eqAttr('space_id', spaceId))
       .limit(1)
       .fetch();
 
@@ -1737,28 +1559,24 @@ export async function confirmSession({
         // Generate Jitsi meeting info
         const jitsiInfo = generateJitsiMeeting(sessionKey, JITSI_BASE_URL);
 
-        // Use the same expiration as the session (calculated above)
-        // Ensure it's an integer for BigInt conversion
-        const jitsiExpiration = Math.floor(sessionExpiration);
-        await walletClient.createEntity({
-          payload: enc.encode(
-            JSON.stringify({
-              videoProvider: jitsiInfo.videoProvider,
-              videoRoomName: jitsiInfo.videoRoomName,
-              videoJoinUrl: jitsiInfo.videoJoinUrl,
-              generatedAt: createdAt,
-            })
-          ),
-          contentType: 'application/json',
-          attributes: [
-            { key: 'type', value: 'session_jitsi' },
-            { key: 'sessionKey', value: sessionKey },
-            { key: 'mentorWallet', value: verifiedMentorWallet },
-            { key: 'learnerWallet', value: verifiedLearnerWallet },
-            { key: 'spaceId', value: spaceId },
-            { key: 'createdAt', value: createdAt },
-          ],
-          expiresIn: jitsiExpiration, // Same expiration as session, ensured to be integer
+        // Use the same lifetime as the session (calculated above)
+        // Video fields (join URL etc.) are payload-only: URLs never go in attributes
+        await createArkivEntity(walletClient, {
+          type: 'session_jitsi',
+          attributes: {
+            session_key: sessionKey,
+            mentor_wallet: verifiedMentorWallet,
+            learner_wallet: verifiedLearnerWallet,
+            space_id: spaceId,
+            created_at: createdAt,
+          },
+          payload: {
+            videoProvider: jitsiInfo.videoProvider,
+            videoRoomName: jitsiInfo.videoRoomName,
+            videoJoinUrl: jitsiInfo.videoJoinUrl,
+            generatedAt: createdAt,
+          },
+          lifetimeSeconds: sessionExpiration,
         });
       } catch (jitsiError: any) {
         // Handle transaction receipt timeout for Jitsi entity creation
@@ -1975,7 +1793,7 @@ export async function rejectSession({
   }
 
   // Get session to calculate expiration based on sessionDate + duration
-  let sessionExpiration = 31536000; // Default 1 year fallback
+  let sessionExpiration: number | undefined; // undefined -> entity type default lifetime
   try {
     const session = await getSessionByKey(sessionKey);
     if (session && session.sessionDate) {
@@ -1990,7 +1808,7 @@ export async function rejectSession({
       const bufferMs = 60 * 60 * 1000; // 1 hour buffer
       const expirationTime = sessionStartTime + sessionDurationMs + bufferMs;
       const now = Date.now();
-      // Calculate expiresIn and ensure it's always an integer (BigInt requirement)
+      // Calculate lifetime and ensure it's always an integer
       const expiresInSecondsRaw = (expirationTime - now) / 1000;
       const calculatedExpiration = Math.max(1, Math.floor(expiresInSecondsRaw));
       // Final safety check: ensure it's definitely an integer
@@ -2001,30 +1819,22 @@ export async function rejectSession({
   } catch (e) {
     console.warn('Could not fetch session for expiration calculation, using default:', e);
   }
-  // Final safety check: ensure sessionExpiration is always an integer
-  sessionExpiration = Math.floor(sessionExpiration);
 
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const createdAt = new Date().toISOString();
 
-  const { entityKey, txHash } = await walletClient.createEntity({
-    payload: enc.encode(
-      JSON.stringify({
-        rejectedAt: createdAt,
-      })
-    ),
-    contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'session_rejection' },
-      { key: 'sessionKey', value: sessionKey },
-      { key: 'rejectedBy', value: rejectedByWallet },
-      { key: 'mentorWallet', value: verifiedMentorWallet },
-      { key: 'learnerWallet', value: verifiedLearnerWallet },
-      { key: 'spaceId', value: spaceId },
-      { key: 'createdAt', value: createdAt },
-    ],
-    expiresIn: sessionExpiration,
+  const { entityKey, txHash } = await createArkivEntity(walletClient, {
+    type: 'session_rejection',
+    attributes: {
+      session_key: sessionKey,
+      rejected_by: rejectedByWallet,
+      mentor_wallet: verifiedMentorWallet,
+      learner_wallet: verifiedLearnerWallet,
+      space_id: spaceId,
+      created_at: createdAt,
+    },
+    payload: { rejectedAt: createdAt },
+    lifetimeSeconds: sessionExpiration,
   });
 
   // Arkiv-native: Create notification for the requester when meeting is declined
@@ -2171,7 +1981,7 @@ export async function submitPayment({
   }
 
   // Get session expiration for the payment submission entity
-  let sessionExpiration = 31536000; // Default 1 year fallback
+  let sessionExpiration: number | undefined; // undefined -> entity type default lifetime
   try {
     const session = await getSessionByKey(sessionKey);
     if (session && session.sessionDate) {
@@ -2192,33 +2002,25 @@ export async function submitPayment({
   } catch (e) {
     console.warn('Could not fetch session for expiration calculation, using default:', e);
   }
-  sessionExpiration = Math.floor(sessionExpiration);
 
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const createdAt = new Date().toISOString();
 
   // Create payment submission entity (updates session with paymentTxHash)
   // We create a separate entity to track payment submission, similar to confirmations
-  const { entityKey, txHash } = await walletClient.createEntity({
-    payload: enc.encode(
-      JSON.stringify({
-        paymentTxHash,
-        submittedAt: createdAt,
-      })
-    ),
-    contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'session_payment_submission' },
-      { key: 'sessionKey', value: sessionKey },
-      { key: 'paymentTxHash', value: paymentTxHash },
-      { key: 'submittedBy', value: submittedByWallet },
-      { key: 'mentorWallet', value: verifiedMentorWallet },
-      { key: 'learnerWallet', value: verifiedLearnerWallet },
-      { key: 'spaceId', value: spaceId },
-      { key: 'createdAt', value: createdAt },
-    ],
-    expiresIn: sessionExpiration,
+  const { entityKey, txHash } = await createArkivEntity(walletClient, {
+    type: 'session_payment_submission',
+    attributes: {
+      session_key: sessionKey,
+      payment_tx_hash: paymentTxHash,
+      submitted_by: submittedByWallet,
+      mentor_wallet: verifiedMentorWallet,
+      learner_wallet: verifiedLearnerWallet,
+      space_id: spaceId,
+      created_at: createdAt,
+    },
+    payload: { paymentTxHash, submittedAt: createdAt },
+    lifetimeSeconds: sessionExpiration,
   });
 
   return { key: entityKey, txHash };
@@ -2288,7 +2090,7 @@ export async function validatePayment({
   }
 
   // Get session expiration for the payment validation entity
-  let sessionExpiration = 31536000; // Default 1 year fallback
+  let sessionExpiration: number | undefined; // undefined -> entity type default lifetime
   try {
     const session = await getSessionByKey(sessionKey);
     if (session && session.sessionDate) {
@@ -2310,33 +2112,24 @@ export async function validatePayment({
   } catch (e) {
     console.warn('Could not fetch session for expiration calculation, using default:', e);
   }
-  // Final safety check: ensure sessionExpiration is always an integer
-  sessionExpiration = Math.floor(sessionExpiration);
 
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const createdAt = new Date().toISOString();
 
   // Create payment validation entity
-  const { entityKey, txHash } = await walletClient.createEntity({
-    payload: enc.encode(
-      JSON.stringify({
-        paymentTxHash,
-        validatedAt: createdAt,
-      })
-    ),
-    contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'session_payment_validation' },
-      { key: 'sessionKey', value: sessionKey },
-      { key: 'paymentTxHash', value: paymentTxHash },
-      { key: 'validatedBy', value: validatedByWallet },
-      { key: 'mentorWallet', value: verifiedMentorWallet },
-      { key: 'learnerWallet', value: verifiedLearnerWallet },
-      { key: 'spaceId', value: spaceId },
-      { key: 'createdAt', value: createdAt },
-    ],
-    expiresIn: sessionExpiration,
+  const { entityKey, txHash } = await createArkivEntity(walletClient, {
+    type: 'session_payment_validation',
+    attributes: {
+      session_key: sessionKey,
+      payment_tx_hash: paymentTxHash,
+      validated_by: validatedByWallet,
+      mentor_wallet: verifiedMentorWallet,
+      learner_wallet: verifiedLearnerWallet,
+      space_id: spaceId,
+      created_at: createdAt,
+    },
+    payload: { paymentTxHash, validatedAt: createdAt },
+    lifetimeSeconds: sessionExpiration,
   });
 
   return { key: entityKey, txHash };

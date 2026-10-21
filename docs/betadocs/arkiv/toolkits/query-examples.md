@@ -13,12 +13,8 @@ import { eq } from '@arkiv-network/sdk/query';
 import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'user_profile'))
-  .where(eq('wallet', walletAddress.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('user_profile')
+  .where(eqAttr('wallet', walletAddress.toLowerCase()))
   .limit(100)
   .fetch();
 
@@ -33,11 +29,7 @@ const latestProfile = profiles[0];
 ### Get Entities by Type
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'ask'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('ask')
   .limit(50)
   .fetch();
 
@@ -52,12 +44,8 @@ const asks = result.entities.map((e) => ({
 ### Get Active Asks
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'ask'))
-  .where(eq('status', 'open'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('ask')
+  .where(eqAttr('status', 'open'))
   .limit(100)
   .fetch();
 
@@ -75,12 +63,8 @@ const activeAsks = result.entities
 ### Get Sessions by Status
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'session'))
-  .where(eq('mentorWallet', walletAddress.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('session')
+  .where(eqAttr('mentor_wallet', walletAddress.toLowerCase()))
   .limit(100)
   .fetch();
 
@@ -106,12 +90,8 @@ const profile = await getProfileByWallet(walletAddress);
 if (profile.skill_ids && profile.skill_ids.length > 0) {
   const skillResults = await Promise.all(
     profile.skill_ids.map((skillId) =>
-      publicClient
-        .buildQuery()
-        .where(eq('type', 'skill'))
-        .where(eq('key', skillId))
-        .withAttributes(true)
-        .withPayload(true)
+      arkivSelect('skill')
+        .where(eqAttr('key', skillId))
         .limit(1)
         .fetch()
     )
@@ -152,12 +132,8 @@ async function getAsksPaginated(
   cursor?: string,
   limit: number = 20
 ): Promise<{ asks: Ask[]; nextCursor?: string }> {
-  const result = await publicClient
-    .buildQuery()
-    .where(eq('type', 'ask'))
-    .where(eq('status', 'open'))
-    .withAttributes(true)
-    .withPayload(true)
+  const result = await arkivSelect('ask')
+    .where(eqAttr('status', 'open'))
     .limit(limit + 1) // Fetch one extra to check for next page
     .fetch();
 
@@ -182,11 +158,8 @@ async function getAsksPaginated(
 
 ```typescript
 async function countAsks(): Promise<number> {
-  const result = await publicClient
-    .buildQuery()
-    .where(eq('type', 'ask'))
-    .where(eq('status', 'open'))
-    .withAttributes(true)
+  const result = await arkivSelect('ask')
+    .where(eqAttr('status', 'open'))
     .limit(1000) // Max limit
     .fetch();
 
@@ -214,12 +187,8 @@ async function getAverageRating(wallet: string): Promise<number> {
 
 ```typescript
 async function getTransactionHash(entityKey: string, entityType: string): Promise<string | null> {
-  const result = await publicClient
-    .buildQuery()
-    .where(eq('type', `${entityType}_txhash`))
-    .where(eq('entityKey', entityKey))
-    .withAttributes(true)
-    .withPayload(true)
+  const result = await arkivSelect(`${entityType}_txhash`)
+    .where(eqAttr('entity_key', entityKey))
     .limit(1)
     .fetch();
 

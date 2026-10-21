@@ -981,7 +981,7 @@ export default function AdminDashboard() {
                             setPerfSamples(samplesData.samples);
                           }
                           alert(
-                            `Performance test completed! ${data.entitiesCreated} entities created. Check Braga explorer to verify.`
+                            `Performance test completed! ${data.entitiesCreated} entities created. Check the Arkiv explorer to verify.`
                           );
                         } else {
                           alert(`Test failed: ${data.error || 'Unknown error'}`);

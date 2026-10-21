@@ -82,12 +82,8 @@ Implementation: `lib/arkiv/profile.ts` - `createUserProfile()` uses `arkivUpsert
 Fetch profile by wallet address:
 
 ```typescript
-const query = publicClient.buildQuery();
-const result = await query
-  .where(eq('type', 'user_profile'))
-  .where(eq('wallet', wallet.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('user_profile')
+  .where(eqAttr('wallet', wallet.toLowerCase()))
   .limit(100)
   .fetch();
 
@@ -109,11 +105,8 @@ Username uniqueness is not enforced at Arkiv entity level. Current implementatio
 Query pattern for username check:
 
 ```typescript
-const query = publicClient.buildQuery();
-const result = await query
-  .where(eq('type', 'user_profile'))
-  .where(eq('username', username))
-  .withAttributes(true)
+const result = await arkivSelect('user_profile')
+  .where(eqAttr('username', username))
   .limit(1)
   .fetch();
 ```

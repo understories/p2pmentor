@@ -55,12 +55,8 @@ import { eq } from '@arkiv-network/sdk/query';
 import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'dx_metric'))
-  .where(eq('operation', 'buildNetworkGraphData'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('dx_metric')
+  .where(eqAttr('operation', 'buildNetworkGraphData'))
   .limit(100)
   .fetch();
 
@@ -74,24 +70,16 @@ const metrics = result.entities.map((e) => ({
 
 ```typescript
 // Get JSON-RPC metrics
-const arkivMetrics = await publicClient
-  .buildQuery()
-  .where(eq('type', 'dx_metric'))
-  .where(eq('source', 'arkiv'))
-  .where(eq('operation', 'buildNetworkGraphData'))
-  .withAttributes(true)
-  .withPayload(true)
+const arkivMetrics = await arkivSelect('dx_metric')
+  .where(eqAttr('source', 'arkiv'))
+  .where(eqAttr('operation', 'buildNetworkGraphData'))
   .limit(50)
   .fetch();
 
 // Get GraphQL metrics
-const graphqlMetrics = await publicClient
-  .buildQuery()
-  .where(eq('type', 'dx_metric'))
-  .where(eq('source', 'graphql'))
-  .where(eq('operation', 'buildNetworkGraphData'))
-  .withAttributes(true)
-  .withPayload(true)
+const graphqlMetrics = await arkivSelect('dx_metric')
+  .where(eqAttr('source', 'graphql'))
+  .where(eqAttr('operation', 'buildNetworkGraphData'))
   .limit(50)
   .fetch();
 
@@ -110,12 +98,8 @@ const graphqlAvg =
 ### Get Metrics by Route
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'dx_metric'))
-  .where(eq('route', '/network'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('dx_metric')
+  .where(eqAttr('route', '/network'))
   .limit(100)
   .fetch();
 ```

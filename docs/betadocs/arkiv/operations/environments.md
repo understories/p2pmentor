@@ -29,8 +29,8 @@ All server-side entity creation uses the signing wallet:
 const walletClient = getWalletClientFromPrivateKey(privateKey);
 await walletClient.createEntity({
   attributes: [
-    { key: 'type', value: 'user_profile' },
-    { key: 'wallet', value: userWallet }, // User's profile wallet
+    { type: 'user_profile' },
+    { wallet: userWallet }, // User's profile wallet
     // ...
   ],
   // ...
@@ -45,10 +45,8 @@ Queries filter by user wallet addresses, not signing wallet:
 
 ```typescript
 // Query by user's profile wallet
-const query = publicClient
-  .buildQuery()
-  .where(eq('type', 'user_profile'))
-  .where(eq('wallet', userWallet.toLowerCase()))
+const query = arkivSelect('user_profile')
+  .where(eqAttr('wallet', userWallet.toLowerCase()))
   .fetch();
 ```
 

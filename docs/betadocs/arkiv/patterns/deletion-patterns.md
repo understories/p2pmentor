@@ -53,19 +53,11 @@ async function deleteEntity(entityKey: string, wallet: string) {
 ```typescript
 async function getActiveEntities() {
   // 1. Get all entities
-  const entities = await publicClient
-    .buildQuery()
-    .where(eq('type', 'entity_type'))
-    .withAttributes(true)
-    .withPayload(true)
+  const entities = await arkivSelect('entity_type')
     .fetch();
 
   // 2. Get all deletion markers
-  const deletions = await publicClient
-    .buildQuery()
-    .where(eq('type', 'entity_type_deletion'))
-    .withAttributes(true)
-    .withPayload(true)
+  const deletions = await arkivSelect('entity_type_deletion')
     .fetch();
 
   // 3. Filter out deleted entities

@@ -8,9 +8,11 @@
  * Week 2 (Feb 8-14) - Intrinsic motivation design
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr, parsePayload } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { createArkivEntity } from './write';
 import { SPACE_ID } from '../config';
 
 export type ReflectionVisibility = 'private' | 'public';
@@ -48,7 +50,7 @@ export async function createQuestReflection({
   progressEntityKey,
   privateKey,
   spaceId = SPACE_ID,
-  ttlSeconds = 31536000,
+  ttlSeconds, // Optional lifetime override; defaults to the type lifetime (schema.ts)
 }: {
   wallet: string;
   questId: string;
@@ -67,17 +69,15 @@ export async function createQuestReflection({
 
   try {
     const walletClient = getWalletClientFromPrivateKey(privateKey);
-    const enc = new TextEncoder();
 
-    const attributes = [
-      { key: 'type', value: 'quest_reflection' },
-      { key: 'wallet', value: normalizedWallet },
-      { key: 'questId', value: questId },
-      { key: 'stepId', value: stepId },
-      { key: 'visibility', value: visibility },
-      { key: 'spaceId', value: finalSpaceId },
-      { key: 'createdAt', value: createdAt },
-    ];
+    const attributes = {
+      wallet: normalizedWallet,
+      quest_id: questId,
+      step_id: stepId,
+      visibility,
+      space_id: finalSpaceId,
+      created_at: createdAt,
+    };
 
     const payload = {
       prompt,
@@ -86,30 +86,28 @@ export async function createQuestReflection({
     };
 
     const result = await handleTransactionWithTimeout(async () => {
-      return await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify(payload)),
-        contentType: 'application/json',
+      return await createArkivEntity(walletClient, {
+        type: 'quest_reflection',
         attributes,
-        expiresIn: ttlSeconds,
+        payload,
+        lifetimeSeconds: ttlSeconds,
       });
     });
 
     const returnedEntityKey = result.entityKey;
     const txHash = result.txHash;
 
-    walletClient
-      .createEntity({
-        payload: enc.encode(JSON.stringify({ txHash, reflectionKey: returnedEntityKey })),
-        contentType: 'application/json',
-        attributes: [
-          { key: 'type', value: 'quest_reflection_txhash' },
-          { key: 'reflectionKey', value: returnedEntityKey },
-          { key: 'txHash', value: txHash },
-          { key: 'spaceId', value: finalSpaceId },
-          { key: 'createdAt', value: createdAt },
-        ],
-        expiresIn: ttlSeconds,
-      })
+    createArkivEntity(walletClient, {
+      type: 'quest_reflection_txhash',
+      attributes: {
+        reflection_key: returnedEntityKey,
+        tx_hash: txHash,
+        space_id: finalSpaceId,
+        created_at: createdAt,
+      },
+      payload: { txHash, reflectionKey: returnedEntityKey },
+      lifetimeSeconds: ttlSeconds,
+    })
       .catch((err) => {
         console.warn('[createQuestReflection] Failed to create txhash entity:', err);
       });
@@ -141,26 +139,24 @@ export async function getQuestReflections({
 
   try {
     const publicClient = getPublicClient();
-    const query = publicClient.buildQuery();
+    const query = arkivSelect('quest_reflection', publicClient);
 
-    let queryBuilder = query
-      .where(eq('type', 'quest_reflection'))
-      .where(eq('spaceId', finalSpaceId));
+    let queryBuilder = query.where(eqAttr('space_id', finalSpaceId));
 
     if (wallet) {
-      queryBuilder = queryBuilder.where(eq('wallet', wallet.toLowerCase()));
+      queryBuilder = queryBuilder.where(eqAttr('wallet', wallet.toLowerCase()));
     }
     if (questId) {
-      queryBuilder = queryBuilder.where(eq('questId', questId));
+      queryBuilder = queryBuilder.where(eqAttr('quest_id', questId));
     }
     if (stepId) {
-      queryBuilder = queryBuilder.where(eq('stepId', stepId));
+      queryBuilder = queryBuilder.where(eqAttr('step_id', stepId));
     }
     if (visibility) {
-      queryBuilder = queryBuilder.where(eq('visibility', visibility));
+      queryBuilder = queryBuilder.where(eqAttr('visibility', visibility));
     }
 
-    const result = await queryBuilder.withAttributes(true).withPayload(true).limit(100).fetch();
+    const result = await queryBuilder.limit(100).fetch();
 
     if (!result || !result.entities || !Array.isArray(result.entities)) {
       console.warn('[getQuestReflections] Invalid result structure, returning empty array');
@@ -168,32 +164,21 @@ export async function getQuestReflections({
     }
 
     return result.entities.map((entity: any) => {
-      const getAttr = (key: string) => entity.attributes?.find((a: any) => a.key === key)?.value;
+      const getAttr = (key: string) => readAttr(entity, key);
 
-      let payload: any = {};
-      try {
-        if (entity.payload) {
-          const payloadStr =
-            typeof entity.payload === 'string'
-              ? entity.payload
-              : new TextDecoder().decode(entity.payload);
-          payload = JSON.parse(payloadStr);
-        }
-      } catch (e) {
-        console.warn('[getQuestReflections] Failed to parse payload:', e);
-      }
+      const payload: any = parsePayload(entity);
 
       return {
         key: entity.key || '',
         wallet: getAttr('wallet') || '',
-        questId: getAttr('questId') || '',
-        stepId: getAttr('stepId') || '',
+        questId: getAttr('quest_id') || '',
+        stepId: getAttr('step_id') || '',
         prompt: payload.prompt || '',
         reflectionText: payload.reflectionText || '',
         visibility: (getAttr('visibility') || 'private') as ReflectionVisibility,
         progressEntityKey: payload.progressEntityKey,
-        createdAt: getAttr('createdAt') || '',
-        spaceId: getAttr('spaceId') || finalSpaceId,
+        createdAt: getAttr('created_at') || '',
+        spaceId: getAttr('space_id') || finalSpaceId,
         txHash: entity.txHash,
       };
     });
@@ -217,39 +202,28 @@ export async function listAllReflections({
     const publicClient = getPublicClient();
 
     const fetchForSpace = async (spaceId: string): Promise<QuestReflection[]> => {
-      const result = await publicClient
-        .buildQuery()
-        .where(eq('type', 'quest_reflection'))
-        .where(eq('spaceId', spaceId))
-        .withAttributes(true)
-        .withPayload(false)
-        .limit(limit)
-        .fetch();
+      const result = await fetchAll(
+        arkivSelect('quest_reflection', publicClient).where(eqAttr('space_id', spaceId)),
+        limit,
+        publicClient
+      );
 
       if (!result?.entities || !Array.isArray(result.entities)) return [];
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const getAttr = (entity: any, key: string): string => {
-        const attrs = entity.attributes || {};
-        if (Array.isArray(attrs)) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (entity: any, key: string): string => readAttr(entity, key);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return result.entities.map((entity: any) => ({
         key: entity.key,
         wallet: getAttr(entity, 'wallet'),
-        questId: getAttr(entity, 'questId'),
-        stepId: getAttr(entity, 'stepId'),
+        questId: getAttr(entity, 'quest_id'),
+        stepId: getAttr(entity, 'step_id'),
         prompt: '',
         reflectionText: '',
         visibility: (getAttr(entity, 'visibility') || 'private') as ReflectionVisibility,
-        createdAt: getAttr(entity, 'createdAt'),
-        spaceId: getAttr(entity, 'spaceId'),
+        createdAt: getAttr(entity, 'created_at'),
+        spaceId: getAttr(entity, 'space_id'),
         txHash: entity.txHash || undefined,
       }));
     };

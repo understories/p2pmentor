@@ -216,8 +216,8 @@ async function consolidateWalletProfiles(
 
   if (!dryRun) {
     try {
-      // Update canonical profile with merged data using Pattern B (updateEntity)
-      // We use createUserProfile which will detect existing profile and use updateEntity
+      // Update canonical profile with merged data using Pattern B (replace via patchEntity)
+      // We use createUserProfile which will detect existing profile and replace it in place
       const privateKey = getPrivateKey();
       const { key, txHash } = await createUserProfile({
         wallet: normalizedWallet,

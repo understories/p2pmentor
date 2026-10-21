@@ -63,12 +63,8 @@ import { eq, and } from '@arkiv-network/sdk/query';
 import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'notification_preference'))
-  .where(eq('wallet', walletAddress.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('notification_preference')
+  .where(eqAttr('wallet', walletAddress.toLowerCase()))
   .limit(100)
   .fetch();
 
@@ -81,12 +77,8 @@ const preferences = result.entities.map((e) => ({
 ### Get Unread Notifications
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'notification_preference'))
-  .where(eq('wallet', walletAddress.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('notification_preference')
+  .where(eqAttr('wallet', walletAddress.toLowerCase()))
   .limit(1000)
   .fetch();
 
@@ -99,13 +91,9 @@ const unread = result.entities
 ### Get Preference for Notification
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'notification_preference'))
-  .where(eq('wallet', walletAddress.toLowerCase()))
-  .where(eq('notificationId', notificationId))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('notification_preference')
+  .where(eqAttr('wallet', walletAddress.toLowerCase()))
+  .where(eqAttr('notification_id', notificationId))
   .limit(1)
   .fetch();
 

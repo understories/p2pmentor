@@ -2,20 +2,22 @@
  * Notification entity CRUD helpers
  *
  * Complete overhaul following admin notification pattern (Pattern B).
- * Uses updateEntity for state changes with stable entity keys.
+ * Replaces the entity in place (patchEntity via replaceArkivEntity) for state changes.
  *
  * Key Design:
  * - Stable entity_key derived from (wallet, notificationId)
- * - Uses updateEntity for state changes (read/unread/archived)
+ * - Replaces the entity in place for state changes (read/unread/archived)
  * - State stored in payload (read, archived)
  * - Full transaction history preserved
  *
  * Reference: refs/docs/admin-vs-regular-notifications-comparison.md
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { PROJECT, eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr, getEntityByKey } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { createArkivEntity, replaceArkivEntity } from './write';
 import { SPACE_ID } from '@/lib/config';
 
 export type NotificationType =
@@ -108,7 +110,6 @@ export async function createNotification({
   spaceId?: string;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const now = new Date().toISOString();
   const normalizedWallet = wallet.toLowerCase();
 
@@ -117,18 +118,12 @@ export async function createNotification({
 
   // Check if notification already exists
   const publicClient = getPublicClient();
-  const existing = await publicClient
-    .buildQuery()
-    .where(eq('type', 'notification'))
-    .where(eq('wallet', normalizedWallet))
-    .where(eq('notificationId', notificationId))
-    .where(eq('spaceId', spaceId))
-    .withAttributes(true)
-    .withPayload(true)
+  const existing = await arkivSelect('notification', publicClient)
+    .where(eqAttr('wallet', normalizedWallet))
+    .where(eqAttr('notification_id', notificationId))
+    .where(eqAttr('space_id', spaceId))
     .limit(1)
     .fetch();
-
-  const expiresIn = 31536000; // 1 year
 
   const payload = {
     title,
@@ -166,14 +161,7 @@ export async function createNotification({
     }
 
     // Get existing attributes
-    const attrs = existingEntity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (key: string): string => readAttr(existingEntity, key);
 
     // Preserve read/archived state, update other fields
     const updatedPayload = {
@@ -188,43 +176,39 @@ export async function createNotification({
     };
 
     const result = await handleTransactionWithTimeout(async () => {
-      return await walletClient.updateEntity({
-        entityKey: entityKey as `0x${string}`,
-        payload: enc.encode(JSON.stringify(updatedPayload)),
-        contentType: 'application/json',
-        attributes: [
-          { key: 'type', value: 'notification' },
-          { key: 'wallet', value: normalizedWallet },
-          { key: 'notificationId', value: notificationId },
-          { key: 'notificationType', value: notificationType },
-          { key: 'sourceEntityType', value: sourceEntityType },
-          { key: 'sourceEntityKey', value: sourceEntityKey },
-          { key: 'spaceId', value: spaceId },
-          { key: 'createdAt', value: getAttr('createdAt') || now },
-          { key: 'updatedAt', value: now },
-        ],
-        expiresIn,
+      return await replaceArkivEntity(walletClient, {
+        entityKey,
+        type: 'notification',
+        attributes: {
+          wallet: normalizedWallet,
+          notification_id: notificationId,
+          notification_type: notificationType,
+          source_entity_type: sourceEntityType,
+          source_entity_key: sourceEntityKey,
+          space_id: spaceId,
+          created_at: getAttr('created_at') || now,
+          updated_at: now,
+        },
+        payload: updatedPayload,
       });
     });
     txHash = result.txHash;
   } else {
     // Create new notification entity
     const result = await handleTransactionWithTimeout(async () => {
-      return await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify(payload)),
-        contentType: 'application/json',
-        attributes: [
-          { key: 'type', value: 'notification' },
-          { key: 'wallet', value: normalizedWallet },
-          { key: 'notificationId', value: notificationId },
-          { key: 'notificationType', value: notificationType },
-          { key: 'sourceEntityType', value: sourceEntityType },
-          { key: 'sourceEntityKey', value: sourceEntityKey },
-          { key: 'spaceId', value: spaceId },
-          { key: 'createdAt', value: now },
-          { key: 'updatedAt', value: now },
-        ],
-        expiresIn,
+      return await createArkivEntity(walletClient, {
+        type: 'notification',
+        attributes: {
+          wallet: normalizedWallet,
+          notification_id: notificationId,
+          notification_type: notificationType,
+          source_entity_type: sourceEntityType,
+          source_entity_key: sourceEntityKey,
+          space_id: spaceId,
+          created_at: now,
+          updated_at: now,
+        },
+        payload,
       });
     });
     entityKey = result.entityKey;
@@ -232,21 +216,17 @@ export async function createNotification({
   }
 
   // Store txHash in separate entity for reliable querying (non-blocking)
-  walletClient
-    .createEntity({
-      payload: enc.encode(JSON.stringify({ txHash })),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'notification_txhash' },
-        { key: 'notificationKey', value: entityKey },
-        { key: 'wallet', value: normalizedWallet },
-        { key: 'spaceId', value: spaceId },
-      ],
-      expiresIn,
-    })
-    .catch((err: any) => {
-      console.warn('[createNotification] Failed to create txHash entity (non-critical):', err);
-    });
+  createArkivEntity(walletClient, {
+    type: 'notification_txhash',
+    attributes: {
+      notification_key: entityKey,
+      wallet: normalizedWallet,
+      space_id: spaceId,
+    },
+    payload: { txHash },
+  }).catch((err: any) => {
+    console.warn('[createNotification] Failed to create txHash entity (non-critical):', err);
+  });
 
   return { key: entityKey, txHash };
 }
@@ -254,7 +234,7 @@ export async function createNotification({
 /**
  * Update notification state (read/unread/archived)
  *
- * Uses Pattern B: updateEntity with stable entity_key
+ * Uses Pattern B: replaces the entity in place (stable entity_key)
  * This updates the existing entity in place rather than creating a new one.
  */
 export async function updateNotificationState({
@@ -273,23 +253,25 @@ export async function updateNotificationState({
   spaceId?: string;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const now = new Date().toISOString();
   const normalizedWallet = wallet.toLowerCase();
 
   // Get current notification state by wallet + notificationId (stable query)
   // First try querying by notificationId attribute (new notifications)
   const publicClient = getPublicClient();
-  let result = await publicClient
-    .buildQuery()
-    .where(eq('type', 'notification'))
-    .where(eq('wallet', normalizedWallet))
-    .where(eq('notificationId', notificationId))
-    .where(eq('spaceId', spaceId))
-    .withAttributes(true)
-    .withPayload(true)
-    .limit(1)
-    .fetch();
+  // Mutable copy of the entities (query results are read-only)
+  let result: { entities: any[] } = {
+    entities: [
+      ...(
+        await arkivSelect('notification', publicClient)
+          .where(eqAttr('wallet', normalizedWallet))
+          .where(eqAttr('notification_id', notificationId))
+          .where(eqAttr('space_id', spaceId))
+          .limit(1)
+          .fetch()
+      ).entities,
+    ],
+  };
 
   // If not found, try querying by deriving from sourceEntityType + sourceEntityKey (old notifications)
   if (!result?.entities || result.entities.length === 0) {
@@ -304,23 +286,25 @@ export async function updateNotificationState({
         `[updateNotificationState] Fallback query: searching by sourceEntityType=${sourceEntityType}, sourceEntityKey=${sourceEntityKey}`
       );
 
-      result = await publicClient
-        .buildQuery()
-        .where(eq('type', 'notification'))
-        .where(eq('wallet', normalizedWallet))
-        .where(eq('sourceEntityType', sourceEntityType))
-        .where(eq('sourceEntityKey', sourceEntityKey))
-        .where(eq('spaceId', spaceId))
-        .withAttributes(true)
-        .withPayload(true)
-        .limit(10) // Get more results to find the right one
-        .fetch();
+      result = {
+        entities: [
+          ...(
+            await arkivSelect('notification', publicClient)
+              .where(eqAttr('wallet', normalizedWallet))
+              .where(eqAttr('source_entity_type', sourceEntityType))
+              .where(eqAttr('source_entity_key', sourceEntityKey))
+              .where(eqAttr('space_id', spaceId))
+              .limit(10) // Get more results to find the right one
+              .fetch()
+          ).entities,
+        ],
+      };
 
       // If still multiple, sort by most recent
       if (result?.entities && result.entities.length > 0) {
         result.entities.sort((a: any, b: any) => {
-          const aTime = a.updatedAt || a.createdAt || '';
-          const bTime = b.updatedAt || b.createdAt || '';
+          const aTime = readAttr(a, 'updated_at') || readAttr(a, 'created_at');
+          const bTime = readAttr(b, 'updated_at') || readAttr(b, 'created_at');
           return bTime.localeCompare(aTime);
         });
         console.log(
@@ -335,13 +319,9 @@ export async function updateNotificationState({
     console.log(
       `[updateNotificationState] Last resort: querying all notifications for wallet ${normalizedWallet}`
     );
-    const allResult = await publicClient
-      .buildQuery()
-      .where(eq('type', 'notification'))
-      .where(eq('wallet', normalizedWallet))
-      .where(eq('spaceId', spaceId))
-      .withAttributes(true)
-      .withPayload(true)
+    const allResult = await arkivSelect('notification', publicClient)
+      .where(eqAttr('wallet', normalizedWallet))
+      .where(eqAttr('space_id', spaceId))
       .limit(100)
       .fetch();
 
@@ -349,23 +329,16 @@ export async function updateNotificationState({
       // Try to find by matching notificationId or deriving it
       const matchingEntity = allResult.entities.find((entity: any) => {
         // Check if notificationId attribute matches
-        const attrs = entity.attributes || {};
-        const getAttr = (key: string): string => {
-          if (Array.isArray(attrs)) {
-            const attr = attrs.find((a: any) => a.key === key);
-            return String(attr?.value || '');
-          }
-          return String(attrs[key] || '');
-        };
+        const getAttr = (key: string): string => readAttr(entity, key);
 
-        const entityNotificationId = getAttr('notificationId');
+        const entityNotificationId = getAttr('notification_id');
         if (entityNotificationId === notificationId) {
           return true;
         }
 
         // Try deriving notificationId from sourceEntityType + sourceEntityKey
-        const entitySourceType = getAttr('sourceEntityType');
-        const entitySourceKey = getAttr('sourceEntityKey');
+        const entitySourceType = getAttr('source_entity_type');
+        const entitySourceKey = getAttr('source_entity_key');
         if (entitySourceType && entitySourceKey) {
           const derivedId = deriveNotificationId(entitySourceType, entitySourceKey);
           if (derivedId === notificationId) {
@@ -378,9 +351,8 @@ export async function updateNotificationState({
 
       if (matchingEntity) {
         console.log(`[updateNotificationState] Found notification via last resort query`);
-        // Use the allResult but replace entities array with just the matching one
-        result = allResult;
-        result.entities = [matchingEntity];
+        // Use just the matching entity
+        result = { entities: [matchingEntity] };
       }
     }
   }
@@ -395,8 +367,8 @@ export async function updateNotificationState({
       `[updateNotificationState] Multiple entities found for notificationId ${notificationId}, using most recent`
     );
     result.entities.sort((a: any, b: any) => {
-      const aTime = a.updatedAt || a.createdAt || '';
-      const bTime = b.updatedAt || b.createdAt || '';
+      const aTime = readAttr(a, 'updated_at') || readAttr(a, 'created_at');
+      const bTime = readAttr(b, 'updated_at') || readAttr(b, 'created_at');
       return bTime.localeCompare(aTime);
     });
   }
@@ -426,14 +398,7 @@ export async function updateNotificationState({
   }
 
   // Get current attributes
-  const attrs = entity.attributes || {};
-  const getAttr = (key: string): string => {
-    if (Array.isArray(attrs)) {
-      const attr = attrs.find((a: any) => a.key === key);
-      return String(attr?.value || '');
-    }
-    return String(attrs[key] || '');
-  };
+  const getAttr = (key: string): string => readAttr(entity, key);
 
   // Build updated payload
   // Ensure read/archived are always explicitly set (important for old notifications)
@@ -457,30 +422,26 @@ export async function updateNotificationState({
   console.log(`[updateNotificationState] Entity key: ${entityKey}`);
 
   // Update entity in place (Pattern B)
-  const expiresIn = 31536000; // 1 year
-
-  // Build attributes array, ensuring notificationId is always included
-  const attributes = [
-    { key: 'type', value: 'notification' },
-    { key: 'wallet', value: normalizedWallet },
-    { key: 'notificationId', value: notificationId }, // Always include notificationId
-    { key: 'notificationType', value: getAttr('notificationType') || '' },
-    { key: 'sourceEntityType', value: getAttr('sourceEntityType') || '' },
-    { key: 'sourceEntityKey', value: getAttr('sourceEntityKey') || '' },
-    { key: 'spaceId', value: spaceId },
-    { key: 'createdAt', value: getAttr('createdAt') || now },
-    { key: 'updatedAt', value: now },
-  ];
+  // Build attributes, ensuring notificationId is always included (empty values are omitted)
+  const attributes = {
+    wallet: normalizedWallet,
+    notification_id: notificationId, // Always include notificationId
+    notification_type: getAttr('notification_type'),
+    source_entity_type: getAttr('source_entity_type'),
+    source_entity_key: getAttr('source_entity_key'),
+    space_id: spaceId,
+    created_at: getAttr('created_at') || now,
+    updated_at: now,
+  };
 
   let txHash: string;
   try {
     const result = await handleTransactionWithTimeout(async () => {
-      const updateResult = await walletClient.updateEntity({
-        entityKey: entityKey as `0x${string}`,
-        payload: enc.encode(JSON.stringify(updatedPayload)),
-        contentType: 'application/json',
+      const updateResult = await replaceArkivEntity(walletClient, {
+        entityKey,
+        type: 'notification',
         attributes,
-        expiresIn,
+        payload: updatedPayload,
       });
       console.log(
         `[updateNotificationState] Update transaction successful, txHash: ${updateResult.txHash}`
@@ -532,35 +493,29 @@ export async function listNotifications({
     const publicClient = getPublicClient();
 
     // Build query with wallet filter at Arkiv level for efficiency
-    let notificationQuery = publicClient.buildQuery().where(eq('type', 'notification'));
+    let notificationQuery = arkivSelect('notification', publicClient);
 
     if (wallet) {
-      notificationQuery = notificationQuery.where(eq('wallet', wallet.toLowerCase()));
+      notificationQuery = notificationQuery.where(eqAttr('wallet', wallet.toLowerCase()));
     }
 
     // Support multiple spaceIds (builder mode) or single spaceId
     if (spaceIds && spaceIds.length > 0) {
       // Query all, filter client-side (Arkiv doesn't support OR queries)
-      notificationQuery = notificationQuery.limit(limit || 100);
     } else {
       // Use provided spaceId or default to SPACE_ID from config
       const finalSpaceId = spaceId || SPACE_ID;
-      notificationQuery = notificationQuery.where(eq('spaceId', finalSpaceId)).limit(limit || 100);
+      notificationQuery = notificationQuery.where(eqAttr('space_id', finalSpaceId));
     }
 
     // Fetch notification entities and txHash entities in parallel
+    let txHashQuery = arkivSelect('notification_txhash', publicClient);
+    if (wallet) {
+      txHashQuery = txHashQuery.where(eqAttr('wallet', wallet.toLowerCase()));
+    }
     const [result, txHashResult] = await Promise.all([
-      notificationQuery
-        .withAttributes(true)
-        .withPayload(true)
-        .limit(limit || 100)
-        .fetch(),
-      publicClient
-        .buildQuery()
-        .where(eq('type', 'notification_txhash'))
-        .withAttributes(true)
-        .withPayload(true)
-        .fetch(),
+      fetchAll(notificationQuery, limit || 100, publicClient),
+      fetchAll(txHashQuery, limit || 100, publicClient),
     ]);
 
     if (!result || !result.entities || !Array.isArray(result.entities)) {
@@ -574,15 +529,8 @@ export async function listNotifications({
     const txHashMap: Record<string, string> = {};
     if (txHashResult?.entities && Array.isArray(txHashResult.entities)) {
       txHashResult.entities.forEach((entity: any) => {
-        const attrs = entity.attributes || {};
-        const getAttr = (key: string): string => {
-          if (Array.isArray(attrs)) {
-            const attr = attrs.find((a: any) => a.key === key);
-            return String(attr?.value || '');
-          }
-          return String(attrs[key] || '');
-        };
-        const notificationKey = getAttr('notificationKey');
+        const getAttr = (key: string): string => readAttr(entity, key);
+        const notificationKey = getAttr('notification_key');
         try {
           if (entity.payload) {
             const decoded =
@@ -662,26 +610,22 @@ export async function listNotifications({
 export async function getNotificationByKey(key: string): Promise<Notification | null> {
   const publicClient = getPublicClient();
 
-  const result = await publicClient
-    .buildQuery()
-    .where(eq('type', 'notification'))
-    .where(eq('key', key))
-    .withAttributes(true)
-    .withPayload(true)
-    .limit(1)
-    .fetch();
-
-  if (!result?.entities || result.entities.length === 0) {
+  const entity = await getEntityByKey(key, publicClient);
+  if (
+    !entity ||
+    readAttr(entity, 'type') !== 'notification' ||
+    readAttr(entity, 'project') !== PROJECT
+  ) {
     return null;
   }
 
-  return decodeNotificationEntity(result.entities[0]);
+  return decodeNotificationEntity(entity);
 }
 
 /**
  * Archive a notification (soft delete)
  *
- * Uses Pattern B: updateEntity to set archived=true
+ * Uses Pattern B: replaces the entity in place to set archived=true
  * This updates the existing entity in place rather than creating a new one.
  */
 export async function archiveNotification({
@@ -707,7 +651,7 @@ export async function archiveNotification({
 /**
  * Archive all notifications for a wallet (bulk delete)
  *
- * Uses Pattern B: updateEntity to set archived=true for all notifications
+ * Uses Pattern B: replaces each entity in place to set archived=true for all notifications
  * This allows users to "nuke" all their notifications if needed.
  *
  * IMPORTANT: Uses server signing wallet (ARKIV_PRIVATE_KEY), not user's wallet.
@@ -792,14 +736,7 @@ export async function archiveAllNotifications({
  * Decode notification entity from Arkiv response
  */
 function decodeNotificationEntity(entity: any): Notification {
-  const attrs = entity.attributes || {};
-  const getAttr = (key: string): string => {
-    if (Array.isArray(attrs)) {
-      const attr = attrs.find((a: any) => a.key === key);
-      return String(attr?.value || '');
-    }
-    return String(attrs[key] || '');
-  };
+  const getAttr = (key: string): string => readAttr(entity, key);
 
   // Decode payload
   let payload: any = {};
@@ -818,9 +755,9 @@ function decodeNotificationEntity(entity: any): Notification {
   }
 
   // Get notificationId from attributes, or derive it for backward compatibility
-  const notificationIdAttr = getAttr('notificationId');
-  const sourceEntityType = getAttr('sourceEntityType');
-  const sourceEntityKey = getAttr('sourceEntityKey');
+  const notificationIdAttr = getAttr('notification_id');
+  const sourceEntityType = getAttr('source_entity_type');
+  const sourceEntityKey = getAttr('source_entity_key');
   const notificationId =
     notificationIdAttr ||
     (sourceEntityType && sourceEntityKey
@@ -831,7 +768,7 @@ function decodeNotificationEntity(entity: any): Notification {
     key: entity.key,
     wallet: getAttr('wallet'),
     notificationId: notificationId,
-    notificationType: getAttr('notificationType') as NotificationType,
+    notificationType: getAttr('notification_type') as NotificationType,
     sourceEntityType: sourceEntityType,
     sourceEntityKey: sourceEntityKey,
     title: payload.title || '',
@@ -840,9 +777,9 @@ function decodeNotificationEntity(entity: any): Notification {
     metadata: payload.metadata,
     read: payload.read ?? false,
     archived: payload.archived ?? false,
-    spaceId: getAttr('spaceId'),
-    createdAt: getAttr('createdAt'),
-    updatedAt: payload.updatedAt || getAttr('updatedAt') || getAttr('createdAt'),
+    spaceId: getAttr('space_id'),
+    createdAt: getAttr('created_at'),
+    updatedAt: payload.updatedAt || getAttr('updated_at') || getAttr('created_at'),
     txHash: entity.txHash || payload.txHash || undefined,
   };
 }

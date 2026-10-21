@@ -42,7 +42,6 @@ export async function revokeReviewModeGrant({
     revokedBy,
     reason: reason || 'Manual revocation',
     spaceId,
-    expiresIn: 15768000, // 6 months (same as grants)
   });
 }
 

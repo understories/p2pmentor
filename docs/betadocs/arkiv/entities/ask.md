@@ -41,12 +41,8 @@ Implementation: `lib/arkiv/asks.ts` - `createAsk()` stores `ttlSeconds` in attri
 Query pattern (client-side filtering):
 
 ```typescript
-const query = publicClient.buildQuery();
-const result = await query
-  .where(eq('type', 'ask'))
-  .where(eq('status', 'open'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('ask')
+  .where(eqAttr('status', 'open'))
   .limit(100)
   .fetch();
 
@@ -64,12 +60,8 @@ const activeAsks = result.entities.filter((ask) => {
 Fetch asks by wallet:
 
 ```typescript
-const query = publicClient.buildQuery();
-const result = await query
-  .where(eq('type', 'ask'))
-  .where(eq('wallet', wallet.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('ask')
+  .where(eqAttr('wallet', wallet.toLowerCase()))
   .limit(100)
   .fetch();
 ```
@@ -77,12 +69,8 @@ const result = await query
 Fetch asks by skill:
 
 ```typescript
-const query = publicClient.buildQuery();
-const result = await query
-  .where(eq('type', 'ask'))
-  .where(eq('skill_id', skillId))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('ask')
+  .where(eqAttr('skill_id', skillId))
   .limit(100)
   .fetch();
 ```

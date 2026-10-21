@@ -6,8 +6,11 @@
  * Based on mentor-graph patterns.
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, getAttr as readAttr, getEntityByKey } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { addSignerMetadata } from './signer-metadata';
+import { createArkivEntity } from './write';
 import { SPACE_ID } from '@/lib/config';
 
 export type Feedback = {
@@ -76,7 +79,6 @@ export async function createFeedback({
   learnerConfirmed?: boolean;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const createdAt = new Date().toISOString();
 
   // Validate rating if provided
@@ -143,31 +145,26 @@ export async function createFeedback({
     createdAt,
   };
 
-  // Feedback entities should persist long-term (1 year) since they're historical records
-  const expiresIn = 31536000; // 1 year in seconds
-
-  // Build attributes array
-  const attributes: Array<{ key: string; value: string }> = [
-    { key: 'type', value: 'session_feedback' },
-    { key: 'sessionKey', value: sessionKey },
-    { key: 'mentorWallet', value: mentorWallet },
-    { key: 'learnerWallet', value: learnerWallet },
-    { key: 'feedbackFrom', value: feedbackFrom },
-    { key: 'feedbackTo', value: feedbackTo },
-    { key: 'spaceId', value: spaceId },
-    { key: 'createdAt', value: createdAt },
-    ...(rating ? [{ key: 'rating', value: String(rating) }] : []),
-  ];
-
+  // Feedback entities are historical records (lifetime: type default from schema.ts)
   // Add signer metadata (U1.x.2: Central Signer Metadata)
-  const { addSignerMetadata } = await import('./signer-metadata');
-  const attributesWithSigner = addSignerMetadata(attributes, privateKey);
+  const attributes = addSignerMetadata(
+    {
+      session_key: sessionKey,
+      mentor_wallet: mentorWallet,
+      learner_wallet: learnerWallet,
+      feedback_from: feedbackFrom,
+      feedback_to: feedbackTo,
+      space_id: spaceId,
+      created_at: createdAt,
+      rating: rating ? String(rating) : undefined,
+    },
+    privateKey
+  );
 
-  const result = await walletClient.createEntity({
-    payload: enc.encode(JSON.stringify(payload)),
-    contentType: 'application/json',
-    attributes: attributesWithSigner,
-    expiresIn,
+  const result = await createArkivEntity(walletClient, {
+    type: 'session_feedback',
+    attributes,
+    payload,
   });
 
   const { entityKey, txHash } = result;
@@ -185,21 +182,17 @@ export async function createFeedback({
   });
 
   // Store txHash in a separate entity for reliable querying (similar to asks.ts pattern)
-  walletClient
-    .createEntity({
-      payload: enc.encode(JSON.stringify({ txHash })),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'session_feedback_txhash' },
-        { key: 'feedbackKey', value: entityKey },
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: createdAt },
-      ],
-      expiresIn,
-    })
-    .catch((error: any) => {
-      console.warn('[createFeedback] Failed to create session_feedback_txhash entity:', error);
-    });
+  createArkivEntity(walletClient, {
+    type: 'session_feedback_txhash',
+    attributes: {
+      feedback_key: entityKey,
+      space_id: spaceId,
+      created_at: createdAt,
+    },
+    payload: { txHash },
+  }).catch((error: any) => {
+    console.warn('[createFeedback] Failed to create session_feedback_txhash entity:', error);
+  });
 
   return { key: entityKey, txHash };
 }
@@ -216,13 +209,10 @@ export async function listFeedbackForSession(
   // Use provided spaceId or default to SPACE_ID from config
   const finalSpaceId = spaceId || SPACE_ID;
 
-  const result = await publicClient
-    .buildQuery()
-    .where(eq('type', 'session_feedback'))
-    .where(eq('sessionKey', sessionKey))
-    .where(eq('spaceId', finalSpaceId))
-    .withAttributes(true)
-    .withPayload(true)
+  const result = await arkivSelect(undefined, publicClient)
+    .where(eqAttr('type', 'session_feedback'))
+    .where(eqAttr('session_key', sessionKey))
+    .where(eqAttr('space_id', finalSpaceId))
     .limit(10)
     .fetch();
 
@@ -242,27 +232,20 @@ export async function listFeedbackForSession(
       console.error('Error decoding feedback payload:', e);
     }
 
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (key: string): string => readAttr(entity, key);
 
     return {
       key: entity.key,
-      sessionKey: getAttr('sessionKey'),
-      mentorWallet: getAttr('mentorWallet'),
-      learnerWallet: getAttr('learnerWallet'),
-      feedbackFrom: getAttr('feedbackFrom'),
-      feedbackTo: getAttr('feedbackTo'),
+      sessionKey: getAttr('session_key'),
+      mentorWallet: getAttr('mentor_wallet'),
+      learnerWallet: getAttr('learner_wallet'),
+      feedbackFrom: getAttr('feedback_from'),
+      feedbackTo: getAttr('feedback_to'),
       rating: payload.rating || (getAttr('rating') ? parseInt(getAttr('rating'), 10) : undefined),
       notes: payload.notes || undefined,
       technicalDxFeedback: payload.technicalDxFeedback || undefined,
-      spaceId: getAttr('spaceId') || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
-      createdAt: getAttr('createdAt'),
+      spaceId: getAttr('space_id') || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
+      createdAt: getAttr('created_at'),
     };
   });
 }
@@ -279,20 +262,14 @@ export async function listFeedbackForWallet(wallet: string, spaceId?: string): P
   // Query feedback where wallet is either feedbackFrom or feedbackTo
   // Filter by spaceId to ensure cross-environment isolation
   const [fromResult, toResult] = await Promise.all([
-    publicClient
-      .buildQuery()
-      .where(eq('type', 'session_feedback'))
-      .where(eq('spaceId', finalSpaceId))
-      .withAttributes(true)
-      .withPayload(true)
+    arkivSelect(undefined, publicClient)
+      .where(eqAttr('type', 'session_feedback'))
+      .where(eqAttr('space_id', finalSpaceId))
       .limit(100)
       .fetch(),
-    publicClient
-      .buildQuery()
-      .where(eq('type', 'session_feedback'))
-      .where(eq('spaceId', finalSpaceId))
-      .withAttributes(true)
-      .withPayload(true)
+    arkivSelect(undefined, publicClient)
+      .where(eqAttr('type', 'session_feedback'))
+      .where(eqAttr('space_id', finalSpaceId))
       .limit(100)
       .fetch(),
   ]);
@@ -307,17 +284,10 @@ export async function listFeedbackForWallet(wallet: string, spaceId?: string): P
   allEntities.forEach((entity: any) => {
     if (seenKeys.has(entity.key)) return;
 
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (key: string): string => readAttr(entity, key);
 
-    const feedbackFrom = getAttr('feedbackFrom').toLowerCase();
-    const feedbackTo = getAttr('feedbackTo').toLowerCase();
+    const feedbackFrom = getAttr('feedback_from').toLowerCase();
+    const feedbackTo = getAttr('feedback_to').toLowerCase();
 
     if (feedbackFrom === normalizedWallet || feedbackTo === normalizedWallet) {
       seenKeys.add(entity.key);
@@ -339,16 +309,16 @@ export async function listFeedbackForWallet(wallet: string, spaceId?: string): P
 
       feedbacks.push({
         key: entity.key,
-        sessionKey: getAttr('sessionKey'),
-        mentorWallet: getAttr('mentorWallet'),
-        learnerWallet: getAttr('learnerWallet'),
-        feedbackFrom: getAttr('feedbackFrom'),
-        feedbackTo: getAttr('feedbackTo'),
+        sessionKey: getAttr('session_key'),
+        mentorWallet: getAttr('mentor_wallet'),
+        learnerWallet: getAttr('learner_wallet'),
+        feedbackFrom: getAttr('feedback_from'),
+        feedbackTo: getAttr('feedback_to'),
         rating: payload.rating || (getAttr('rating') ? parseInt(getAttr('rating'), 10) : undefined),
         notes: payload.notes || undefined,
         technicalDxFeedback: payload.technicalDxFeedback || undefined,
-        spaceId: getAttr('spaceId') || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
-        createdAt: getAttr('createdAt'),
+        spaceId: getAttr('space_id') || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
+        createdAt: getAttr('created_at'),
       });
     }
   });
@@ -368,29 +338,16 @@ export async function getFeedbackByKey(key: string): Promise<Feedback | null> {
   const publicClient = getPublicClient();
 
   try {
-    // Query by key using where clause
-    const result = await publicClient
-      .buildQuery()
-      .where(eq('type', 'session_feedback'))
-      .where(eq('key', key))
-      .withAttributes(true)
-      .withPayload(true)
-      .limit(1)
-      .fetch();
-
-    if (!result || !result.entities || result.entities.length === 0) {
+    // Direct entity key lookup; verify it is a session feedback entity
+    const entity = await getEntityByKey(key, publicClient);
+    if (!entity || readAttr(entity, 'type') !== 'session_feedback') {
       return null;
     }
 
-    const entity = result.entities[0];
-
     // Fetch txHash in parallel
-    const txHashResult = await publicClient
-      .buildQuery()
-      .where(eq('type', 'session_feedback_txhash'))
-      .where(eq('feedbackKey', key))
-      .withAttributes(true)
-      .withPayload(true)
+    const txHashResult = await arkivSelect(undefined, publicClient)
+      .where(eqAttr('type', 'session_feedback_txhash'))
+      .where(eqAttr('feedback_key', key))
       .limit(1)
       .fetch();
 
@@ -431,27 +388,20 @@ export async function getFeedbackByKey(key: string): Promise<Feedback | null> {
       console.error('Error decoding feedback payload:', e);
     }
 
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (key: string): string => readAttr(entity, key);
 
     return {
       key: entity.key,
-      sessionKey: getAttr('sessionKey'),
-      mentorWallet: getAttr('mentorWallet'),
-      learnerWallet: getAttr('learnerWallet'),
-      feedbackFrom: getAttr('feedbackFrom'),
-      feedbackTo: getAttr('feedbackTo'),
+      sessionKey: getAttr('session_key'),
+      mentorWallet: getAttr('mentor_wallet'),
+      learnerWallet: getAttr('learner_wallet'),
+      feedbackFrom: getAttr('feedback_from'),
+      feedbackTo: getAttr('feedback_to'),
       rating: payload.rating || (getAttr('rating') ? parseInt(getAttr('rating'), 10) : undefined),
       notes: payload.notes || undefined,
       technicalDxFeedback: payload.technicalDxFeedback || undefined,
-      spaceId: getAttr('spaceId') || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
-      createdAt: getAttr('createdAt'),
+      spaceId: getAttr('space_id') || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
+      createdAt: getAttr('created_at'),
       txHash: txHash || undefined,
     };
   } catch (error: any) {

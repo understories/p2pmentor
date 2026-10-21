@@ -14,6 +14,7 @@ import { getQuestStepProgress } from '../lib/arkiv/questProgress';
 import { getQuestCompletionSkillLinks } from '../lib/arkiv/questSkillLink';
 import { createSkill, getSkillBySlug, normalizeSkillSlug } from '../lib/arkiv/skill';
 import { getPrivateKey, SPACE_ID } from '../lib/config';
+import { ARKIV_EXPLORER_BASE_URL } from '@/lib/arkiv/explorer';
 
 async function testWeek1Features() {
   console.log('🧪 Testing Week 1 Features (Evidence Panel, Track Overview, Skill Linkage)\n');
@@ -53,9 +54,7 @@ async function testWeek1Features() {
     console.log('✅ Created progress entity 1:');
     console.log(`   Key: ${progress1.key}`);
     console.log(`   TxHash: ${progress1.txHash}`);
-    console.log(
-      `   View on Arkiv: https://explorer.braga.hoodi.arkiv.network/entity/${progress1.key}\n`
-    );
+    console.log(`   View on Arkiv: ${ARKIV_EXPLORER_BASE_URL}/entity/${progress1.key}\n`);
 
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
@@ -80,9 +79,7 @@ async function testWeek1Features() {
     console.log('✅ Created progress entity 2:');
     console.log(`   Key: ${progress2.key}`);
     console.log(`   TxHash: ${progress2.txHash}`);
-    console.log(
-      `   View on Arkiv: https://explorer.braga.hoodi.arkiv.network/entity/${progress2.key}\n`
-    );
+    console.log(`   View on Arkiv: ${ARKIV_EXPLORER_BASE_URL}/entity/${progress2.key}\n`);
 
     // Wait for entities to be queryable
     console.log('⏳ Waiting 5 seconds for entities to be queryable...\n');
@@ -167,9 +164,7 @@ async function testWeek1Features() {
     console.log('✅ Created quest completion skill link:');
     console.log(`   Key: ${skillLink.key}`);
     console.log(`   TxHash: ${skillLink.txHash}`);
-    console.log(
-      `   View on Arkiv: https://explorer.braga.hoodi.arkiv.network/entity/${skillLink.key}\n`
-    );
+    console.log(`   View on Arkiv: ${ARKIV_EXPLORER_BASE_URL}/entity/${skillLink.key}\n`);
 
     // Wait for link to be queryable
     console.log('⏳ Waiting 5 seconds for link to be queryable...\n');

@@ -3,7 +3,8 @@
  */
 
 import { getPublicClient } from '../lib/arkiv/client';
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, getAttr as readAttr } from '@/lib/arkiv/read';
 import { listSessions } from '../lib/arkiv/sessions';
 
 async function checkJitsiEntities() {
@@ -12,13 +13,7 @@ async function checkJitsiEntities() {
   const publicClient = getPublicClient();
 
   // Get ALL Jitsi entities
-  const allJitsi = await publicClient
-    .buildQuery()
-    .where(eq('type', 'session_jitsi'))
-    .withAttributes(true)
-    .withPayload(true)
-    .limit(100)
-    .fetch();
+  const allJitsi = await arkivSelect('session_jitsi', publicClient).limit(100).fetch();
 
   console.log(`Found ${allJitsi.entities.length} Jitsi entities total\n`);
 
@@ -32,14 +27,7 @@ async function checkJitsiEntities() {
   console.log('=== Jitsi Entities Analysis ===\n');
 
   allJitsi.entities.forEach((entity: any, idx: number) => {
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (key: string): string => readAttr(entity, key);
 
     let payload: any = {};
     try {
@@ -56,11 +44,11 @@ async function checkJitsiEntities() {
       console.error('Error decoding payload:', e);
     }
 
-    const sessionKey = getAttr('sessionKey');
-    const mentorWallet = getAttr('mentorWallet');
-    const learnerWallet = getAttr('learnerWallet');
-    const roomName = payload.videoRoomName || getAttr('videoRoomName') || 'N/A';
-    const joinUrl = payload.videoJoinUrl || getAttr('videoJoinUrl') || 'N/A';
+    const sessionKey = getAttr('session_key');
+    const mentorWallet = getAttr('mentor_wallet');
+    const learnerWallet = getAttr('learner_wallet');
+    const roomName = payload.videoRoomName || 'N/A';
+    const joinUrl = payload.videoJoinUrl || 'N/A';
 
     console.log(`Jitsi Entity ${idx + 1}:`);
     console.log(`  Entity Key: ${entity.key}`);
@@ -98,12 +86,8 @@ async function checkJitsiEntities() {
     );
 
     // Query Jitsi entities directly by sessionKey attribute
-    const jitsiBySessionKey = await publicClient
-      .buildQuery()
-      .where(eq('type', 'session_jitsi'))
-      .where(eq('sessionKey', session.key))
-      .withAttributes(true)
-      .withPayload(true)
+    const jitsiBySessionKey = await arkivSelect('session_jitsi', publicClient)
+      .where(eqAttr('session_key', session.key))
       .limit(1)
       .fetch();
 
@@ -113,14 +97,7 @@ async function checkJitsiEntities() {
 
     if (jitsiBySessionKey.entities.length > 0) {
       const jitsiEntity = jitsiBySessionKey.entities[0];
-      const attrs = jitsiEntity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (key: string): string => readAttr(jitsiEntity, key);
 
       let payload: any = {};
       try {
@@ -138,8 +115,8 @@ async function checkJitsiEntities() {
       }
 
       console.log(`  ✅ Found Jitsi entity!`);
-      console.log(`     Room: ${payload.videoRoomName || getAttr('videoRoomName')}`);
-      console.log(`     URL: ${payload.videoJoinUrl || getAttr('videoJoinUrl')}`);
+      console.log(`     Room: ${payload.videoRoomName}`);
+      console.log(`     URL: ${payload.videoJoinUrl}`);
     } else {
       console.log(`  ❌ No Jitsi entity found`);
     }

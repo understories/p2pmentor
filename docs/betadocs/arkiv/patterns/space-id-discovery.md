@@ -73,17 +73,11 @@ Discover all unique `spaceId` values used across the Arkiv network by querying e
 ```typescript
 // Query all entities of both types without spaceId filter
 const [asksResult, offersResult] = await Promise.all([
-  publicClient
-    .buildQuery()
-    .where(eq('type', 'lite_ask'))
-    .withAttributes(true)
+  arkivSelect('lite_ask')
     .limit(1000)
     .fetch()
     .catch(() => ({ entities: [] })),
-  publicClient
-    .buildQuery()
-    .where(eq('type', 'lite_offer'))
-    .withAttributes(true)
+  arkivSelect('lite_offer')
     .limit(1000)
     .fetch()
     .catch(() => ({ entities: [] })),
@@ -205,17 +199,11 @@ results.sort((a, b) => {
 ```typescript
 // Query both entity types in parallel without spaceId filter (discovery mode)
 const [asksResult, offersResult] = await Promise.all([
-  publicClient
-    .buildQuery()
-    .where(eq('type', 'lite_ask'))
-    .withAttributes(true)
+  arkivSelect('lite_ask')
     .limit(1000)
     .fetch()
     .catch(() => ({ entities: [] })),
-  publicClient
-    .buildQuery()
-    .where(eq('type', 'lite_offer'))
-    .withAttributes(true)
+  arkivSelect('lite_offer')
     .limit(1000)
     .fetch()
     .catch(() => ({ entities: [] })),

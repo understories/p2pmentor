@@ -7,7 +7,9 @@
  * Reference: refs/doc/passkey_levelup.md
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, getAttr as readAttr, getEntityByKey } from '@/lib/arkiv/read';
+import { createArkivEntity, replaceArkivEntity } from './write';
 import { keccak256 } from 'viem';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
@@ -86,16 +88,13 @@ function derivePasskeyIdentityKeyHash(credentialID: string): string {
  */
 async function findPasskeyEntityKeyByCredentialID(credentialID: string): Promise<string | null> {
   const publicClient = getPublicClient();
-  const query = publicClient.buildQuery();
+  const query = arkivSelect('auth_identity', publicClient);
   const normalizedCredentialID = credentialID.trim();
 
   try {
     const result = await query
-      .where(eq('type', 'auth_identity'))
-      .where(eq('subtype', 'passkey'))
-      .where(eq('credentialId', normalizedCredentialID))
-      .withAttributes(true)
-      .withPayload(true)
+      .where(eqAttr('subtype', 'passkey'))
+      .where(eqAttr('credential_id', normalizedCredentialID))
       .limit(100) // Fetch multiple to choose best one (increased for worst-case retry storms)
       .fetch();
 
@@ -137,17 +136,10 @@ async function findPasskeyEntityKeyByCredentialID(credentialID: string): Promise
       }
 
       const counter = payload.counter || 0;
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
-      const lastUsedAt = getAttr('lastUsedAt') || '';
-      const updatedAt = getAttr('updatedAt') || '';
-      const createdAt = getAttr('createdAt') || '';
+      const getAttr = (key: string): string => readAttr(entity, key);
+      const lastUsedAt = getAttr('last_used_at') || '';
+      const updatedAt = getAttr('updated_at') || '';
+      const createdAt = getAttr('created_at') || '';
       const timestamp = lastUsedAt || updatedAt || createdAt;
 
       if (counter > bestCounter || (counter === bestCounter && timestamp > bestTimestamp)) {
@@ -201,7 +193,6 @@ export async function createPasskeyIdentity({
   spaceId?: string;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const now = new Date().toISOString();
   const normalizedCredentialID = credentialID.trim();
   const normalizedWallet = wallet.toLowerCase().trim();
@@ -218,10 +209,10 @@ export async function createPasskeyIdentity({
     // Fetch existing entity to merge payload
     try {
       const publicClient = getPublicClient();
-      const existingEntity = await publicClient.getEntity(existingEntityKey as `0x${string}`);
+      const existingEntity = await getEntityByKey(existingEntityKey, publicClient);
 
       // Parse existing payload
-      if (existingEntity.payload) {
+      if (existingEntity?.payload) {
         const decoded =
           existingEntity.payload instanceof Uint8Array
             ? new TextDecoder().decode(existingEntity.payload)
@@ -233,15 +224,8 @@ export async function createPasskeyIdentity({
       }
 
       // Get createdAt from attributes
-      const attrs = existingEntity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
-      existingCreatedAt = getAttr('createdAt') || now;
+      const getAttr = (key: string): string => readAttr(existingEntity, key);
+      existingCreatedAt = getAttr('created_at') || now;
     } catch (error) {
       // If fetch fails, proceed with create (will update on conflict)
       console.warn('[createPasskeyIdentity] Failed to fetch existing entity, will create:', error);
@@ -295,19 +279,17 @@ export async function createPasskeyIdentity({
   };
 
   // Rebuild attributes deterministically (never "preserve all")
-  const attributes = [
-    { key: 'type', value: 'auth_identity' },
-    { key: 'subtype', value: 'passkey' },
-    { key: 'wallet', value: normalizedWallet },
-    { key: 'credentialId', value: normalizedCredentialID },
-    { key: 'spaceId', value: spaceId },
-    { key: 'createdAt', value: payload.createdAt },
-    { key: 'updatedAt', value: payload.updatedAt },
-    { key: 'counter', value: String(payload.counter) }, // Store as attribute for quick reads
-  ];
+  const attributes = {
+    subtype: 'passkey',
+    wallet: normalizedWallet,
+    credential_id: normalizedCredentialID,
+    space_id: spaceId,
+    created_at: payload.createdAt,
+    updated_at: payload.updatedAt,
+    counter: String(payload.counter), // Store as attribute for quick reads
+  };
 
-  // TTL: 10 years (effectively permanent for identity)
-  const expiresIn = 315360000; // 10 years
+  // Lifetime: auth_identity type default (see lib/arkiv/schema.ts), kept alive by renewal
 
   // Create-first, update-on-conflict pattern (removes read-before-write race)
   let entityKey: string;
@@ -316,11 +298,10 @@ export async function createPasskeyIdentity({
   try {
     // Attempt create first
     const result = await handleTransactionWithTimeout(async () => {
-      return await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify(payload)),
-        contentType: 'application/json',
+      return await createArkivEntity(walletClient, {
+        type: 'auth_identity',
         attributes,
-        expiresIn,
+        payload,
       });
     });
 
@@ -335,12 +316,11 @@ export async function createPasskeyIdentity({
     if (conflictEntityKey) {
       // Re-query succeeded: update the entity that was just created (or already existed)
       const result = await handleTransactionWithTimeout(async () => {
-        return await walletClient.updateEntity({
-          entityKey: conflictEntityKey as `0x${string}`,
-          payload: enc.encode(JSON.stringify(payload)),
-          contentType: 'application/json',
+        return await replaceArkivEntity(walletClient, {
+          entityKey: conflictEntityKey,
+          type: 'auth_identity',
           attributes, // Rebuild deterministically
-          expiresIn, // Refresh TTL
+          payload,
         });
       });
 
@@ -353,21 +333,17 @@ export async function createPasskeyIdentity({
   }
 
   // Create separate txhash entity (optional metadata, don't wait)
-  walletClient
-    .createEntity({
-      payload: enc.encode(JSON.stringify({ txHash })),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'auth_identity_passkey_txhash' },
-        { key: 'identityKey', value: entityKey },
-        { key: 'wallet', value: normalizedWallet },
-        { key: 'spaceId', value: spaceId },
-      ],
-      expiresIn,
-    })
-    .catch((error: any) => {
-      console.warn('[createPasskeyIdentity] Failed to create txhash entity:', error);
-    });
+  createArkivEntity(walletClient, {
+    type: 'auth_identity_passkey_txhash',
+    attributes: {
+      identity_key: entityKey,
+      wallet: normalizedWallet,
+      space_id: spaceId,
+    },
+    payload: { txHash },
+  }).catch((error: any) => {
+    console.warn('[createPasskeyIdentity] Failed to create txhash entity:', error);
+  });
 
   return { key: entityKey, txHash };
 }
@@ -400,7 +376,7 @@ export async function updatePasskeyCounter(
 
   // Fetch existing entity
   const publicClient = getPublicClient();
-  const existingEntity = await publicClient.getEntity(entityKey as `0x${string}`);
+  const existingEntity = await getEntityByKey(entityKey, publicClient);
 
   if (!existingEntity) {
     throw new Error(`Passkey entity not found at key: ${entityKey}`);
@@ -421,19 +397,12 @@ export async function updatePasskeyCounter(
   }
 
   // Get current counter (check attribute first for quick read, fallback to payload)
-  const attrs = existingEntity.attributes || {};
-  const getAttr = (key: string): string => {
-    if (Array.isArray(attrs)) {
-      const attr = attrs.find((a: any) => a.key === key);
-      return String(attr?.value || '');
-    }
-    return String(attrs[key] || '');
-  };
+  const getAttr = (key: string): string => readAttr(existingEntity, key);
 
   // Validate required attributes before updating (prevent undefined/empty writes)
   const walletAttr = getAttr('wallet');
-  const spaceIdAttr = getAttr('spaceId');
-  const createdAtAttr = getAttr('createdAt');
+  const spaceIdAttr = getAttr('space_id');
+  const createdAtAttr = getAttr('created_at');
 
   if (!walletAttr || walletAttr.trim() === '') {
     // Fallback to payload if attribute missing (legacy entity)
@@ -477,32 +446,29 @@ export async function updatePasskeyCounter(
   const finalCreatedAt =
     createdAtAttr && createdAtAttr.trim() !== '' ? createdAtAttr : existingPayload.createdAt || now;
 
-  const attributes = [
-    { key: 'type', value: 'auth_identity' },
-    { key: 'subtype', value: 'passkey' },
-    { key: 'wallet', value: finalWallet },
-    { key: 'credentialId', value: normalizedCredentialID },
-    { key: 'spaceId', value: finalSpaceId },
-    { key: 'createdAt', value: finalCreatedAt },
-    { key: 'updatedAt', value: now },
-    { key: 'counter', value: String(updatedCounter) }, // Store as attribute for quick reads
-    { key: 'lastUsedAt', value: now }, // Track usage for tie-breaking
-  ];
+  const attributes = {
+    subtype: 'passkey',
+    wallet: finalWallet,
+    credential_id: normalizedCredentialID,
+    space_id: finalSpaceId,
+    created_at: finalCreatedAt,
+    updated_at: now,
+    counter: String(updatedCounter), // Store as attribute for quick reads
+    last_used_at: now, // Track usage for tie-breaking
+  };
 
   // Update in place with retry logic for transient failures
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
 
   let lastError: any = null;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const { entityKey: finalKey, txHash } = await handleTransactionWithTimeout(async () => {
-        return await walletClient.updateEntity({
-          entityKey: entityKey as `0x${string}`,
-          payload: enc.encode(JSON.stringify(updatedPayload)),
-          contentType: 'application/json',
+        return await replaceArkivEntity(walletClient, {
+          entityKey,
+          type: 'auth_identity',
           attributes, // Rebuild deterministically
-          expiresIn: 315360000, // Refresh TTL (10 years)
+          payload: updatedPayload,
         });
       });
 
@@ -541,7 +507,6 @@ export async function createBackupWalletIdentity({
   spaceId?: string;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const createdAt = new Date().toISOString();
 
   const payload = {
@@ -549,40 +514,32 @@ export async function createBackupWalletIdentity({
     createdAt,
   };
 
-  // 1 year TTL (effectively permanent for beta)
-  const expiresIn = 31536000;
-
+  // Lifetime: auth_identity type default (see lib/arkiv/schema.ts)
   const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify(payload)),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'auth_identity' },
-        { key: 'subtype', value: 'backup_wallet' },
-        { key: 'wallet', value: wallet.toLowerCase() },
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: createdAt },
-      ],
-      expiresIn,
+    return await createArkivEntity(walletClient, {
+      type: 'auth_identity',
+      attributes: {
+        subtype: 'backup_wallet',
+        wallet: wallet.toLowerCase(),
+        space_id: spaceId,
+        created_at: createdAt,
+      },
+      payload,
     });
   });
 
   // Create separate txhash entity (optional metadata, don't wait)
-  walletClient
-    .createEntity({
-      payload: enc.encode(JSON.stringify({ txHash })),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'auth_identity_backup_wallet_txhash' },
-        { key: 'identityKey', value: entityKey },
-        { key: 'wallet', value: wallet.toLowerCase() },
-        { key: 'spaceId', value: spaceId },
-      ],
-      expiresIn,
-    })
-    .catch((error: any) => {
-      console.warn('[createBackupWalletIdentity] Failed to create txhash entity:', error);
-    });
+  createArkivEntity(walletClient, {
+    type: 'auth_identity_backup_wallet_txhash',
+    attributes: {
+      identity_key: entityKey,
+      wallet: wallet.toLowerCase(),
+      space_id: spaceId,
+    },
+    payload: { txHash },
+  }).catch((error: any) => {
+    console.warn('[createBackupWalletIdentity] Failed to create txhash entity:', error);
+  });
 
   return { key: entityKey, txHash };
 }
@@ -599,16 +556,13 @@ export async function createBackupWalletIdentity({
  */
 export async function listPasskeyIdentities(wallet: string): Promise<AuthIdentity[]> {
   const publicClient = getPublicClient();
-  const query = publicClient.buildQuery();
+  const query = arkivSelect('auth_identity', publicClient);
   const normalizedWallet = wallet.toLowerCase().trim();
 
   try {
     const result = await query
-      .where(eq('type', 'auth_identity'))
-      .where(eq('subtype', 'passkey'))
-      .where(eq('wallet', normalizedWallet))
-      .withAttributes(true)
-      .withPayload(true)
+      .where(eqAttr('subtype', 'passkey'))
+      .where(eqAttr('wallet', normalizedWallet))
       .limit(100)
       .fetch();
 
@@ -636,14 +590,7 @@ export async function listPasskeyIdentities(wallet: string): Promise<AuthIdentit
         console.error('[listPasskeyIdentities] Error decoding payload:', e);
       }
 
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (key: string): string => readAttr(entity, key);
 
       // Convert base64 public key back to Uint8Array for credential object
       let credential: PasskeyCredential | undefined;
@@ -667,10 +614,10 @@ export async function listPasskeyIdentities(wallet: string): Promise<AuthIdentit
         key: entity.key,
         wallet: getAttr('wallet'),
         subtype: 'passkey' as AuthIdentityType,
-        credentialID: getAttr('credentialId'),
-        createdAt: getAttr('createdAt'),
-        updatedAt: getAttr('updatedAt') || payload.updatedAt || getAttr('createdAt'),
-        spaceId: getAttr('spaceId'),
+        credentialID: getAttr('credential_id'),
+        createdAt: getAttr('created_at'),
+        updatedAt: getAttr('updated_at') || payload.updatedAt || getAttr('created_at'),
+        spaceId: getAttr('space_id'),
         credential,
       };
     });
@@ -727,15 +674,12 @@ export async function listPasskeyIdentities(wallet: string): Promise<AuthIdentit
  */
 export async function listBackupWalletIdentities(wallet: string): Promise<AuthIdentity[]> {
   const publicClient = getPublicClient();
-  const query = publicClient.buildQuery();
+  const query = arkivSelect('auth_identity', publicClient);
 
   try {
     const result = await query
-      .where(eq('type', 'auth_identity'))
-      .where(eq('subtype', 'backup_wallet'))
-      .where(eq('wallet', wallet.toLowerCase()))
-      .withAttributes(true)
-      .withPayload(true)
+      .where(eqAttr('subtype', 'backup_wallet'))
+      .where(eqAttr('wallet', wallet.toLowerCase()))
       .limit(100)
       .fetch();
 
@@ -762,25 +706,18 @@ export async function listBackupWalletIdentities(wallet: string): Promise<AuthId
         console.error('[listBackupWalletIdentities] Error decoding payload:', e);
       }
 
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (key: string): string => readAttr(entity, key);
 
       return {
         key: entity.key,
         wallet: getAttr('wallet'),
         subtype: 'backup_wallet' as AuthIdentityType,
         backupWalletAddress: payload.walletAddress,
-        createdAt: getAttr('createdAt'),
-        spaceId: getAttr('spaceId'),
+        createdAt: getAttr('created_at'),
+        spaceId: getAttr('space_id'),
         backupMetadata: {
           walletAddress: payload.walletAddress,
-          createdAt: payload.createdAt || getAttr('createdAt'),
+          createdAt: payload.createdAt || getAttr('created_at'),
         },
       };
     });
@@ -818,7 +755,7 @@ export async function findPasskeyIdentityByCredentialID(
   credentialID: string
 ): Promise<AuthIdentity | null> {
   const publicClient = getPublicClient();
-  const query = publicClient.buildQuery();
+  const query = arkivSelect('auth_identity', publicClient);
 
   // Normalize credentialID for query (trim whitespace)
   const normalizedCredentialID = credentialID.trim();
@@ -827,11 +764,8 @@ export async function findPasskeyIdentityByCredentialID(
     // Fetch up to 100 entities to find the best one (handles Pattern A duplicates)
     // Increased limit to handle worst-case retry storms; log if we hit the limit
     const result = await query
-      .where(eq('type', 'auth_identity'))
-      .where(eq('subtype', 'passkey'))
-      .where(eq('credentialId', normalizedCredentialID))
-      .withAttributes(true)
-      .withPayload(true)
+      .where(eqAttr('subtype', 'passkey'))
+      .where(eqAttr('credential_id', normalizedCredentialID))
       .limit(100)
       .fetch();
 
@@ -877,18 +811,11 @@ export async function findPasskeyIdentityByCredentialID(
       }
 
       const counter = payload.counter || 0;
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (key: string): string => readAttr(entity, key);
       // Tie-break by lastUsedAt (actual usage), then updatedAt, then createdAt
-      const lastUsedAt = getAttr('lastUsedAt') || '';
-      const updatedAt = getAttr('updatedAt') || '';
-      const createdAt = getAttr('createdAt') || '';
+      const lastUsedAt = getAttr('last_used_at') || '';
+      const updatedAt = getAttr('updated_at') || '';
+      const createdAt = getAttr('created_at') || '';
       const timestamp = lastUsedAt || updatedAt || createdAt;
 
       if (counter > bestCounter || (counter === bestCounter && timestamp > bestTimestamp)) {
@@ -919,14 +846,7 @@ export async function findPasskeyIdentityByCredentialID(
       return null;
     }
 
-    const attrs = bestEntity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (key: string): string => readAttr(bestEntity, key);
 
     let credential: PasskeyCredential | undefined;
     if (payload.credentialID && payload.credentialPublicKey) {
@@ -948,10 +868,10 @@ export async function findPasskeyIdentityByCredentialID(
       key: bestEntity.key,
       wallet: getAttr('wallet'),
       subtype: 'passkey' as AuthIdentityType,
-      credentialID: getAttr('credentialId'),
-      createdAt: getAttr('createdAt'),
-      updatedAt: getAttr('updatedAt') || payload.updatedAt || getAttr('createdAt'),
-      spaceId: getAttr('spaceId'),
+      credentialID: getAttr('credential_id'),
+      createdAt: getAttr('created_at'),
+      updatedAt: getAttr('updated_at') || payload.updatedAt || getAttr('created_at'),
+      spaceId: getAttr('space_id'),
       credential,
     };
   } catch (fetchError: any) {

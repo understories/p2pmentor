@@ -297,12 +297,8 @@ All entities have corresponding `*_txhash` entities for reliable querying:
 ### Fetch Latest Entity for Wallet
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'entity_type'))
-  .where(eq('wallet', wallet.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('entity_type')
+  .where(eqAttr('wallet', wallet.toLowerCase()))
   .limit(1)
   .fetch();
 ```
@@ -310,24 +306,16 @@ const result = await publicClient
 ### Fetch Entities by Skill
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'ask'))
-  .where(eq('skill_id', skillId))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('ask')
+  .where(eqAttr('skill_id', skillId))
   .fetch();
 ```
 
 ### Fetch Transaction Hash
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'entity_type_txhash'))
-  .where(eq('entityKey', entityKey))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('entity_type_txhash')
+  .where(eqAttr('entity_key', entityKey))
   .limit(1)
   .fetch();
 ```

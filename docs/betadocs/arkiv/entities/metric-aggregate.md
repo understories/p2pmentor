@@ -64,13 +64,9 @@ import { eq } from '@arkiv-network/sdk/query';
 import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'metric_aggregate'))
-  .where(eq('date', '2024-01-15'))
-  .where(eq('period', 'daily'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('metric_aggregate')
+  .where(eqAttr('date', '2024-01-15'))
+  .where(eqAttr('period', 'daily'))
   .limit(100)
   .fetch();
 
@@ -83,14 +79,10 @@ const aggregates = result.entities.map((e) => ({
 ### Get Aggregates by Operation
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'metric_aggregate'))
-  .where(eq('operation', 'buildNetworkGraphData'))
-  .where(eq('source', 'graphql'))
-  .where(eq('period', 'daily'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('metric_aggregate')
+  .where(eqAttr('operation', 'buildNetworkGraphData'))
+  .where(eqAttr('source', 'graphql'))
+  .where(eqAttr('period', 'daily'))
   .limit(30)
   .fetch();
 
@@ -103,12 +95,8 @@ const sorted = result.entities
 ### Get Recent Aggregates
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'metric_aggregate'))
-  .where(eq('period', 'daily'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('metric_aggregate')
+  .where(eqAttr('period', 'daily'))
   .limit(100)
   .fetch();
 

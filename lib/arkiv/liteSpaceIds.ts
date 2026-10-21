@@ -8,7 +8,7 @@
  * not just those stored in localStorage.
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { arkivSelect, fetchAll, getAttr as readAttr } from '@/lib/arkiv/read';
 import { getPublicClient } from './client';
 import { CURRENT_WALLET } from '@/lib/config';
 
@@ -67,30 +67,17 @@ export async function getAllLiteSpaceIds(options?: {
     // Query all lite_ask and lite_offer entities without spaceId filter
     // We query both types to ensure we discover all space IDs
     const [asksResult, offersResult] = await Promise.all([
-      publicClient
-        .buildQuery()
-        .where(eq('type', 'lite_ask'))
-        .withAttributes(true)
-        .limit(1000) // High limit to get all entities
-        .fetch()
-        .catch(() => ({ entities: [] })),
-      publicClient
-        .buildQuery()
-        .where(eq('type', 'lite_offer'))
-        .withAttributes(true)
-        .limit(1000) // High limit to get all entities
-        .fetch()
-        .catch(() => ({ entities: [] })),
+      // High limit to get all entities (paged; the node returns at most 200 per page)
+      fetchAll(arkivSelect('lite_ask', publicClient), 1000, publicClient).catch(() => ({
+        entities: [],
+      })),
+      fetchAll(arkivSelect('lite_offer', publicClient), 1000, publicClient).catch(() => ({
+        entities: [],
+      })),
     ]);
 
     // Helper to extract attribute value
-    const getAttr = (attrs: any, key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (entity: any, key: string): string => readAttr(entity, key);
 
     // Track metadata per space ID
     const spaceIdMap = new Map<
@@ -107,17 +94,16 @@ export async function getAllLiteSpaceIds(options?: {
     // Process lite_ask entities
     if (asksResult?.entities && Array.isArray(asksResult.entities)) {
       asksResult.entities.forEach((entity: any) => {
-        const attrs = entity.attributes || {};
-        const spaceId = getAttr(attrs, 'spaceId')?.trim();
+        const spaceId = getAttr(entity, 'space_id')?.trim();
         if (!spaceId) return;
 
-        const createdAt = getAttr(attrs, 'createdAt');
+        const createdAt = getAttr(entity, 'created_at');
         const createdAtTime = createdAt ? new Date(createdAt).getTime() : 0;
-        const ttlSeconds = parseInt(getAttr(attrs, 'ttlSeconds') || '2592000', 10);
+        const ttlSeconds = parseInt(getAttr(entity, 'ttl_seconds') || '2592000', 10);
         const expiresAt = createdAtTime + ttlSeconds * 1000;
         const isActive = Date.now() < expiresAt;
 
-        const signerWallet = getAttr(attrs, 'signer_wallet')?.toLowerCase();
+        const signerWallet = getAttr(entity, 'signer_wallet')?.toLowerCase();
         const isP2pmentor = !!(currentWallet && signerWallet === currentWallet);
 
         if (!spaceIdMap.has(spaceId)) {
@@ -148,17 +134,16 @@ export async function getAllLiteSpaceIds(options?: {
     // Process lite_offer entities
     if (offersResult?.entities && Array.isArray(offersResult.entities)) {
       offersResult.entities.forEach((entity: any) => {
-        const attrs = entity.attributes || {};
-        const spaceId = getAttr(attrs, 'spaceId')?.trim();
+        const spaceId = getAttr(entity, 'space_id')?.trim();
         if (!spaceId) return;
 
-        const createdAt = getAttr(attrs, 'createdAt');
+        const createdAt = getAttr(entity, 'created_at');
         const createdAtTime = createdAt ? new Date(createdAt).getTime() : 0;
-        const ttlSeconds = parseInt(getAttr(attrs, 'ttlSeconds') || '2592000', 10);
+        const ttlSeconds = parseInt(getAttr(entity, 'ttl_seconds') || '2592000', 10);
         const expiresAt = createdAtTime + ttlSeconds * 1000;
         const isActive = Date.now() < expiresAt;
 
-        const signerWallet = getAttr(attrs, 'signer_wallet')?.toLowerCase();
+        const signerWallet = getAttr(entity, 'signer_wallet')?.toLowerCase();
         const isP2pmentor = !!(currentWallet && signerWallet === currentWallet);
 
         if (!spaceIdMap.has(spaceId)) {

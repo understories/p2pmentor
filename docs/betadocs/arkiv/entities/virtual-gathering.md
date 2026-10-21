@@ -56,11 +56,7 @@ import { eq } from '@arkiv-network/sdk/query';
 import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'virtual_gathering'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('virtual_gathering')
   .limit(100)
   .fetch();
 
@@ -73,12 +69,8 @@ const gatherings = result.entities
 ### Get Gatherings by Community
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'virtual_gathering'))
-  .where(eq('community', skillSlug))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('virtual_gathering')
+  .where(eqAttr('community', skillSlug))
   .limit(100)
   .fetch();
 ```
@@ -86,12 +78,8 @@ const result = await publicClient
 ### Get Gatherings by Organizer
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'virtual_gathering'))
-  .where(eq('organizerWallet', walletAddress.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('virtual_gathering')
+  .where(eqAttr('organizer_wallet', walletAddress.toLowerCase()))
   .limit(100)
   .fetch();
 ```
@@ -139,11 +127,8 @@ const session = await createSession({
 
 ```typescript
 async function getRSVPCount(gatheringKey: string): Promise<number> {
-  const result = await publicClient
-    .buildQuery()
-    .where(eq('type', 'session'))
-    .where(eq('gatheringKey', gatheringKey))
-    .withAttributes(true)
+  const result = await arkivSelect('session')
+    .where(eqAttr('gathering_key', gatheringKey))
     .limit(1000)
     .fetch();
 
@@ -195,15 +180,11 @@ await createVirtualGathering({
 
 ```typescript
 async function getUpcomingGatherings(community?: string) {
-  const query = publicClient
-    .buildQuery()
-    .where(eq('type', 'virtual_gathering'))
-    .withAttributes(true)
-    .withPayload(true)
+  const query = arkivSelect('virtual_gathering')
     .limit(100);
 
   if (community) {
-    query.where(eq('community', community));
+    query.where(eqAttr('community', community));
   }
 
   const result = await query.fetch();

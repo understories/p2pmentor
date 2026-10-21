@@ -11,14 +11,23 @@
  * Based on existing Arkiv entity patterns.
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import {
+  arkivSelect,
+  fetchAll,
+  getAttr as readAttr,
+  getEntityByKey,
+  parsePayload,
+} from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { addSignerMetadata } from './signer-metadata';
+import { createArkivEntity } from './write';
 import { SPACE_ID } from '@/lib/config';
 
 export const GARDEN_NOTE_MAX_LENGTH = 500; // Max message length
 export const GARDEN_NOTE_DAILY_LIMIT = 10; // Max notes per profile per day
-export const GARDEN_NOTE_TTL_SECONDS = 31536000; // 1 year (or no TTL for permanent)
+export const GARDEN_NOTE_TTL_SECONDS = 31536000; // Legacy constant; entity lifetime now comes from schema.ts (garden_note)
 
 export type GardenNote = {
   key: string;
@@ -81,43 +90,37 @@ export async function createGardenNote({
     .filter((tag) => tag.length > 0);
 
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const createdAt = new Date().toISOString();
   const channel = 'public_garden_board';
   const visibility = 'public';
   const moderationState = 'active';
 
-  // Build attributes array
-  const attributes: Array<{ key: string; value: string }> = [
-    { key: 'type', value: 'garden_note' },
-    { key: 'authorWallet', value: authorWallet.toLowerCase() },
-    { key: 'channel', value: channel },
-    { key: 'visibility', value: visibility },
-    { key: 'publishConsent', value: String(publishConsent) },
-    { key: 'moderationState', value: moderationState },
-    { key: 'spaceId', value: spaceId },
-    { key: 'createdAt', value: createdAt },
-    ...(targetWallet ? [{ key: 'targetWallet', value: targetWallet.toLowerCase() }] : []),
-    ...(replyToNoteId ? [{ key: 'replyToNoteId', value: replyToNoteId }] : []),
-    ...(normalizedTags.length > 0 ? [{ key: 'tags', value: normalizedTags.join(',') }] : []),
-  ];
-
+  // Attributes: short, queryable fields only (message and tags live in the payload)
   // Add signer metadata (U1.x.2: Central Signer Metadata)
-  const { addSignerMetadata } = await import('./signer-metadata');
-  const attributesWithSigner = addSignerMetadata(attributes, privateKey);
+  const attributes = addSignerMetadata(
+    {
+      author_wallet: authorWallet.toLowerCase(),
+      channel,
+      visibility,
+      publish_consent: String(publishConsent),
+      moderation_state: moderationState,
+      space_id: spaceId,
+      created_at: createdAt,
+      target_wallet: targetWallet ? targetWallet.toLowerCase() : undefined,
+      reply_to_note_id: replyToNoteId,
+    },
+    privateKey
+  );
 
   const result = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(
-        JSON.stringify({
-          message: message.trim(),
-          tags: normalizedTags,
-          createdAt,
-        })
-      ),
-      contentType: 'application/json',
-      attributes: attributesWithSigner,
-      expiresIn: GARDEN_NOTE_TTL_SECONDS, // 1 year TTL (or could be undefined for permanent)
+    return await createArkivEntity(walletClient, {
+      type: 'garden_note',
+      attributes,
+      payload: {
+        message: message.trim(),
+        tags: normalizedTags,
+        createdAt,
+      },
     });
   });
 
@@ -136,20 +139,16 @@ export async function createGardenNote({
   });
 
   // Create separate txhash entity (following existing pattern)
-  walletClient.createEntity({
-    payload: enc.encode(
-      JSON.stringify({
-        txHash,
-      })
-    ),
-    contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'garden_note_txhash' },
-      { key: 'gardenNoteKey', value: entityKey },
-      { key: 'authorWallet', value: authorWallet.toLowerCase() },
-      { key: 'spaceId', value: spaceId },
-    ],
-    expiresIn: GARDEN_NOTE_TTL_SECONDS,
+  createArkivEntity(walletClient, {
+    type: 'garden_note_txhash',
+    attributes: {
+      garden_note_key: entityKey,
+      author_wallet: authorWallet.toLowerCase(),
+      space_id: spaceId,
+    },
+    payload: { txHash },
+  }).catch((error: any) => {
+    console.warn('[createGardenNote] Failed to create garden_note_txhash entity:', error);
   });
 
   // Create notifications for all profiles when a new public garden note is created
@@ -268,58 +267,49 @@ export async function listGardenNotes({
 
   try {
     // Query by type and channel
-    let queryBuilder = publicClient
-      .buildQuery()
-      .where(eq('type', 'garden_note'))
-      .where(eq('channel', channel))
-      .where(eq('moderationState', 'active')) // Only show active notes
-      .withAttributes(true)
-      .withPayload(true);
+    let queryBuilder = arkivSelect('garden_note', publicClient)
+      .where(eqAttr('channel', channel))
+      .where(eqAttr('moderation_state', 'active')); // Only show active notes
+
+    // Filter by author server-side so small limits (e.g. daily limit check) see the author's notes
+    if (authorWallet) {
+      queryBuilder = queryBuilder.where(eqAttr('author_wallet', authorWallet.toLowerCase()));
+    }
 
     // Support multiple spaceIds (builder mode) or single spaceId
     if (spaceIds && spaceIds.length > 0) {
-      // Query all, filter client-side (Arkiv doesn't support OR queries)
-      queryBuilder = queryBuilder.limit(limit);
+      // Query all, filter client-side (OR queries are not used here)
     } else {
       // Use provided spaceId or default to SPACE_ID from config
       const finalSpaceId = spaceId || SPACE_ID;
-      queryBuilder = queryBuilder.where(eq('spaceId', finalSpaceId)).limit(limit);
+      queryBuilder = queryBuilder.where(eqAttr('space_id', finalSpaceId));
     }
 
-    const result = await queryBuilder.fetch();
+    const result = await fetchAll(queryBuilder, limit, publicClient);
     let entities = result?.entities || [];
 
     // Filter by spaceIds client-side if multiple requested
     if (spaceIds && spaceIds.length > 0) {
       entities = entities.filter((entity: any) => {
-        const attrs = entity.attributes || [];
-        const spaceIdAttr = String(
-          Array.isArray(attrs)
-            ? attrs.find((a: any) => a.key === 'spaceId')?.value || SPACE_ID
-            : attrs.spaceId || SPACE_ID
-        );
+        const spaceIdAttr = readAttr(entity, 'space_id') || SPACE_ID;
         return spaceIds.includes(spaceIdAttr);
       });
     }
 
     for (const entity of entities) {
       try {
-        const payload = JSON.parse(new TextDecoder().decode(entity.payload));
-        const attributes = entity.attributes || [];
+        const payload = parsePayload(entity);
 
-        // Extract attributes (convert to string if needed)
-        const authorWalletAttr = String(
-          attributes.find((a: any) => a.key === 'authorWallet')?.value || ''
-        );
-        const targetWalletAttr = attributes.find((a: any) => a.key === 'targetWallet')?.value;
-        const tagsAttr = String(attributes.find((a: any) => a.key === 'tags')?.value || '');
-        const replyToNoteIdAttr = attributes.find((a: any) => a.key === 'replyToNoteId')?.value;
-        const createdAtAttr = String(
-          attributes.find((a: any) => a.key === 'createdAt')?.value || ''
-        );
-        const spaceIdAttr = String(
-          attributes.find((a: any) => a.key === 'spaceId')?.value || SPACE_ID
-        );
+        // Extract attributes (strings; wallets lowercase)
+        const authorWalletAttr = readAttr(entity, 'author_wallet');
+        const targetWalletAttr = readAttr(entity, 'target_wallet');
+        // Tags: payload array (current), CSV attribute (legacy)
+        const tagsAttr = Array.isArray(payload.tags)
+          ? payload.tags.join(',')
+          : readAttr(entity, 'tags');
+        const replyToNoteIdAttr = readAttr(entity, 'reply_to_note_id');
+        const createdAtAttr = readAttr(entity, 'created_at') || payload.createdAt || '';
+        const spaceIdAttr = readAttr(entity, 'space_id') || SPACE_ID;
 
         // Apply filters
         if (targetWallet) {
@@ -393,23 +383,21 @@ export async function getGardenNoteByKey(key: string): Promise<GardenNote | null
   const publicClient = getPublicClient();
 
   try {
-    const entity = await publicClient.getEntity(key as `0x${string}`);
-    if (!entity) return null;
+    const entity = await getEntityByKey(key, publicClient);
+    if (!entity || readAttr(entity, 'type') !== 'garden_note') return null;
 
-    const payload = JSON.parse(new TextDecoder().decode(entity.payload));
-    const attributes = entity.attributes || [];
+    const payload = parsePayload(entity);
 
-    const authorWalletAttr = String(
-      attributes.find((a: any) => a.key === 'authorWallet')?.value || ''
-    );
-    const targetWalletAttr = attributes.find((a: any) => a.key === 'targetWallet')?.value;
-    const tagsAttr = String(attributes.find((a: any) => a.key === 'tags')?.value || '');
-    const replyToNoteIdAttr = attributes.find((a: any) => a.key === 'replyToNoteId')?.value;
-    const createdAtAttr = String(attributes.find((a: any) => a.key === 'createdAt')?.value || '');
-    const spaceIdAttr = String(attributes.find((a: any) => a.key === 'spaceId')?.value || SPACE_ID);
-    const channelAttr = String(
-      attributes.find((a: any) => a.key === 'channel')?.value || 'public_garden_board'
-    );
+    const authorWalletAttr = readAttr(entity, 'author_wallet');
+    const targetWalletAttr = readAttr(entity, 'target_wallet');
+    // Tags: payload array (current), CSV attribute (legacy)
+    const tagsAttr = Array.isArray(payload.tags)
+      ? payload.tags.join(',')
+      : readAttr(entity, 'tags');
+    const replyToNoteIdAttr = readAttr(entity, 'reply_to_note_id');
+    const createdAtAttr = readAttr(entity, 'created_at') || payload.createdAt || '';
+    const spaceIdAttr = readAttr(entity, 'space_id') || SPACE_ID;
+    const channelAttr = readAttr(entity, 'channel') || 'public_garden_board';
 
     const noteTags = tagsAttr
       ? tagsAttr

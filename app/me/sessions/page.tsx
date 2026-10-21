@@ -29,6 +29,7 @@ import type { Skill } from '@/lib/arkiv/skill';
 import type { VirtualGathering } from '@/lib/arkiv/virtualGathering';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import Link from 'next/link';
+import { getArkivExplorerTxUrl } from '@/lib/arkiv/explorer';
 
 function shortenWallet(wallet: string): string {
   if (!wallet || wallet.length < 10) return wallet;
@@ -1303,7 +1304,7 @@ export default function SessionsPage() {
                                   {session.paymentTxHash.slice(-8)}
                                 </code>
                                 <a
-                                  href={`https://explorer.braga.hoodi.arkiv.network/tx/${session.paymentTxHash}`}
+                                  href={getArkivExplorerTxUrl(session.paymentTxHash)}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-xs text-blue-600 hover:underline dark:text-blue-400"
@@ -1832,7 +1833,7 @@ export default function SessionsPage() {
                                           {session.paymentTxHash.slice(-8)}
                                         </code>
                                         <a
-                                          href={`https://explorer.braga.hoodi.arkiv.network/tx/${session.paymentTxHash}`}
+                                          href={getArkivExplorerTxUrl(session.paymentTxHash)}
                                           target="_blank"
                                           rel="noopener noreferrer"
                                           className="text-xs text-blue-600 hover:underline dark:text-blue-400"

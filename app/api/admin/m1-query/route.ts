@@ -8,8 +8,39 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getPublicClient } from '@/lib/arkiv/client';
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import {
+  arkivSelect,
+  attrsToRecord,
+  fetchAll,
+  getAttr as readAttr,
+  parsePayload,
+  type ArkivEntity,
+} from '@/lib/arkiv/read';
 import { SPACE_ID } from '@/lib/config';
+
+/** Sort query results by `created_at` attribute, newest first (in place) */
+function sortNewestFirst(result: { entities?: ArkivEntity[] } | null): void {
+  result?.entities?.sort((a, b) =>
+    readAttr(b, 'created_at').localeCompare(readAttr(a, 'created_at'))
+  );
+}
+
+/**
+ * JSON-safe view of an entity for the admin UI
+ * (bigint fields as strings, attributes as a name -> string record, payload decoded)
+ */
+function serializeEntity(entity: ArkivEntity) {
+  return {
+    key: entity.key,
+    owner: entity.owner,
+    creator: entity.creator,
+    createdAt: entity.createdAt?.toString(),
+    expiresAt: entity.expiresAt?.toString(),
+    attributes: attrsToRecord(entity),
+    payload: parsePayload(entity, null),
+  };
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,7 +48,6 @@ export async function POST(request: NextRequest) {
     const { queryType, params } = body;
 
     const publicClient = getPublicClient();
-    const query = publicClient.buildQuery();
 
     let result: any = null;
     let error: string | null = null;
@@ -30,406 +60,268 @@ export async function POST(request: NextRequest) {
           if (!wallet) {
             throw new Error('Wallet address required');
           }
-          result = await query
-            .where(eq('type', 'user_profile'))
-            .where(eq('wallet', wallet))
-            .withAttributes(true)
-            .withPayload(true)
-            .limit(params.limit || 1)
-            .fetch();
+          result = await fetchAll(
+            arkivSelect('user_profile', publicClient).where(eqAttr('wallet', wallet)),
+            params.limit || 1,
+            publicClient
+          );
 
           // Sort by createdAt descending client-side
-          if (result.entities && result.entities.length > 0) {
-            result.entities.sort((a: any, b: any) => {
-              const aTime =
-                a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              const bTime =
-                b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              return bTime.localeCompare(aTime);
-            });
-          }
+          sortNewestFirst(result);
           break;
 
         case 'ask':
           // Query asks
-          let askQuery = query.where(eq('type', 'ask')).where(eq('status', 'open'));
+          let askQuery = arkivSelect('ask', publicClient).where(eqAttr('status', 'open'));
 
           if (params.wallet) {
-            askQuery = askQuery.where(eq('wallet', params.wallet.toLowerCase()));
+            askQuery = askQuery.where(eqAttr('wallet', params.wallet.toLowerCase()));
           }
           if (params.skill_id) {
-            askQuery = askQuery.where(eq('skill_id', params.skill_id));
+            askQuery = askQuery.where(eqAttr('skill_id', params.skill_id));
           }
           if (params.spaceId) {
-            askQuery = askQuery.where(eq('spaceId', params.spaceId));
+            askQuery = askQuery.where(eqAttr('space_id', params.spaceId));
           } else {
-            askQuery = askQuery.where(eq('spaceId', SPACE_ID));
+            askQuery = askQuery.where(eqAttr('space_id', SPACE_ID));
           }
 
-          result = await askQuery
-            .withAttributes(true)
-            .withPayload(true)
-            .limit(params.limit || 10)
-            .fetch();
+          result = await fetchAll(askQuery, params.limit || 10, publicClient);
 
           // Sort by createdAt descending client-side
-          if (result.entities && result.entities.length > 0) {
-            result.entities.sort((a: any, b: any) => {
-              const aTime =
-                a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              const bTime =
-                b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              return bTime.localeCompare(aTime);
-            });
-          }
+          sortNewestFirst(result);
           break;
 
         case 'offer':
           // Query offers
-          let offerQuery = query.where(eq('type', 'offer')).where(eq('status', 'open'));
+          let offerQuery = arkivSelect('offer', publicClient).where(eqAttr('status', 'open'));
 
           if (params.wallet) {
-            offerQuery = offerQuery.where(eq('wallet', params.wallet.toLowerCase()));
+            offerQuery = offerQuery.where(eqAttr('wallet', params.wallet.toLowerCase()));
           }
           if (params.skill_id) {
-            offerQuery = offerQuery.where(eq('skill_id', params.skill_id));
+            offerQuery = offerQuery.where(eqAttr('skill_id', params.skill_id));
           }
           if (params.spaceId) {
-            offerQuery = offerQuery.where(eq('spaceId', params.spaceId));
+            offerQuery = offerQuery.where(eqAttr('space_id', params.spaceId));
           } else {
-            offerQuery = offerQuery.where(eq('spaceId', SPACE_ID));
+            offerQuery = offerQuery.where(eqAttr('space_id', SPACE_ID));
           }
 
-          result = await offerQuery
-            .withAttributes(true)
-            .withPayload(true)
-            .limit(params.limit || 10)
-            .fetch();
+          result = await fetchAll(offerQuery, params.limit || 10, publicClient);
 
           // Sort by createdAt descending client-side
-          if (result.entities && result.entities.length > 0) {
-            result.entities.sort((a: any, b: any) => {
-              const aTime =
-                a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              const bTime =
-                b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              return bTime.localeCompare(aTime);
-            });
-          }
+          sortNewestFirst(result);
           break;
 
         case 'session':
           // Query sessions
-          let sessionQuery = query.where(eq('type', 'session'));
+          let sessionQuery = arkivSelect('session', publicClient);
 
           if (params.mentorWallet) {
             sessionQuery = sessionQuery.where(
-              eq('mentorWallet', params.mentorWallet.toLowerCase())
+              eqAttr('mentor_wallet', params.mentorWallet.toLowerCase())
             );
           }
           if (params.learnerWallet) {
             sessionQuery = sessionQuery.where(
-              eq('learnerWallet', params.learnerWallet.toLowerCase())
+              eqAttr('learner_wallet', params.learnerWallet.toLowerCase())
             );
           }
           if (params.sessionKey) {
             // For session confirmations
-            const confirmationQuery = query
-              .where(eq('type', 'session_confirmation'))
-              .where(eq('sessionKey', params.sessionKey))
-              .withAttributes(true)
-              .fetch();
-            result = await confirmationQuery;
+            const confirmationQuery = arkivSelect('session_confirmation', publicClient).where(
+              eqAttr('session_key', params.sessionKey)
+            );
+            result = await fetchAll(confirmationQuery, params.limit || 10, publicClient);
             break;
           }
           if (params.spaceId) {
-            sessionQuery = sessionQuery.where(eq('spaceId', params.spaceId));
+            sessionQuery = sessionQuery.where(eqAttr('space_id', params.spaceId));
           } else {
-            sessionQuery = sessionQuery.where(eq('spaceId', SPACE_ID));
+            sessionQuery = sessionQuery.where(eqAttr('space_id', SPACE_ID));
           }
 
-          result = await sessionQuery
-            .withAttributes(true)
-            .withPayload(true)
-            .limit(params.limit || 10)
-            .fetch();
+          result = await fetchAll(sessionQuery, params.limit || 10, publicClient);
 
           // Sort by createdAt descending client-side
-          if (result.entities && result.entities.length > 0) {
-            result.entities.sort((a: any, b: any) => {
-              const aTime =
-                a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              const bTime =
-                b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              return bTime.localeCompare(aTime);
-            });
-          }
+          sortNewestFirst(result);
           break;
 
         case 'feedback':
           // Query feedback
-          let feedbackQuery = query.where(eq('type', 'session_feedback'));
+          let feedbackQuery = arkivSelect('session_feedback', publicClient);
 
           if (params.sessionKey) {
-            feedbackQuery = feedbackQuery.where(eq('sessionKey', params.sessionKey));
+            feedbackQuery = feedbackQuery.where(eqAttr('session_key', params.sessionKey));
           }
           if (params.feedbackTo) {
-            feedbackQuery = feedbackQuery.where(eq('feedbackTo', params.feedbackTo.toLowerCase()));
+            feedbackQuery = feedbackQuery.where(
+              eqAttr('feedback_to', params.feedbackTo.toLowerCase())
+            );
           }
           if (params.spaceId) {
-            feedbackQuery = feedbackQuery.where(eq('spaceId', params.spaceId));
+            feedbackQuery = feedbackQuery.where(eqAttr('space_id', params.spaceId));
           } else {
-            feedbackQuery = feedbackQuery.where(eq('spaceId', SPACE_ID));
+            feedbackQuery = feedbackQuery.where(eqAttr('space_id', SPACE_ID));
           }
 
-          result = await feedbackQuery
-            .withAttributes(true)
-            .withPayload(true)
-            .limit(params.limit || 10)
-            .fetch();
+          result = await fetchAll(feedbackQuery, params.limit || 10, publicClient);
 
           // Sort by createdAt descending client-side
-          if (result.entities && result.entities.length > 0) {
-            result.entities.sort((a: any, b: any) => {
-              const aTime =
-                a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              const bTime =
-                b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              return bTime.localeCompare(aTime);
-            });
-          }
+          sortNewestFirst(result);
           break;
 
         case 'availability':
           // Query availability
-          let availabilityQuery = query.where(eq('type', 'availability'));
+          let availabilityQuery = arkivSelect('availability', publicClient);
 
           if (params.wallet) {
-            availabilityQuery = availabilityQuery.where(eq('wallet', params.wallet.toLowerCase()));
+            availabilityQuery = availabilityQuery.where(
+              eqAttr('wallet', params.wallet.toLowerCase())
+            );
           }
           if (params.spaceId) {
-            availabilityQuery = availabilityQuery.where(eq('spaceId', params.spaceId));
+            availabilityQuery = availabilityQuery.where(eqAttr('space_id', params.spaceId));
           } else {
-            availabilityQuery = availabilityQuery.where(eq('spaceId', SPACE_ID));
+            availabilityQuery = availabilityQuery.where(eqAttr('space_id', SPACE_ID));
           }
 
-          result = await availabilityQuery
-            .withAttributes(true)
-            .withPayload(true)
-            .limit(params.limit || 10)
-            .fetch();
+          result = await fetchAll(availabilityQuery, params.limit || 10, publicClient);
 
           // Sort by createdAt descending client-side
-          if (result.entities && result.entities.length > 0) {
-            result.entities.sort((a: any, b: any) => {
-              const aTime =
-                a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              const bTime =
-                b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              return bTime.localeCompare(aTime);
-            });
-          }
+          sortNewestFirst(result);
           break;
 
         case 'skill':
           // Query skills
-          let skillQuery = query.where(eq('type', 'skill'));
+          let skillQuery = arkivSelect('skill', publicClient);
 
           if (params.status) {
-            skillQuery = skillQuery.where(eq('status', params.status));
+            skillQuery = skillQuery.where(eqAttr('status', params.status));
           }
           if (params.spaceId) {
-            skillQuery = skillQuery.where(eq('spaceId', params.spaceId));
+            skillQuery = skillQuery.where(eqAttr('space_id', params.spaceId));
           } else {
-            skillQuery = skillQuery.where(eq('spaceId', SPACE_ID));
+            skillQuery = skillQuery.where(eqAttr('space_id', SPACE_ID));
           }
 
-          result = await skillQuery
-            .withAttributes(true)
-            .withPayload(true)
-            .limit(params.limit || 100)
-            .fetch();
+          result = await fetchAll(skillQuery, params.limit || 100, publicClient);
 
           // Sort by createdAt descending client-side
-          if (result.entities && result.entities.length > 0) {
-            result.entities.sort((a: any, b: any) => {
-              const aTime =
-                a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              const bTime =
-                b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              return bTime.localeCompare(aTime);
-            });
-          }
+          sortNewestFirst(result);
           break;
 
         case 'notification':
           // Query notifications
-          let notificationQuery = query.where(eq('type', 'notification'));
+          let notificationQuery = arkivSelect('notification', publicClient);
 
           if (params.wallet) {
-            notificationQuery = notificationQuery.where(eq('wallet', params.wallet.toLowerCase()));
+            notificationQuery = notificationQuery.where(
+              eqAttr('wallet', params.wallet.toLowerCase())
+            );
           }
           if (params.sourceEntityType) {
             notificationQuery = notificationQuery.where(
-              eq('sourceEntityType', params.sourceEntityType)
+              eqAttr('source_entity_type', params.sourceEntityType)
             );
           }
           if (params.spaceId) {
-            notificationQuery = notificationQuery.where(eq('spaceId', params.spaceId));
+            notificationQuery = notificationQuery.where(eqAttr('space_id', params.spaceId));
           } else {
-            notificationQuery = notificationQuery.where(eq('spaceId', SPACE_ID));
+            notificationQuery = notificationQuery.where(eqAttr('space_id', SPACE_ID));
           }
 
-          result = await notificationQuery
-            .withAttributes(true)
-            .withPayload(true)
-            .limit(params.limit || 10)
-            .fetch();
+          result = await fetchAll(notificationQuery, params.limit || 10, publicClient);
 
           // Sort by createdAt descending client-side
-          if (result.entities && result.entities.length > 0) {
-            result.entities.sort((a: any, b: any) => {
-              const aTime =
-                a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              const bTime =
-                b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              return bTime.localeCompare(aTime);
-            });
-          }
+          sortNewestFirst(result);
           break;
 
         case 'session_confirmation':
           // Query session confirmations
-          let confirmationQuery = query.where(eq('type', 'session_confirmation'));
+          let confirmationQuery = arkivSelect('session_confirmation', publicClient);
 
           if (params.sessionKey) {
-            confirmationQuery = confirmationQuery.where(eq('sessionKey', params.sessionKey));
+            confirmationQuery = confirmationQuery.where(eqAttr('session_key', params.sessionKey));
           }
           if (params.confirmedBy) {
             confirmationQuery = confirmationQuery.where(
-              eq('confirmedBy', params.confirmedBy.toLowerCase())
+              eqAttr('confirmed_by', params.confirmedBy.toLowerCase())
             );
           }
           if (params.spaceId) {
-            confirmationQuery = confirmationQuery.where(eq('spaceId', params.spaceId));
+            confirmationQuery = confirmationQuery.where(eqAttr('space_id', params.spaceId));
           } else {
-            confirmationQuery = confirmationQuery.where(eq('spaceId', SPACE_ID));
+            confirmationQuery = confirmationQuery.where(eqAttr('space_id', SPACE_ID));
           }
 
-          result = await confirmationQuery
-            .withAttributes(true)
-            .withPayload(true)
-            .limit(params.limit || 10)
-            .fetch();
+          result = await fetchAll(confirmationQuery, params.limit || 10, publicClient);
 
           // Sort by createdAt descending client-side
-          if (result.entities && result.entities.length > 0) {
-            result.entities.sort((a: any, b: any) => {
-              const aTime =
-                a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              const bTime =
-                b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              return bTime.localeCompare(aTime);
-            });
-          }
+          sortNewestFirst(result);
           break;
 
         case 'session_rejection':
           // Query session rejections
-          let rejectionQuery = query.where(eq('type', 'session_rejection'));
+          let rejectionQuery = arkivSelect('session_rejection', publicClient);
 
           if (params.sessionKey) {
-            rejectionQuery = rejectionQuery.where(eq('sessionKey', params.sessionKey));
+            rejectionQuery = rejectionQuery.where(eqAttr('session_key', params.sessionKey));
           }
           if (params.rejectedBy) {
             rejectionQuery = rejectionQuery.where(
-              eq('rejectedBy', params.rejectedBy.toLowerCase())
+              eqAttr('rejected_by', params.rejectedBy.toLowerCase())
             );
           }
           if (params.spaceId) {
-            rejectionQuery = rejectionQuery.where(eq('spaceId', params.spaceId));
+            rejectionQuery = rejectionQuery.where(eqAttr('space_id', params.spaceId));
           } else {
-            rejectionQuery = rejectionQuery.where(eq('spaceId', SPACE_ID));
+            rejectionQuery = rejectionQuery.where(eqAttr('space_id', SPACE_ID));
           }
 
-          result = await rejectionQuery
-            .withAttributes(true)
-            .withPayload(true)
-            .limit(params.limit || 10)
-            .fetch();
+          result = await fetchAll(rejectionQuery, params.limit || 10, publicClient);
 
           // Sort by createdAt descending client-side
-          if (result.entities && result.entities.length > 0) {
-            result.entities.sort((a: any, b: any) => {
-              const aTime =
-                a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              const bTime =
-                b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              return bTime.localeCompare(aTime);
-            });
-          }
+          sortNewestFirst(result);
           break;
 
         case 'beta-access':
           // Query beta access
-          let betaAccessQuery = query.where(eq('type', 'beta_access'));
+          let betaAccessQuery = arkivSelect('beta_access', publicClient);
 
           if (params.wallet) {
-            betaAccessQuery = betaAccessQuery.where(eq('wallet', params.wallet.toLowerCase()));
+            betaAccessQuery = betaAccessQuery.where(eqAttr('wallet', params.wallet.toLowerCase()));
           }
           if (params.spaceId) {
-            betaAccessQuery = betaAccessQuery.where(eq('spaceId', params.spaceId));
+            betaAccessQuery = betaAccessQuery.where(eqAttr('space_id', params.spaceId));
           } else {
-            betaAccessQuery = betaAccessQuery.where(eq('spaceId', SPACE_ID));
+            betaAccessQuery = betaAccessQuery.where(eqAttr('space_id', SPACE_ID));
           }
 
-          result = await betaAccessQuery
-            .withAttributes(true)
-            .withPayload(true)
-            .limit(params.limit || 10)
-            .fetch();
+          result = await fetchAll(betaAccessQuery, params.limit || 10, publicClient);
 
           // Sort by createdAt descending client-side
-          if (result.entities && result.entities.length > 0) {
-            result.entities.sort((a: any, b: any) => {
-              const aTime =
-                a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              const bTime =
-                b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              return bTime.localeCompare(aTime);
-            });
-          }
+          sortNewestFirst(result);
           break;
 
         case 'beta-code':
           // Query beta codes
-          let betaCodeQuery = query.where(eq('type', 'beta_code'));
+          let betaCodeQuery = arkivSelect('beta_code', publicClient);
 
           if (params.code) {
-            betaCodeQuery = betaCodeQuery.where(eq('code', params.code));
+            betaCodeQuery = betaCodeQuery.where(eqAttr('code', params.code));
           }
           if (params.spaceId) {
-            betaCodeQuery = betaCodeQuery.where(eq('spaceId', params.spaceId));
+            betaCodeQuery = betaCodeQuery.where(eqAttr('space_id', params.spaceId));
           } else {
-            betaCodeQuery = betaCodeQuery.where(eq('spaceId', SPACE_ID));
+            betaCodeQuery = betaCodeQuery.where(eqAttr('space_id', SPACE_ID));
           }
 
-          result = await betaCodeQuery
-            .withAttributes(true)
-            .withPayload(true)
-            .limit(params.limit || 10)
-            .fetch();
+          result = await fetchAll(betaCodeQuery, params.limit || 10, publicClient);
 
           // Sort by createdAt descending client-side
-          if (result.entities && result.entities.length > 0) {
-            result.entities.sort((a: any, b: any) => {
-              const aTime =
-                a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              const bTime =
-                b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              return bTime.localeCompare(aTime);
-            });
-          }
+          sortNewestFirst(result);
           break;
 
         default:
@@ -444,7 +336,7 @@ export async function POST(request: NextRequest) {
       ok: !error,
       result: result
         ? {
-            entities: result.entities || [],
+            entities: (result.entities || []).map(serializeEntity),
             count: result.entities?.length || 0,
           }
         : null,

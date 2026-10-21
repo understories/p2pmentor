@@ -6,7 +6,7 @@
  * Reference: refs/mentor-graph/src/config.ts
  */
 
-import { privateKeyToAccount } from '@arkiv-network/sdk/accounts';
+import { privateKeyToAccount } from 'viem/accounts';
 
 export const ARKIV_PRIVATE_KEY = process.env.ARKIV_PRIVATE_KEY as `0x${string}` | undefined;
 
@@ -17,6 +17,19 @@ export const ARKIV_PRIVATE_KEY = process.env.ARKIV_PRIVATE_KEY as `0x${string}` 
 export const CURRENT_WALLET = ARKIV_PRIVATE_KEY
   ? privateKeyToAccount(ARKIV_PRIVATE_KEY).address
   : undefined;
+
+/**
+ * Server signer address (lowercase), derived from ARKIV_PRIVATE_KEY.
+ *
+ * Reads of server-signed entity types (beta codes, grants, revocations, admin
+ * notifications, quest definitions) are scoped with `.createdBy(SERVER_SIGNER_ADDRESS)`,
+ * because attribute values alone can be copied by anyone.
+ *
+ * In the browser (no private key), falls back to NEXT_PUBLIC_ARKIV_SIGNER_ADDRESS.
+ */
+export const SERVER_SIGNER_ADDRESS = (
+  CURRENT_WALLET || process.env.NEXT_PUBLIC_ARKIV_SIGNER_ADDRESS
+)?.toLowerCase() as `0x${string}` | undefined;
 
 /**
  * Space ID for data isolation

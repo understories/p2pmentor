@@ -52,11 +52,7 @@ import { eq } from '@arkiv-network/sdk/query';
 import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'app_feedback'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('app_feedback')
   .limit(100)
   .fetch();
 ```
@@ -64,12 +60,8 @@ const result = await publicClient
 ### Filter by Page
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'app_feedback'))
-  .where(eq('page', '/network'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('app_feedback')
+  .where(eqAttr('page', '/network'))
   .limit(100)
   .fetch();
 ```
@@ -77,12 +69,8 @@ const result = await publicClient
 ### Filter by Feedback Type
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'app_feedback'))
-  .where(eq('feedbackType', 'issue'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('app_feedback')
+  .where(eqAttr('feedback_type', 'issue'))
   .limit(100)
   .fetch();
 ```
@@ -90,12 +78,8 @@ const result = await publicClient
 ### Filter by Wallet
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'app_feedback'))
-  .where(eq('wallet', walletAddress.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('app_feedback')
+  .where(eqAttr('wallet', walletAddress.toLowerCase()))
   .limit(100)
   .fetch();
 ```
@@ -105,11 +89,7 @@ const result = await publicClient
 ```typescript
 // Get feedback since a date
 const since = '2024-01-01T00:00:00Z';
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'app_feedback'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('app_feedback')
   .limit(100)
   .fetch();
 
@@ -157,11 +137,8 @@ Resolution creates a separate entity that marks the feedback as resolved. Query 
 
 ```typescript
 // Check if feedback is resolved
-const resolutionResult = await publicClient
-  .buildQuery()
-  .where(eq('type', 'app_feedback_resolution'))
-  .where(eq('feedbackKey', feedbackKey))
-  .withAttributes(true)
+const resolutionResult = await arkivSelect('app_feedback_resolution')
+  .where(eqAttr('feedback_key', feedbackKey))
   .limit(1)
   .fetch();
 

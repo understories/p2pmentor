@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const GITHUB_OWNER = process.env.GITHUB_OWNER || 'understories';
+import { getArkivExplorerEntityUrl, getArkivExplorerTxUrl } from '@/lib/arkiv/explorer';
 const GITHUB_REPO = process.env.GITHUB_REPO || 'p2pmentor';
 
 /**
@@ -44,9 +45,7 @@ export async function PATCH(request: NextRequest) {
     console.log('[api/github/close-issue] GitHub token found, proceeding...');
 
     // Build Arkiv explorer link if resolution key is provided
-    const arkivExplorerLink = resolutionKey
-      ? `https://explorer.braga.hoodi.arkiv.network/entity/${resolutionKey}`
-      : null;
+    const arkivExplorerLink = resolutionKey ? getArkivExplorerEntityUrl(resolutionKey) : null;
 
     console.log('[api/github/close-issue] Resolution key:', resolutionKey);
     console.log('[api/github/close-issue] Arkiv explorer link:', arkivExplorerLink);
@@ -64,7 +63,7 @@ This issue has been marked as resolved using Arkiv's immutable entity update pat
     if (arkivExplorerLink) {
       commentBody += `\n\n**Resolution Entity:**\n[View resolution entity on Arkiv Explorer](${arkivExplorerLink})`;
       if (txHash) {
-        const txExplorerUrl = `https://explorer.braga.hoodi.arkiv.network/tx/${txHash}`;
+        const txExplorerUrl = getArkivExplorerTxUrl(txHash);
         commentBody += `\n\n**Transaction:** [${txHash.slice(0, 10)}...${txHash.slice(-8)}](${txExplorerUrl})`;
       }
     }

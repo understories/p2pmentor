@@ -71,12 +71,12 @@ if (mentorConfirmed && learnerConfirmed) {
       generatedAt: createdAt,
     },
     attributes: [
-      { key: 'type', value: 'session_jitsi' },
-      { key: 'sessionKey', value: sessionKey },
-      { key: 'mentorWallet', value: mentorWallet.toLowerCase() },
-      { key: 'learnerWallet', value: learnerWallet.toLowerCase() },
-      { key: 'spaceId', value: spaceId },
-      { key: 'createdAt', value: createdAt },
+      { type: 'session_jitsi' },
+      { session_key: sessionKey },
+      { mentor_wallet: mentorWallet.toLowerCase() },
+      { learner_wallet: learnerWallet.toLowerCase() },
+      { space_id: spaceId },
+      { created_at: createdAt },
     ],
     expiresIn: sessionExpiration, // Matches session expiration
   });

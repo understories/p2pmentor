@@ -42,13 +42,9 @@ Implementation: `lib/arkiv/skill.ts` - Skills are separate entities. Profiles, A
 Fetch skill by slug:
 
 ```typescript
-const query = publicClient.buildQuery();
-const result = await query
-  .where(eq('type', 'skill'))
-  .where(eq('slug', slug))
-  .where(eq('status', 'active'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('skill')
+  .where(eqAttr('slug', slug))
+  .where(eqAttr('status', 'active'))
   .limit(1)
   .fetch();
 ```
@@ -56,12 +52,8 @@ const result = await query
 Fetch all active skills:
 
 ```typescript
-const query = publicClient.buildQuery();
-const result = await query
-  .where(eq('type', 'skill'))
-  .where(eq('status', 'active'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('skill')
+  .where(eqAttr('status', 'active'))
   .limit(100)
   .fetch();
 ```

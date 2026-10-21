@@ -7,9 +7,11 @@
  * Week 1 (Feb 1-7) - Skill linkage feature
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr, parsePayload } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { createArkivEntity } from './write';
 import { SPACE_ID } from '../config';
 
 /**
@@ -45,7 +47,7 @@ export async function createQuestCompletionSkillLink({
   progressEntityKey,
   privateKey,
   spaceId = SPACE_ID,
-  ttlSeconds = 31536000, // 1 year default
+  ttlSeconds, // Optional lifetime override; defaults to the type lifetime (schema.ts)
 }: {
   wallet: string;
   questId: string;
@@ -67,18 +69,16 @@ export async function createQuestCompletionSkillLink({
 
   try {
     const walletClient = getWalletClientFromPrivateKey(privateKey);
-    const enc = new TextEncoder();
 
     // Build attributes (queryable fields)
-    const attributes = [
-      { key: 'type', value: 'quest_completion_skill_link' },
-      { key: 'wallet', value: normalizedWallet },
-      { key: 'questId', value: questId },
-      { key: 'stepId', value: stepId },
-      { key: 'skillId', value: skillId },
-      { key: 'spaceId', value: finalSpaceId },
-      { key: 'createdAt', value: createdAt },
-    ];
+    const attributes = {
+      wallet: normalizedWallet,
+      quest_id: questId,
+      step_id: stepId,
+      skill_id: skillId,
+      space_id: finalSpaceId,
+      created_at: createdAt,
+    };
 
     // Build payload (non-queryable content)
     const payload = {
@@ -87,29 +87,29 @@ export async function createQuestCompletionSkillLink({
       progressEntityKey,
     };
 
-    const { txHash } = await handleTransactionWithTimeout(async () => {
-      return await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify(payload)),
-        contentType: 'application/json',
+    const { entityKey: arkivEntityKey, txHash } = await handleTransactionWithTimeout(async () => {
+      return await createArkivEntity(walletClient, {
+        type: 'quest_completion_skill_link',
         attributes,
-        expiresIn: ttlSeconds,
+        payload,
+        lifetimeSeconds: ttlSeconds,
       });
     });
 
     // Create txhash entity for observability (fire and forget)
-    walletClient
-      .createEntity({
-        payload: enc.encode(JSON.stringify({ txHash, linkKey: entityKey })),
-        contentType: 'application/json',
-        attributes: [
-          { key: 'type', value: 'quest_completion_skill_link_txhash' },
-          { key: 'linkKey', value: entityKey },
-          { key: 'txHash', value: txHash },
-          { key: 'spaceId', value: finalSpaceId },
-          { key: 'createdAt', value: createdAt },
-        ],
-        expiresIn: ttlSeconds,
-      })
+    // link_key is the Arkiv entity key: the stable key string exceeds the 128-byte
+    // attribute limit, so it is kept in the payload only.
+    createArkivEntity(walletClient, {
+      type: 'quest_completion_skill_link_txhash',
+      attributes: {
+        link_key: arkivEntityKey,
+        tx_hash: txHash,
+        space_id: finalSpaceId,
+        created_at: createdAt,
+      },
+      payload: { txHash, linkKey: entityKey },
+      lifetimeSeconds: ttlSeconds,
+    })
       .catch((err) => {
         console.warn('[createQuestCompletionSkillLink] Failed to create txhash entity:', err);
       });
@@ -141,26 +141,24 @@ export async function getQuestCompletionSkillLinks({
 
   try {
     const publicClient = getPublicClient();
-    const query = publicClient.buildQuery();
+    const query = arkivSelect('quest_completion_skill_link', publicClient);
 
-    let queryBuilder = query
-      .where(eq('type', 'quest_completion_skill_link'))
-      .where(eq('spaceId', finalSpaceId));
+    let queryBuilder = query.where(eqAttr('space_id', finalSpaceId));
 
     if (wallet) {
-      queryBuilder = queryBuilder.where(eq('wallet', wallet.toLowerCase()));
+      queryBuilder = queryBuilder.where(eqAttr('wallet', wallet.toLowerCase()));
     }
     if (questId) {
-      queryBuilder = queryBuilder.where(eq('questId', questId));
+      queryBuilder = queryBuilder.where(eqAttr('quest_id', questId));
     }
     if (stepId) {
-      queryBuilder = queryBuilder.where(eq('stepId', stepId));
+      queryBuilder = queryBuilder.where(eqAttr('step_id', stepId));
     }
     if (skillId) {
-      queryBuilder = queryBuilder.where(eq('skillId', skillId));
+      queryBuilder = queryBuilder.where(eqAttr('skill_id', skillId));
     }
 
-    const result = await queryBuilder.withAttributes(true).withPayload(true).limit(100).fetch();
+    const result = await queryBuilder.limit(100).fetch();
 
     // Defensive check
     if (!result || !result.entities || !Array.isArray(result.entities)) {
@@ -171,32 +169,21 @@ export async function getQuestCompletionSkillLinks({
     }
 
     return result.entities.map((entity: any) => {
-      const getAttr = (key: string) => entity.attributes?.find((a: any) => a.key === key)?.value;
+      const getAttr = (key: string) => readAttr(entity, key);
 
-      let payload: any = {};
-      try {
-        if (entity.payload) {
-          const payloadStr =
-            typeof entity.payload === 'string'
-              ? entity.payload
-              : new TextDecoder().decode(entity.payload);
-          payload = JSON.parse(payloadStr);
-        }
-      } catch (e) {
-        console.warn('[getQuestCompletionSkillLinks] Failed to parse payload:', e);
-      }
+      const payload: any = parsePayload(entity);
 
       return {
         key: entity.key || '',
         wallet: getAttr('wallet') || '',
-        questId: getAttr('questId') || '',
-        stepId: getAttr('stepId') || '',
-        skillId: getAttr('skillId') || '',
+        questId: getAttr('quest_id') || '',
+        stepId: getAttr('step_id') || '',
+        skillId: getAttr('skill_id') || '',
         skillName: payload.skillName || '',
         proficiency: payload.proficiency,
         progressEntityKey: payload.progressEntityKey || '',
-        createdAt: getAttr('createdAt') || '',
-        spaceId: getAttr('spaceId') || finalSpaceId,
+        createdAt: getAttr('created_at') || '',
+        spaceId: getAttr('space_id') || finalSpaceId,
         txHash: entity.txHash,
       };
     });
@@ -220,39 +207,28 @@ export async function listAllQuestSkillLinks({
     const publicClient = getPublicClient();
 
     const fetchForSpace = async (spaceId: string): Promise<QuestCompletionSkillLink[]> => {
-      const result = await publicClient
-        .buildQuery()
-        .where(eq('type', 'quest_completion_skill_link'))
-        .where(eq('spaceId', spaceId))
-        .withAttributes(true)
-        .withPayload(false)
-        .limit(limit)
-        .fetch();
+      const result = await fetchAll(
+        arkivSelect('quest_completion_skill_link', publicClient).where(eqAttr('space_id', spaceId)),
+        limit,
+        publicClient
+      );
 
       if (!result?.entities || !Array.isArray(result.entities)) return [];
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const getAttr = (entity: any, key: string): string => {
-        const attrs = entity.attributes || {};
-        if (Array.isArray(attrs)) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (entity: any, key: string): string => readAttr(entity, key);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return result.entities.map((entity: any) => ({
         key: entity.key,
         wallet: getAttr(entity, 'wallet'),
-        questId: getAttr(entity, 'questId'),
-        stepId: getAttr(entity, 'stepId'),
-        skillId: getAttr(entity, 'skillId'),
+        questId: getAttr(entity, 'quest_id'),
+        stepId: getAttr(entity, 'step_id'),
+        skillId: getAttr(entity, 'skill_id'),
         skillName: '',
         progressEntityKey: '',
-        createdAt: getAttr(entity, 'createdAt'),
-        spaceId: getAttr(entity, 'spaceId'),
+        createdAt: getAttr(entity, 'created_at'),
+        spaceId: getAttr(entity, 'space_id'),
         txHash: entity.txHash || undefined,
       }));
     };

@@ -168,16 +168,16 @@ const { key, txHash } = await createUserProfile({
 ```typescript
 // ✅ Correct: Normalize when storing
 attributes: [
-  { key: 'wallet', value: wallet.toLowerCase() },
+  { wallet: wallet.toLowerCase() },
   // ...
 ];
 
 // ✅ Correct: Normalize when querying
-queryBuilder = queryBuilder.where(eq('wallet', wallet.toLowerCase()));
+queryBuilder = queryBuilder.where(eqAttr('wallet', wallet.toLowerCase()));
 
 // ❌ Wrong: Mixed case storage/querying
-attributes: [{ key: 'wallet', value: wallet }]; // May be mixed case
-queryBuilder.where(eq('wallet', wallet)); // May not match!
+attributes: [{ wallet: wallet }]; // May be mixed case
+queryBuilder.where(eqAttr('wallet', wallet)); // May not match!
 ```
 
 ## Query Patterns
@@ -213,18 +213,18 @@ export async function listUserProfiles(params?: {
   spaceId?: string;
 }): Promise<UserProfile[]> {
   const publicClient = getPublicClient();
-  const query = publicClient.buildQuery();
-  let queryBuilder = query.where(eq('type', 'user_profile'));
+  const query = arkivSelect();
+  let queryBuilder = query.where(eqAttr('type', 'user_profile'));
 
   if (params?.seniority) {
-    queryBuilder = queryBuilder.where(eq('seniority', params.seniority));
+    queryBuilder = queryBuilder.where(eqAttr('seniority', params.seniority));
   }
 
   if (params?.spaceId) {
-    queryBuilder = queryBuilder.where(eq('spaceId', params.spaceId));
+    queryBuilder = queryBuilder.where(eqAttr('space_id', params.spaceId));
   }
 
-  const result = await queryBuilder.withAttributes(true).withPayload(true).limit(100).fetch();
+  const result = await queryBuilder.limit(100).fetch();
 
   // Parse entities and filter by skill client-side
   // (Skills stored in payload, not queryable via attributes)
@@ -246,12 +246,8 @@ export async function listUserProfiles(params?: {
 ```typescript
 export async function listUserProfilesForWallet(wallet: string): Promise<UserProfile[]> {
   const publicClient = getPublicClient();
-  const query = publicClient.buildQuery();
-  const result = await query
-    .where(eq('type', 'user_profile'))
-    .where(eq('wallet', wallet.toLowerCase())) // Normalize!
-    .withAttributes(true)
-    .withPayload(true)
+    const result = await arkivSelect('user_profile')
+    .where(eqAttr('wallet', wallet.toLowerCase())) // Normalize!
     .limit(100)
     .fetch();
 
@@ -337,19 +333,19 @@ export async function createUserProfile({
   };
 
   const attributes: Array<{ key: string; value: string }> = [
-    { key: 'type', value: 'user_profile' },
-    { key: 'wallet', value: wallet.toLowerCase() }, // Normalize!
-    { key: 'displayName', value: displayName },
-    { key: 'timezone', value: timezone },
-    { key: 'spaceId', value: spaceId },
-    { key: 'createdAt', value: createdAt },
+    { type: 'user_profile' },
+    { wallet: wallet.toLowerCase() }, // Normalize!
+    { display_name: displayName },
+    { timezone: timezone },
+    { space_id: spaceId },
+    { created_at: createdAt },
   ];
 
-  if (username) attributes.push({ key: 'username', value: username });
-  if (identity_seed) attributes.push({ key: 'identity_seed', value: identity_seed });
-  if (bio) attributes.push({ key: 'bio', value: bio });
-  if (skills) attributes.push({ key: 'skills', value: skills });
-  if (seniority) attributes.push({ key: 'seniority', value: seniority });
+  if (username) attributes.push({ username: username });
+  if (identity_seed) attributes.push({ identity_seed: identity_seed });
+  if (bio) attributes.push({ bio: bio });
+  if (skills) attributes.push({ skills: skills });
+  if (seniority) attributes.push({ seniority: seniority });
 
   // Store skills as skill_0, skill_1, etc. attributes for querying
   if (skillsArray.length > 0) {

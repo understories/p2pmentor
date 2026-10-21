@@ -19,6 +19,7 @@ import { EntityDataToggle } from '@/components/lite/EntityDataToggle';
 import type { LiteAsk } from '@/lib/arkiv/liteAsks';
 import type { LiteOffer } from '@/lib/arkiv/liteOffers';
 import type { SpaceIdMetadata } from '@/lib/arkiv/liteSpaceIds';
+import { ARKIV_EXPLORER_BASE_URL } from '@/lib/arkiv/explorer';
 
 interface Match {
   ask: LiteAsk;
@@ -704,7 +705,7 @@ export default function LitePage() {
             <br />
             This means it is visible and verifiable on their{' '}
             <a
-              href="https://explorer.braga.hoodi.arkiv.network/"
+              href={ARKIV_EXPLORER_BASE_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"

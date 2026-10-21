@@ -7,11 +7,17 @@
  * Reference: refs/docs/sprint2.md Section 2.3
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { MAX_ATTR_STRING_BYTES } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { createArkivEntity } from './write';
 import type { PerfSample } from '@/lib/metrics/perf';
 import { SPACE_ID } from '@/lib/config';
+
+/** Short string for an attribute, or undefined when it exceeds the attribute limit (kept in payload) */
+const attrIfFits = (value?: string): string | undefined =>
+  value && new TextEncoder().encode(value).length <= MAX_ATTR_STRING_BYTES ? value : undefined;
 
 export type DxMetric = {
   key: string;
@@ -44,7 +50,6 @@ export async function createDxMetric({
   spaceId?: string;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const createdAt = sample.createdAt || new Date().toISOString();
 
   const payload = {
@@ -54,53 +59,45 @@ export async function createDxMetric({
     status: sample.status || 'success',
     errorType: sample.errorType || undefined,
     usedFallback: sample.usedFallback || false,
+    route: sample.route || undefined,
     createdAt,
   };
 
-  // DX metrics should persist for analysis (90 days)
-  const expiresIn = 7776000; // 90 days in seconds
+  // DX metrics use the type default lifetime (see lib/arkiv/schema.ts)
 
   // Wrap in handleTransactionWithTimeout to handle receipt timeouts gracefully
   const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify(payload)),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'dx_metric' },
-        { key: 'source', value: sample.source },
-        { key: 'operation', value: sample.operation },
-        { key: 'route', value: sample.route || '' },
-        { key: 'durationMs', value: String(sample.durationMs) },
-        { key: 'status', value: sample.status || 'success' },
-        ...(sample.payloadBytes
-          ? [{ key: 'payloadBytes', value: String(sample.payloadBytes) }]
-          : []),
-        ...(sample.httpRequests
-          ? [{ key: 'httpRequests', value: String(sample.httpRequests) }]
-          : []),
-        ...(sample.errorType ? [{ key: 'errorType', value: sample.errorType }] : []),
-        { key: 'usedFallback', value: String(sample.usedFallback || false) },
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: createdAt },
-      ],
-      expiresIn,
+    return await createArkivEntity(walletClient, {
+      type: 'dx_metric',
+      attributes: {
+        source: sample.source,
+        operation: sample.operation,
+        route: attrIfFits(sample.route), // Full route is also in the payload
+        duration_ms: String(sample.durationMs),
+        status: sample.status || 'success',
+        payload_bytes: sample.payloadBytes ? String(sample.payloadBytes) : undefined,
+        http_requests: sample.httpRequests ? String(sample.httpRequests) : undefined,
+        error_type: sample.errorType,
+        used_fallback: String(sample.usedFallback || false),
+        space_id: spaceId,
+        created_at: createdAt,
+      },
+      payload,
     });
   });
 
   // Store txHash in a separate entity for reliable querying
   // This can fail gracefully - the main entity is more important
   try {
-    await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify({ txHash })),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'dx_metric_txhash' },
-        { key: 'metricKey', value: entityKey },
-        { key: 'source', value: sample.source },
-        { key: 'operation', value: sample.operation },
-        { key: 'spaceId', value: spaceId },
-      ],
-      expiresIn,
+    await createArkivEntity(walletClient, {
+      type: 'dx_metric_txhash',
+      attributes: {
+        metric_key: entityKey,
+        source: sample.source,
+        operation: sample.operation,
+        space_id: spaceId,
+      },
+      payload: { txHash },
     });
   } catch (error: any) {
     // If txHash entity creation fails but we have the main entity, log and continue
@@ -132,19 +129,8 @@ export async function listDxMetrics({
 
     // Fetch metric entities and txHash entities in parallel
     const [result, txHashResult] = await Promise.all([
-      publicClient
-        .buildQuery()
-        .where(eq('type', 'dx_metric'))
-        .withAttributes(true)
-        .withPayload(true)
-        .limit(limit || 100)
-        .fetch(),
-      publicClient
-        .buildQuery()
-        .where(eq('type', 'dx_metric_txhash'))
-        .withAttributes(true)
-        .withPayload(true)
-        .fetch(),
+      fetchAll(arkivSelect('dx_metric', publicClient), limit || 100, publicClient),
+      fetchAll(arkivSelect('dx_metric_txhash', publicClient), 1000, publicClient),
     ]);
 
     if (!result || !result.entities || !Array.isArray(result.entities)) {
@@ -156,15 +142,8 @@ export async function listDxMetrics({
     const txHashMap: Record<string, string> = {};
     if (txHashResult?.entities && Array.isArray(txHashResult.entities)) {
       txHashResult.entities.forEach((entity: any) => {
-        const attrs = entity.attributes || {};
-        const getAttr = (key: string): string => {
-          if (Array.isArray(attrs)) {
-            const attr = attrs.find((a: any) => a.key === key);
-            return String(attr?.value || '');
-          }
-          return String(attrs[key] || '');
-        };
-        const metricKey = getAttr('metricKey');
+        const getAttr = (key: string): string => readAttr(entity, key);
+        const metricKey = getAttr('metric_key');
         try {
           if (entity.payload) {
             const decoded =
@@ -200,31 +179,24 @@ export async function listDxMetrics({
         console.error('Error decoding dx_metric payload:', e);
       }
 
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (key: string): string => readAttr(entity, key);
 
       return {
         key: entity.key,
         source: getAttr('source') as 'graphql' | 'arkiv',
         operation: getAttr('operation'),
-        route: getAttr('route') || undefined,
-        durationMs: payload.durationMs || parseInt(getAttr('durationMs'), 10),
+        route: payload.route || getAttr('route') || undefined,
+        durationMs: payload.durationMs || parseInt(getAttr('duration_ms'), 10),
         payloadBytes:
           payload.payloadBytes ||
-          (getAttr('payloadBytes') ? parseInt(getAttr('payloadBytes'), 10) : undefined),
+          (getAttr('payload_bytes') ? parseInt(getAttr('payload_bytes'), 10) : undefined),
         httpRequests:
           payload.httpRequests ||
-          (getAttr('httpRequests') ? parseInt(getAttr('httpRequests'), 10) : undefined),
+          (getAttr('http_requests') ? parseInt(getAttr('http_requests'), 10) : undefined),
         status: (getAttr('status') || payload.status || 'success') as 'success' | 'failure',
-        errorType: getAttr('errorType') || payload.errorType || undefined,
-        usedFallback: getAttr('usedFallback') === 'true' || payload.usedFallback === true,
-        createdAt: getAttr('createdAt') || payload.createdAt,
+        errorType: getAttr('error_type') || payload.errorType || undefined,
+        usedFallback: getAttr('used_fallback') === 'true' || payload.usedFallback === true,
+        createdAt: getAttr('created_at') || payload.createdAt,
         txHash: txHashMap[entity.key] || payload.txHash || entity.txHash || undefined,
       };
     });

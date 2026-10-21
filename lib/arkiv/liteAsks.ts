@@ -8,9 +8,12 @@
  * Reference: refs/lite-implementation-plan.md
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { addSignerMetadata } from './signer-metadata';
+import { createArkivEntity } from './write';
 
 export const LITE_ASK_TTL_SECONDS = 2592000; // 1 month (30 days)
 
@@ -75,7 +78,6 @@ export async function createLiteAsk({
   }
 
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const finalSpaceId = spaceId || 'nsapril26'; // Use provided spaceId or default to 'nsapril26'
   const status = 'open';
   const createdAt = new Date().toISOString();
@@ -84,32 +86,30 @@ export async function createLiteAsk({
   // Normalize Discord handle to lowercase
   const normalizedDiscordHandle = discordHandle.toLowerCase().trim();
 
-  // Build attributes array
-  const attributes: Array<{ key: string; value: string }> = [
-    { key: 'type', value: 'lite_ask' },
-    { key: 'name', value: name.trim() },
-    { key: 'discordHandle', value: normalizedDiscordHandle },
-    { key: 'skill', value: skill.trim() },
-    { key: 'spaceId', value: finalSpaceId },
-    { key: 'createdAt', value: createdAt },
-    { key: 'status', value: status },
-    { key: 'ttlSeconds', value: String(ttl) },
-  ];
-
+  // Attributes: short, queryable fields only.
+  // name and skill/topic are free text (up to 100/200 chars) and live in the payload.
   // Add signer metadata (U1.x.2: Central Signer Metadata)
-  const { addSignerMetadata } = await import('./signer-metadata');
-  const attributesWithSigner = addSignerMetadata(attributes, privateKey);
+  const attributes = addSignerMetadata(
+    {
+      discord_handle: normalizedDiscordHandle,
+      space_id: finalSpaceId,
+      created_at: createdAt,
+      status,
+      ttl_seconds: String(ttl),
+    },
+    privateKey
+  );
 
   const result = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(
-        JSON.stringify({
-          description: description?.trim() || undefined,
-        })
-      ),
-      contentType: 'application/json',
-      attributes: attributesWithSigner,
-      expiresIn: ttl,
+    return await createArkivEntity(walletClient, {
+      type: 'lite_ask',
+      attributes,
+      payload: {
+        name: name.trim(),
+        skill: skill.trim(),
+        description: description?.trim() || undefined,
+      },
+      lifetimeSeconds: ttl,
     });
   });
 
@@ -129,25 +129,18 @@ export async function createLiteAsk({
 
   // Create separate txhash entity (like mentor-graph)
   // Don't wait for this one - it's optional metadata
-  walletClient
-    .createEntity({
-      payload: enc.encode(
-        JSON.stringify({
-          txHash,
-        })
-      ),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'lite_ask_txhash' },
-        { key: 'askKey', value: entityKey },
-        { key: 'discordHandle', value: normalizedDiscordHandle },
-        { key: 'spaceId', value: finalSpaceId },
-      ],
-      expiresIn: ttl,
-    })
-    .catch((error: unknown) => {
-      console.warn('[createLiteAsk] Failed to create lite_ask_txhash entity:', error);
-    });
+  createArkivEntity(walletClient, {
+    type: 'lite_ask_txhash',
+    attributes: {
+      ask_key: entityKey,
+      discord_handle: normalizedDiscordHandle,
+      space_id: finalSpaceId,
+    },
+    payload: { txHash },
+    lifetimeSeconds: ttl,
+  }).catch((error: unknown) => {
+    console.warn('[createLiteAsk] Failed to create lite_ask_txhash entity:', error);
+  });
 
   // Note: tx_event creation skipped for lite entities
   // tx_event only supports 'profile' | 'ask' | 'offer' | 'skill' types
@@ -172,13 +165,11 @@ export async function listLiteAsks(params?: {
 
   try {
     const publicClient = getPublicClient();
-    const query = publicClient.buildQuery();
     const limit = params?.limit ?? 500;
     const spaceId = params?.spaceId || 'nsapril26'; // Default to 'nsapril26' if not provided
-    const queryBuilder = query
-      .where(eq('type', 'lite_ask'))
-      .where(eq('status', 'open'))
-      .where(eq('spaceId', spaceId)); // Filter by provided spaceId
+    const queryBuilder = arkivSelect('lite_ask', publicClient)
+      .where(eqAttr('status', 'open'))
+      .where(eqAttr('space_id', spaceId)); // Filter by provided spaceId
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let result: any = null;
@@ -187,15 +178,12 @@ export async function listLiteAsks(params?: {
 
     try {
       [result, txHashResult] = await Promise.all([
-        queryBuilder.withAttributes(true).withPayload(true).limit(limit).fetch(),
-        publicClient
-          .buildQuery()
-          .where(eq('type', 'lite_ask_txhash'))
-          .where(eq('spaceId', spaceId))
-          .withAttributes(true)
-          .withPayload(true)
-          .limit(limit)
-          .fetch(),
+        fetchAll(queryBuilder, limit, publicClient),
+        fetchAll(
+          arkivSelect('lite_ask_txhash', publicClient).where(eqAttr('space_id', spaceId)),
+          limit,
+          publicClient
+        ),
       ]);
     } catch (fetchError: unknown) {
       console.error('[listLiteAsks] Arkiv query failed:', fetchError);
@@ -220,16 +208,8 @@ export async function listLiteAsks(params?: {
     const txHashEntities = txHashResult?.entities || [];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     txHashEntities.forEach((entity: any) => {
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
-      const askKey = getAttr('askKey');
+      const getAttr = (key: string): string => readAttr(entity, key);
+      const askKey = getAttr('ask_key');
       if (askKey) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let payload: any = {};
@@ -270,32 +250,24 @@ export async function listLiteAsks(params?: {
         // Silently ignore payload decoding errors
       }
 
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (key: string): string => readAttr(entity, key);
 
-      const ttlSecondsAttr = getAttr('ttlSeconds');
+      const ttlSecondsAttr = getAttr('ttl_seconds');
       const ttlSeconds = ttlSecondsAttr ? parseInt(ttlSecondsAttr, 10) : LITE_ASK_TTL_SECONDS;
 
       return {
         key: entity.key,
-        name: getAttr('name') || '',
-        discordHandle: getAttr('discordHandle') || '',
-        skill: getAttr('skill') || '',
+        name: payload.name || getAttr('name') || '',
+        discordHandle: getAttr('discord_handle') || '',
+        skill: payload.skill || getAttr('skill') || '',
         description: payload.description || undefined,
-        spaceId: getAttr('spaceId') || 'nsapril26',
-        createdAt: getAttr('createdAt') || payload.createdAt || '',
+        spaceId: getAttr('space_id') || 'nsapril26',
+        createdAt: getAttr('created_at') || payload.createdAt || '',
         status: getAttr('status') || payload.status || 'open',
         ttlSeconds: isNaN(ttlSeconds) ? LITE_ASK_TTL_SECONDS : ttlSeconds,
         txHash:
           txHashMap[entity.key] ||
-          getAttr('txHash') ||
+          getAttr('tx_hash') ||
           payload.txHash ||
           entity.txHash ||
           undefined,

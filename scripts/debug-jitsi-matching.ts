@@ -4,7 +4,8 @@
 
 import { listSessions } from '../lib/arkiv/sessions';
 import { getPublicClient } from '../lib/arkiv/client';
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, getAttr as readAttr } from '@/lib/arkiv/read';
 
 async function debugJitsiMatching() {
   console.log('=== Debugging Jitsi Entity Matching ===\n');
@@ -15,27 +16,14 @@ async function debugJitsiMatching() {
 
   // Get all Jitsi entities
   const publicClient = getPublicClient();
-  const jitsiQuery = await publicClient
-    .buildQuery()
-    .where(eq('type', 'session_jitsi'))
-    .withAttributes(true)
-    .withPayload(true)
-    .limit(100)
-    .fetch();
+  const jitsiQuery = await arkivSelect('session_jitsi', publicClient).limit(100).fetch();
 
   console.log(`Found ${jitsiQuery.entities.length} Jitsi entities\n`);
 
   // Build a map of sessionKey -> Jitsi info
   const jitsiMap: Record<string, any> = {};
   jitsiQuery.entities.forEach((entity: any) => {
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (key: string): string => readAttr(entity, key);
 
     let payload: any = {};
     try {
@@ -52,12 +40,12 @@ async function debugJitsiMatching() {
       console.error('Error decoding payload:', e);
     }
 
-    const sessionKey = getAttr('sessionKey');
+    const sessionKey = getAttr('session_key');
     if (sessionKey) {
       jitsiMap[sessionKey] = {
-        videoProvider: payload.videoProvider || getAttr('videoProvider'),
-        videoRoomName: payload.videoRoomName || getAttr('videoRoomName'),
-        videoJoinUrl: payload.videoJoinUrl || getAttr('videoJoinUrl'),
+        videoProvider: payload.videoProvider || getAttr('video_provider'),
+        videoRoomName: payload.videoRoomName,
+        videoJoinUrl: payload.videoJoinUrl,
         entityKey: entity.key,
       };
     }

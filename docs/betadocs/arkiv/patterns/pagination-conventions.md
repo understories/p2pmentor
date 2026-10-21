@@ -81,18 +81,16 @@ Large result sets need pagination. Arkiv doesn't support offset-based pagination
 ```typescript
 // Strategy 1: Cursor-based pagination (not yet implemented, but pattern)
 async function listAsksPaginated(cursor?: string, pageSize: number = 20) {
-  const queryBuilder = publicClient
-    .buildQuery()
-    .where(eq('type', 'ask'))
-    .where(eq('status', 'open'))
-    .where(eq('spaceId', SPACE_ID));
+  const queryBuilder = arkivSelect('ask')
+    .where(eqAttr('status', 'open'))
+    .where(eqAttr('space_id', SPACE_ID));
 
   if (cursor) {
     // Filter by createdAt > cursor for next page
-    queryBuilder.where(eq('createdAt', cursor)); // Note: Arkiv may need different syntax
+    queryBuilder.where(eqAttr('created_at', cursor)); // Note: Arkiv may need different syntax
   }
 
-  const result = await queryBuilder.withAttributes(true).withPayload(true).limit(pageSize).fetch();
+  const result = await queryBuilder.limit(pageSize).fetch();
 
   // Sort by createdAt descending (newest first)
   const sorted = result.entities.sort((a, b) => {
@@ -110,15 +108,11 @@ async function listAsksPaginated(cursor?: string, pageSize: number = 20) {
 // Strategy 2: Client-side pagination (current pattern)
 async function listAsks(params?: { limit?: number }) {
   const limit = params?.limit ?? 500; // Defensive limit
-  const queryBuilder = publicClient
-    .buildQuery()
-    .where(eq('type', 'ask'))
-    .where(eq('status', 'open'))
-    .where(eq('spaceId', SPACE_ID));
+  const queryBuilder = arkivSelect('ask')
+    .where(eqAttr('status', 'open'))
+    .where(eqAttr('space_id', SPACE_ID));
 
   const result = await queryBuilder
-    .withAttributes(true)
-    .withPayload(true)
     .limit(limit) // Always use limit
     .fetch();
 
@@ -127,12 +121,8 @@ async function listAsks(params?: { limit?: number }) {
 }
 
 // Strategy 3: Defensive limits (always use)
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'user_profile'))
-  .where(eq('spaceId', SPACE_ID))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('user_profile')
+  .where(eqAttr('space_id', SPACE_ID))
   .limit(100) // Defensive limit
   .fetch();
 ```

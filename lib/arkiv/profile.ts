@@ -6,7 +6,9 @@
  * Reference: refs/mentor-graph/src/arkiv/profiles.ts
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr } from '@/lib/arkiv/read';
+import { createArkivEntity, replaceArkivEntity } from './write';
 import {
   getPublicClient,
   getWalletClientFromPrivateKey,
@@ -17,6 +19,22 @@ import { CURRENT_WALLET, SPACE_ID, ENTITY_UPDATE_MODE } from '../config';
 import { handleTransactionWithTimeout } from './transaction-utils';
 import { selectRandomEmoji } from '@/lib/profile/identitySeed';
 import { arkivUpsertEntity } from './entity-utils';
+
+/**
+ * Parse a profile's skills array from its payload.
+ * Prefers payload.skillsArray; falls back to the comma-separated payload.skills.
+ */
+function parseSkillsArray(payload: any): string[] {
+  if (Array.isArray(payload?.skillsArray) && payload.skillsArray.length > 0) {
+    return payload.skillsArray;
+  }
+  return typeof payload?.skills === 'string'
+    ? payload.skills
+        .split(',')
+        .map((s: string) => s.trim())
+        .filter(Boolean)
+    : [];
+}
 
 export type UserProfile = {
   key: string;
@@ -133,7 +151,6 @@ export async function createUserProfileClient({
 }): Promise<{ key: string; txHash: string }> {
   // Use unified wallet client getter (supports both MetaMask and Passkey)
   const walletClient = await getWalletClient(account);
-  const enc = new TextEncoder();
   const finalSpaceId = SPACE_ID;
   const spaceId = finalSpaceId; // Keep for backward compatibility
   const createdAt = new Date().toISOString();
@@ -209,46 +226,34 @@ export async function createUserProfileClient({
     reputationScore: existingProfile?.reputationScore || 0,
   };
 
-  const attributes: Array<{ key: string; value: string }> = [
-    { key: 'type', value: 'user_profile' },
-    { key: 'wallet', value: wallet.toLowerCase() },
-    { key: 'displayName', value: displayName },
-    { key: 'timezone', value: timezone },
-    { key: 'spaceId', value: spaceId },
-    { key: 'createdAt', value: finalCreatedAt },
-  ];
+  // Attributes: short, queryable fields only.
+  // bio and skills (CSV / per-index) live in the payload (bio, skills, skillsArray, skill_ids).
+  const attributes = {
+    wallet: wallet.toLowerCase(),
+    display_name: displayName,
+    timezone,
+    space_id: spaceId,
+    created_at: finalCreatedAt,
+    username,
+    identity_seed: finalIdentitySeed,
+    seniority,
+  };
 
-  if (username) attributes.push({ key: 'username', value: username });
-  if (finalIdentitySeed) attributes.push({ key: 'identity_seed', value: finalIdentitySeed });
-  if (bio) attributes.push({ key: 'bio', value: bio });
-  if (skills) attributes.push({ key: 'skills', value: skills });
-  if (seniority) attributes.push({ key: 'seniority', value: seniority });
-  if (finalSkillsArray.length > 0) {
-    finalSkillsArray.forEach((skill, idx) => {
-      attributes.push({ key: `skill_${idx}`, value: skill });
-    });
-  }
-
-  // Deterministic check: If existing profile found, use Pattern B (updateEntity)
+  // Deterministic check: If existing profile found, use Pattern B (replace via patchEntity)
   // Otherwise, use Pattern A (createEntity)
   // Client-side updates require walletClient directly (no private key available)
-  const normalizedWallet = wallet.toLowerCase();
   const shouldUpdate =
     existingProfile?.key && (ENTITY_UPDATE_MODE === 'on' || ENTITY_UPDATE_MODE === 'shadow');
 
   if (shouldUpdate && existingProfile?.key) {
-    // Client-side update using walletClient.updateEntity
-    // This uses the same pattern as server-side but with walletClient from MetaMask/Passkey
+    // Client-side update using replaceArkivEntity with walletClient from MetaMask/Passkey
+    // Signer metadata: the signing account is the connected wallet (no private key client-side)
     const updateResult = await handleTransactionWithTimeout(async () => {
-      const { addSignerMetadata } = await import('./signer-metadata');
-      const attributesWithSigner = addSignerMetadata(attributes, account);
-
-      return await walletClient.updateEntity({
-        entityKey: existingProfile.key as `0x${string}`,
-        payload: enc.encode(JSON.stringify(payload)),
-        attributes: attributesWithSigner,
-        contentType: 'application/json',
-        expiresIn: 31536000, // 1 year
+      return await replaceArkivEntity(walletClient, {
+        entityKey: existingProfile.key,
+        type: 'user_profile',
+        attributes: { ...attributes, signer_wallet: account.toLowerCase() },
+        payload,
       });
     });
 
@@ -257,11 +262,10 @@ export async function createUserProfileClient({
 
   // Create new profile (old behavior or fallback)
   const result = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify(payload)),
-      contentType: 'application/json',
+    return await createArkivEntity(walletClient, {
+      type: 'user_profile',
       attributes,
-      expiresIn: 31536000, // 1 year
+      payload,
     });
   });
 
@@ -331,7 +335,6 @@ export async function createUserProfile({
   privateKey: `0x${string}`;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const finalSpaceId = SPACE_ID;
   const spaceId = finalSpaceId; // Keep for backward compatibility in this function
   const createdAt = new Date().toISOString();
@@ -405,27 +408,20 @@ export async function createUserProfile({
     reputationScore: existingProfile?.reputationScore || 0,
   };
 
-  const attributes: Array<{ key: string; value: string }> = [
-    { key: 'type', value: 'user_profile' },
-    { key: 'wallet', value: wallet.toLowerCase() },
-    { key: 'displayName', value: displayName },
-    { key: 'timezone', value: timezone },
-    { key: 'spaceId', value: spaceId },
-    { key: 'createdAt', value: finalCreatedAt },
-  ];
+  // Attributes: short, queryable fields only.
+  // bio and skills (CSV / per-index) live in the payload (bio, skills, skillsArray, skill_ids).
+  const attributes = {
+    wallet: wallet.toLowerCase(),
+    display_name: displayName,
+    timezone,
+    space_id: spaceId,
+    created_at: finalCreatedAt,
+    username,
+    identity_seed: finalIdentitySeed,
+    seniority,
+  };
 
-  if (username) attributes.push({ key: 'username', value: username });
-  if (finalIdentitySeed) attributes.push({ key: 'identity_seed', value: finalIdentitySeed });
-  if (bio) attributes.push({ key: 'bio', value: bio });
-  if (skills) attributes.push({ key: 'skills', value: skills });
-  if (seniority) attributes.push({ key: 'seniority', value: seniority });
-  if (finalSkillsArray.length > 0) {
-    finalSkillsArray.forEach((skill, idx) => {
-      attributes.push({ key: `skill_${idx}`, value: skill });
-    });
-  }
-
-  // Deterministic check: If existing profile found, use Pattern B (updateEntity)
+  // Deterministic check: If existing profile found, use Pattern B (replace via patchEntity)
   // Otherwise, use Pattern A (createEntity)
   // This replaces the migration status check which was in-memory only
   const normalizedWallet = wallet.toLowerCase();
@@ -438,8 +434,7 @@ export async function createUserProfile({
       type: 'user_profile',
       key: existingProfile.key, // Stable entity_key
       attributes,
-      payload: enc.encode(JSON.stringify(payload)),
-      expiresIn: 31536000, // 1 year
+      payload,
       privateKey,
     });
 
@@ -478,11 +473,10 @@ export async function createUserProfile({
   const attributesWithSigner = addSignerMetadata(attributes, privateKey);
 
   const result = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify(payload)),
-      contentType: 'application/json',
+    return await createArkivEntity(walletClient, {
+      type: 'user_profile',
       attributes: attributesWithSigner,
-      expiresIn: 31536000, // 1 year
+      payload,
     });
   });
 
@@ -533,19 +527,18 @@ export async function listUserProfiles(params?: {
   spaceIds?: string[];
 }): Promise<UserProfile[]> {
   const publicClient = getPublicClient();
-  const query = publicClient.buildQuery();
-  let queryBuilder = query.where(eq('type', 'user_profile'));
+  const query = arkivSelect(undefined, publicClient);
+  let queryBuilder = query.where(eqAttr('type', 'user_profile'));
 
   // Note: Skill filtering is done client-side after fetching
   // because skills can be stored in multiple ways:
   // - skill_ids array in payload (preferred, beta)
   // - skillsArray in payload (legacy)
-  // - skills attribute (legacy comma-separated string)
-  // - skill_0, skill_1, etc. attributes (for querying, but not reliable for filtering)
+  // - skills (comma-separated string in payload)
   // We fetch all profiles and filter client-side for accuracy
 
   if (params?.seniority) {
-    queryBuilder = queryBuilder.where(eq('seniority', params.seniority));
+    queryBuilder = queryBuilder.where(eqAttr('seniority', params.seniority));
   }
 
   // Support multiple spaceIds (builder mode) or single spaceId
@@ -557,12 +550,12 @@ export async function listUserProfiles(params?: {
   } else {
     // Use provided spaceId or default to SPACE_ID from config
     const spaceId = params?.spaceId || SPACE_ID;
-    queryBuilder = queryBuilder.where(eq('spaceId', spaceId));
+    queryBuilder = queryBuilder.where(eqAttr('space_id', spaceId));
   }
 
   let result: any = null;
   try {
-    result = await queryBuilder.withAttributes(true).withPayload(true).limit(limit).fetch();
+    result = await fetchAll(queryBuilder, limit, publicClient);
   } catch (fetchError: any) {
     console.error('[listUserProfiles] Arkiv query failed:', {
       message: fetchError?.message,
@@ -610,33 +603,10 @@ export async function listUserProfiles(params?: {
       console.error('Error decoding payload:', e);
     }
 
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (key: string): string => readAttr(entity, key);
 
-    // Parse skills array from attributes or payload
-    const skillsArray: string[] = [];
-    if (Array.isArray(attrs)) {
-      attrs.forEach((attr: any) => {
-        if (attr.key?.startsWith('skill_')) {
-          skillsArray.push(attr.value);
-        }
-      });
-    }
-    const finalSkillsArray =
-      payload.skillsArray || skillsArray.length > 0
-        ? skillsArray
-        : payload.skills
-          ? payload.skills
-              .split(',')
-              .map((s: string) => s.trim())
-              .filter(Boolean)
-          : [];
+    // Parse skills array from payload (skills are payload-only; no skill_N attributes)
+    const finalSkillsArray = parseSkillsArray(payload);
 
     // Handle trustEdges: convert legacy string[] to object[] if needed
     let trustEdges = payload.trustEdges || [];
@@ -652,14 +622,14 @@ export async function listUserProfiles(params?: {
     return {
       key: entity.key,
       wallet: getAttr('wallet') || payload.wallet || '',
-      displayName: getAttr('displayName') || payload.displayName || '',
+      displayName: getAttr('display_name') || payload.displayName || '',
       username: payload.username || getAttr('username') || undefined,
       profileImage: payload.profileImage || undefined,
       identity_seed: payload.identity_seed || getAttr('identity_seed') || undefined,
-      bio: payload.bio || getAttr('bio') || undefined,
-      bioShort: payload.bioShort || payload.bio || getAttr('bio') || undefined,
+      bio: payload.bio || undefined,
+      bioShort: payload.bioShort || payload.bio || undefined,
       bioLong: payload.bioLong || undefined,
-      skills: getAttr('skills') || payload.skills || '',
+      skills: payload.skills || '',
       skillsArray: finalSkillsArray,
       timezone: getAttr('timezone') || payload.timezone || '',
       languages: payload.languages || [],
@@ -680,8 +650,8 @@ export async function listUserProfiles(params?: {
       lastActiveTimestamp: payload.lastActiveTimestamp || undefined,
       communityAffiliations: payload.communityAffiliations || [],
       reputationScore: payload.reputationScore || 0,
-      spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
-      createdAt: getAttr('createdAt') || payload.createdAt,
+      spaceId: getAttr('space_id') || payload.spaceId || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
+      createdAt: getAttr('created_at') || payload.createdAt,
       txHash: payload.txHash,
       skill_ids: payload.skill_ids || [], // Include skill_ids for client-side filtering
     };
@@ -749,7 +719,7 @@ export async function getProfileByWallet(
   if (profiles.length === 0) return null;
 
   // Determine query strategy based on update mode
-  // With Pattern B (updateEntity), we expect a single canonical entity
+  // With Pattern B (replace via patchEntity), we expect a single canonical entity
   // With Pattern A (createEntity), we may have multiple entities and need to pick latest
   const useCanonicalPath = ENTITY_UPDATE_MODE === 'on' || ENTITY_UPDATE_MODE === 'shadow';
 
@@ -874,19 +844,19 @@ export async function listUserProfilesForWallet(
   spaceId?: string
 ): Promise<UserProfile[]> {
   const publicClient = getPublicClient();
-  const query = publicClient.buildQuery();
+  const query = arkivSelect(undefined, publicClient);
   let queryBuilder = query
-    .where(eq('type', 'user_profile'))
-    .where(eq('wallet', wallet.toLowerCase()));
+    .where(eqAttr('type', 'user_profile'))
+    .where(eqAttr('wallet', wallet.toLowerCase()));
 
   // Use provided spaceId or default to SPACE_ID from config
   const finalSpaceId = spaceId || SPACE_ID;
-  queryBuilder = queryBuilder.where(eq('spaceId', finalSpaceId));
+  queryBuilder = queryBuilder.where(eqAttr('space_id', finalSpaceId));
 
-  const result = await queryBuilder.withAttributes(true).withPayload(true).limit(100).fetch();
+  const result = await queryBuilder.limit(100).fetch();
 
   // Determine query strategy based on update mode
-  // With Pattern B (updateEntity), we expect a single canonical entity
+  // With Pattern B (replace via patchEntity), we expect a single canonical entity
   // With Pattern A (createEntity), we may have multiple entities and need to pick latest
   const normalizedWallet = wallet.toLowerCase();
   const useCanonicalPath = ENTITY_UPDATE_MODE === 'on' || ENTITY_UPDATE_MODE === 'shadow';
@@ -939,13 +909,8 @@ export async function listUserProfilesForWallet(
         } catch (e) {
           // Ignore parse errors
         }
-        // Fallback to createdAt from attributes
-        const createdAt =
-          entity.attributes?.createdAt ||
-          (Array.isArray(entity.attributes)
-            ? entity.attributes.find((attr: any) => attr.key === 'createdAt')?.value
-            : '');
-        return createdAt;
+        // Fallback to created_at from attributes
+        return readAttr(entity, 'created_at');
       };
       const aTime = getLastActive(a);
       const bTime = getLastActive(b);
@@ -970,33 +935,10 @@ export async function listUserProfilesForWallet(
       console.error('Error decoding payload:', e);
     }
 
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (key: string): string => readAttr(entity, key);
 
-    // Parse skills array from attributes or payload
-    const skillsArray: string[] = [];
-    if (Array.isArray(attrs)) {
-      attrs.forEach((attr: any) => {
-        if (attr.key?.startsWith('skill_')) {
-          skillsArray.push(attr.value);
-        }
-      });
-    }
-    const finalSkillsArray =
-      payload.skillsArray || skillsArray.length > 0
-        ? skillsArray
-        : payload.skills
-          ? payload.skills
-              .split(',')
-              .map((s: string) => s.trim())
-              .filter(Boolean)
-          : [];
+    // Parse skills array from payload (skills are payload-only; no skill_N attributes)
+    const finalSkillsArray = parseSkillsArray(payload);
 
     // Handle trustEdges: convert legacy string[] to object[] if needed
     let trustEdges = payload.trustEdges || [];
@@ -1011,14 +953,14 @@ export async function listUserProfilesForWallet(
     return {
       key: entity.key,
       wallet: getAttr('wallet') || payload.wallet || '',
-      displayName: getAttr('displayName') || payload.displayName || '',
+      displayName: getAttr('display_name') || payload.displayName || '',
       username: payload.username || getAttr('username') || undefined,
       profileImage: payload.profileImage || undefined,
       identity_seed: payload.identity_seed || getAttr('identity_seed') || undefined,
-      bio: payload.bio || getAttr('bio') || undefined,
-      bioShort: payload.bioShort || payload.bio || getAttr('bio') || undefined,
+      bio: payload.bio || undefined,
+      bioShort: payload.bioShort || payload.bio || undefined,
       bioLong: payload.bioLong || undefined,
-      skills: getAttr('skills') || payload.skills || '',
+      skills: payload.skills || '',
       skillsArray: finalSkillsArray,
       timezone: getAttr('timezone') || payload.timezone || '',
       languages: payload.languages || [],
@@ -1038,8 +980,8 @@ export async function listUserProfilesForWallet(
       lastActiveTimestamp: payload.lastActiveTimestamp || undefined,
       communityAffiliations: payload.communityAffiliations || [],
       reputationScore: payload.reputationScore || 0,
-      spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
-      createdAt: getAttr('createdAt') || payload.createdAt,
+      spaceId: getAttr('space_id') || payload.spaceId || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
+      createdAt: getAttr('created_at') || payload.createdAt,
       txHash: payload.txHash,
     };
   });
@@ -1127,15 +1069,13 @@ export async function checkUsernameExists(username: string): Promise<UserProfile
   }
 
   const publicClient = getPublicClient();
-  const query = publicClient.buildQuery();
+  const query = arkivSelect(undefined, publicClient);
 
   try {
     // Query all profiles with this username (check both attribute and payload)
     const result = await query
-      .where(eq('type', 'user_profile'))
-      .where(eq('username', username.trim()))
-      .withAttributes(true)
-      .withPayload(true)
+      .where(eqAttr('type', 'user_profile'))
+      .where(eqAttr('username', username.trim()))
       .limit(100)
       .fetch();
 
@@ -1162,14 +1102,7 @@ export async function checkUsernameExists(username: string): Promise<UserProfile
         console.error('[checkUsernameExists] Error decoding payload:', e);
       }
 
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (key: string): string => readAttr(entity, key);
 
       // Check if username matches (case-insensitive)
       const attrUsername = getAttr('username');
@@ -1181,22 +1114,7 @@ export async function checkUsernameExists(username: string): Promise<UserProfile
         (payloadUsername && payloadUsername.toLowerCase() === normalizedInput)
       ) {
         // Parse full profile data (reuse same logic as listUserProfilesForWallet)
-        const finalSkillsArray: string[] = [];
-        if (Array.isArray(attrs)) {
-          attrs.forEach((attr: any) => {
-            if (attr.key?.startsWith('skill_')) {
-              finalSkillsArray.push(attr.value);
-            }
-          });
-        }
-        const finalSkillsArrayFromPayload =
-          payload.skillsArray ||
-          (payload.skills
-            ? payload.skills
-                .split(',')
-                .map((s: string) => s.trim())
-                .filter(Boolean)
-            : []);
+        const finalSkillsArray = parseSkillsArray(payload);
 
         let trustEdges = payload.trustEdges || [];
         if (
@@ -1214,16 +1132,15 @@ export async function checkUsernameExists(username: string): Promise<UserProfile
         profilesWithUsername.push({
           key: entity.key,
           wallet: getAttr('wallet') || payload.wallet || '',
-          displayName: getAttr('displayName') || payload.displayName || '',
+          displayName: getAttr('display_name') || payload.displayName || '',
           username: payloadUsername || attrUsername || undefined,
           profileImage: payload.profileImage || undefined,
           identity_seed: payload.identity_seed || getAttr('identity_seed') || undefined,
-          bio: payload.bio || getAttr('bio') || undefined,
-          bioShort: payload.bioShort || payload.bio || getAttr('bio') || undefined,
+          bio: payload.bio || undefined,
+          bioShort: payload.bioShort || payload.bio || undefined,
           bioLong: payload.bioLong || undefined,
-          skills: getAttr('skills') || payload.skills || '',
-          skillsArray:
-            finalSkillsArrayFromPayload.length > 0 ? finalSkillsArrayFromPayload : finalSkillsArray,
+          skills: payload.skills || '',
+          skillsArray: finalSkillsArray,
           timezone: getAttr('timezone') || payload.timezone || '',
           languages: payload.languages || [],
           contactLinks: payload.contactLinks || {},
@@ -1246,8 +1163,8 @@ export async function checkUsernameExists(username: string): Promise<UserProfile
           lastActiveTimestamp: payload.lastActiveTimestamp || undefined,
           communityAffiliations: payload.communityAffiliations || [],
           reputationScore: payload.reputationScore || 0,
-          spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
-          createdAt: getAttr('createdAt') || payload.createdAt,
+          spaceId: getAttr('space_id') || payload.spaceId || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
+          createdAt: getAttr('created_at') || payload.createdAt,
           txHash: payload.txHash,
         });
       }

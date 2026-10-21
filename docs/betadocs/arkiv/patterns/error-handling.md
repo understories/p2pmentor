@@ -67,12 +67,8 @@ async function waitForReceipt(txHash: string, timeoutMs: number = 30000) {
 ```typescript
 async function getProfile(wallet: string): Promise<Profile | null> {
   try {
-    const result = await publicClient
-      .buildQuery()
-      .where(eq('type', 'user_profile'))
-      .where(eq('wallet', wallet.toLowerCase()))
-      .withAttributes(true)
-      .withPayload(true)
+    const result = await arkivSelect('user_profile')
+      .where(eqAttr('wallet', wallet.toLowerCase()))
       .limit(1)
       .fetch();
 

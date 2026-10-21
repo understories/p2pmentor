@@ -29,6 +29,7 @@ import { logClientTelemetry } from '@/lib/telemetry';
 import type { QuizResultData } from './QuizRenderer';
 import type { QuestStepDefinition, QuizRubric } from '@/lib/quests';
 import type { ReconciliationStatus } from '@/lib/hooks/useProgressReconciliation';
+import { getArkivExplorerEntityUrl } from '@/lib/arkiv/explorer';
 
 interface QuestStepRendererProps {
   step: QuestStepDefinition;
@@ -392,7 +393,7 @@ export function QuestStepRenderer({
               <ViewOnArkivLink
                 entityKey={entityKey}
                 txHash={txHash}
-                label="View on Braga Explorer"
+                label="View on Arkiv Explorer"
                 className="text-sm"
               />
             </div>
@@ -449,7 +450,7 @@ export function QuestStepRenderer({
                 ``,
                 `Returns: { key, txHash, status: 'submitted' }`,
                 `→ Entity key and transaction hash for verification`,
-                `→ View on Braga Explorer: ${entityKey ? `https://explorer.braga.hoodi.arkiv.network/entity/${entityKey}` : 'Available after submission'}`,
+                `→ View on Arkiv Explorer: ${entityKey ? getArkivExplorerEntityUrl(entityKey) : 'Available after submission'}`,
               ]}
               label={
                 isLoading

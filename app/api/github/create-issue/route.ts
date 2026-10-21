@@ -12,6 +12,7 @@ import { createGitHubIssueLink } from '@/lib/arkiv/githubIssueLink';
 import { getPrivateKey, SPACE_ID } from '@/lib/config';
 
 const GITHUB_OWNER = process.env.GITHUB_OWNER || 'understories';
+import { getArkivExplorerEntityUrl } from '@/lib/arkiv/explorer';
 const GITHUB_REPO = process.env.GITHUB_REPO || 'p2pmentor';
 
 /**
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
     const issueTitle = `[${feedbackType || 'feedback'}] ${page}: ${message.substring(0, 100)}${message.length > 100 ? '...' : ''}`;
 
     // Construct Arkiv explorer link with entity key
-    const arkivExplorerUrl = `https://explorer.braga.hoodi.arkiv.network/entity/${feedbackKey}`;
+    const arkivExplorerUrl = getArkivExplorerEntityUrl(feedbackKey);
 
     const issueBody = `## Feedback Details
 

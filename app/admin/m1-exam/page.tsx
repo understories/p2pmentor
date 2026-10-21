@@ -103,15 +103,12 @@ export default function M1ExamChecklistPage() {
             section: 'architecture',
             checked: false,
             arkivQueryCode: `// Query profile by wallet
-const query = publicClient.buildQuery()
-  .where(eq('type', 'user_profile'))
-  .where(eq('wallet', wallet.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
+const query = arkivSelect('user_profile')
+  .where(eqAttr('wallet', wallet.toLowerCase()))
   .limit(1)
   .fetch();`,
             manualTests: [
-              'Wallet connection on Braga testnet',
+              'Wallet connection on Arkiv Tiramisu testnet',
               'Profile entity creation with all fields',
               'Profile entity query by wallet address',
               'Entity visible on Arkiv Explorer',
@@ -194,7 +191,7 @@ const query = publicClient.buildQuery()
           },
           {
             id: 'add-network',
-            title: 'Add Braga Testnet',
+            title: 'Add Arkiv Tiramisu Testnet',
             status: 'pass',
             codeVerified: true,
             hasArkivQuery: false,
@@ -204,7 +201,7 @@ const query = publicClient.buildQuery()
             manualTests: [
               'Click "Add Network to Wallet"',
               'MetaMask prompt appears',
-              'Network details match Braga testnet config',
+              'Network details match Arkiv Tiramisu testnet config',
               'Network appears in wallet after approval',
             ],
           },
@@ -226,11 +223,8 @@ const query = publicClient.buildQuery()
             checked: false,
             implementation: 'app/api/profile/route.ts',
             arkivQueryCode: `// Query to verify profile creation:
-const query = publicClient.buildQuery()
-  .where(eq('type', 'user_profile'))
-  .where(eq('wallet', wallet.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
+const query = arkivSelect('user_profile')
+  .where(eqAttr('wallet', wallet.toLowerCase()))
   .limit(1)
   .fetch();`,
             manualTests: [
@@ -253,10 +247,8 @@ const query = publicClient.buildQuery()
             section: 'profile',
             checked: false,
             arkivQueryCode: `// Test username uniqueness:
-const query = publicClient.buildQuery()
-  .where(eq('type', 'user_profile'))
-  .where(eq('username', 'test_username'))
-  .withAttributes(true)
+const query = arkivSelect('user_profile')
+  .where(eqAttr('username', 'test_username'))
   .fetch();`,
             manualTests: [
               'Try to create profile with existing username',
@@ -275,12 +267,9 @@ const query = publicClient.buildQuery()
             section: 'profile',
             checked: false,
             arkivQueryCode: `// Query to verify profile update creates new entity:
-const query = publicClient.buildQuery()
-  .where(eq('type', 'user_profile'))
-  .where(eq('wallet', wallet.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
-  .orderBy('createdAt', 'desc')
+const query = arkivSelect('user_profile')
+  .where(eqAttr('wallet', wallet.toLowerCase()))
+  // no server-side ordering: sort client-side by created_at
   .limit(2)
   .fetch();`,
             manualTests: [
@@ -308,12 +297,9 @@ const query = publicClient.buildQuery()
             section: 'skills',
             checked: false,
             arkivQueryCode: `// Query to verify skill added:
-const query = publicClient.buildQuery()
-  .where(eq('type', 'user_profile'))
-  .where(eq('wallet', wallet.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
-  .orderBy('createdAt', 'desc')
+const query = arkivSelect('user_profile')
+  .where(eqAttr('wallet', wallet.toLowerCase()))
+  // no server-side ordering: sort client-side by created_at
   .limit(1)
   .fetch();`,
             manualTests: [
@@ -360,12 +346,9 @@ const query = publicClient.buildQuery()
             section: 'asks',
             checked: false,
             arkivQueryCode: `// Query to verify ask creation:
-const query = publicClient.buildQuery()
-  .where(eq('type', 'ask'))
-  .where(eq('wallet', wallet.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
-  .orderBy('createdAt', 'desc')
+const query = arkivSelect('ask')
+  .where(eqAttr('wallet', wallet.toLowerCase()))
+  // no server-side ordering: sort client-side by created_at
   .limit(1)
   .fetch();`,
             manualTests: [
@@ -388,11 +371,9 @@ const query = publicClient.buildQuery()
             section: 'asks',
             checked: false,
             arkivQueryCode: `// Query to verify TTL:
-const query = publicClient.buildQuery()
-  .where(eq('type', 'ask'))
-  .where(eq('wallet', wallet.toLowerCase()))
-  .withAttributes(true)
-  .orderBy('createdAt', 'desc')
+const query = arkivSelect('ask')
+  .where(eqAttr('wallet', wallet.toLowerCase()))
+  // no server-side ordering: sort client-side by created_at
   .limit(1)
   .fetch();`,
             manualTests: [
@@ -418,13 +399,10 @@ const query = publicClient.buildQuery()
             section: 'sessions',
             checked: false,
             arkivQueryCode: `// Query to verify session creation:
-const query = publicClient.buildQuery()
-  .where(eq('type', 'session'))
-  .where(eq('mentorWallet', mentorWallet.toLowerCase()))
-  .where(eq('learnerWallet', learnerWallet.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
-  .orderBy('createdAt', 'desc')
+const query = arkivSelect('session')
+  .where(eqAttr('mentor_wallet', mentorWallet.toLowerCase()))
+  .where(eqAttr('learner_wallet', learnerWallet.toLowerCase()))
+  // no server-side ordering: sort client-side by created_at
   .limit(1)
   .fetch();`,
             manualTests: [
@@ -448,18 +426,13 @@ const query = publicClient.buildQuery()
             section: 'sessions',
             checked: false,
             arkivQueryCode: `// Query to verify confirmation:
-const confirmationQuery = publicClient.buildQuery()
-  .where(eq('type', 'session_confirmation'))
-  .where(eq('sessionKey', sessionKey))
-  .withAttributes(true)
+const confirmationQuery = arkivSelect('session_confirmation')
+  .where(eqAttr('session_key', sessionKey))
   .fetch();
 
 // Query to verify Jitsi entity (after both confirm):
-const jitsiQuery = publicClient.buildQuery()
-  .where(eq('type', 'session_jitsi'))
-  .where(eq('sessionKey', sessionKey))
-  .withAttributes(true)
-  .withPayload(true)
+const jitsiQuery = arkivSelect('session_jitsi')
+  .where(eqAttr('session_key', sessionKey))
   .limit(1)
   .fetch();`,
             manualTests: [
@@ -490,11 +463,8 @@ const jitsiQuery = publicClient.buildQuery()
             section: 'feedback',
             checked: false,
             arkivQueryCode: `// Query to verify feedback creation:
-const query = publicClient.buildQuery()
-  .where(eq('type', 'session_feedback'))
-  .where(eq('sessionKey', sessionKey))
-  .withAttributes(true)
-  .withPayload(true)
+const query = arkivSelect('session_feedback')
+  .where(eqAttr('session_key', sessionKey))
   .fetch();`,
             manualTests: [
               'Navigate to completed Session',
@@ -518,10 +488,8 @@ const query = publicClient.buildQuery()
             section: 'feedback',
             checked: false,
             arkivQueryCode: `// Query to verify feedback aggregation:
-const query = publicClient.buildQuery()
-  .where(eq('type', 'session_feedback'))
-  .where(eq('feedbackTo', profileWallet.toLowerCase()))
-  .withAttributes(true)
+const query = arkivSelect('session_feedback')
+  .where(eqAttr('feedback_to', profileWallet.toLowerCase()))
   .fetch();`,
             manualTests: [
               'Alice has received 3 feedbacks with ratings 5, 4, 5',

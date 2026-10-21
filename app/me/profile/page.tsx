@@ -21,6 +21,7 @@ import { EntityWriteInfo } from '@/components/EntityWriteInfo';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { PLANT_EMOJI_POOL, isValidPlantEmoji, getProfileEmoji } from '@/lib/profile/identitySeed';
 import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
+import { getArkivExplorerEntityUrl } from '@/lib/arkiv/explorer';
 
 export default function ProfilePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -558,7 +559,7 @@ export default function ProfilePage() {
                             </p>
                           </div>
                           <a
-                            href={`https://explorer.braga.hoodi.arkiv.network/entity/${dup.key}`}
+                            href={getArkivExplorerEntityUrl(dup.key)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex-shrink-0 text-xs text-blue-600 hover:underline dark:text-blue-400"

@@ -12,6 +12,7 @@ import { BackButton } from '@/components/BackButton';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
 import { PageHeader } from '@/components/PageHeader';
+import { getArkivExplorerTxUrl } from '@/lib/arkiv/explorer';
 
 interface UserIssue {
   key: string;
@@ -212,7 +213,7 @@ export default function UserIssuesPage() {
                 {issue.txHash && (
                   <div className="mt-2 text-xs">
                     <a
-                      href={`https://explorer.braga.hoodi.arkiv.network/tx/${issue.txHash}`}
+                      href={getArkivExplorerTxUrl(issue.txHash)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="font-mono text-blue-600 hover:underline dark:text-blue-400"

@@ -10,9 +10,11 @@
  * Reference: refs/docs/jan26plan.md - Week 1 Day 3-4
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr, parsePayload } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { createArkivEntity } from './write';
 import { SPACE_ID } from '../config';
 import type { QuestStepEvidence, QuestStepType } from './questStep';
 import { validateStepEvidence } from './questStep';
@@ -81,7 +83,7 @@ export async function createQuestStepProgress({
   questVersion = '1',
   privateKey,
   spaceId = SPACE_ID,
-  ttlSeconds = 31536000, // 1 year default
+  ttlSeconds, // Optional lifetime override; defaults to the type lifetime (schema.ts)
 }: {
   wallet: string;
   questId: string;
@@ -111,18 +113,16 @@ export async function createQuestStepProgress({
 
   try {
     const walletClient = getWalletClientFromPrivateKey(privateKey);
-    const enc = new TextEncoder();
 
     // Build attributes (queryable fields)
-    const attributes = [
-      { key: 'type', value: 'quest_step_progress' },
-      { key: 'wallet', value: normalizedWallet },
-      { key: 'questId', value: questId },
-      { key: 'stepId', value: stepId },
-      { key: 'stepType', value: stepType },
-      { key: 'spaceId', value: finalSpaceId },
-      { key: 'createdAt', value: createdAt },
-    ];
+    const attributes = {
+      wallet: normalizedWallet,
+      quest_id: questId,
+      step_id: stepId,
+      step_type: stepType,
+      space_id: finalSpaceId,
+      created_at: createdAt,
+    };
 
     // Build payload (non-queryable content)
     const payload = {
@@ -133,11 +133,11 @@ export async function createQuestStepProgress({
 
     // Submit with timeout wrapper
     const result = await handleTransactionWithTimeout(async () => {
-      return await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify(payload)),
-        contentType: 'application/json',
+      return await createArkivEntity(walletClient, {
+        type: 'quest_step_progress',
         attributes,
-        expiresIn: ttlSeconds,
+        payload,
+        lifetimeSeconds: ttlSeconds,
       });
     });
 
@@ -146,20 +146,18 @@ export async function createQuestStepProgress({
     const txHash = result.txHash;
 
     // Create parallel txhash entity for observability (fire and forget)
-    walletClient
-      .createEntity({
-        payload: enc.encode(JSON.stringify({ txHash, progressKey: returnedEntityKey })),
-        contentType: 'application/json',
-        attributes: [
-          { key: 'type', value: 'quest_step_progress_txhash' },
-          { key: 'progressKey', value: returnedEntityKey },
-          { key: 'txHash', value: txHash },
-          { key: 'wallet', value: normalizedWallet },
-          { key: 'spaceId', value: finalSpaceId },
-          { key: 'createdAt', value: createdAt },
-        ],
-        expiresIn: ttlSeconds,
-      })
+    createArkivEntity(walletClient, {
+      type: 'quest_step_progress_txhash',
+      attributes: {
+        progress_key: returnedEntityKey,
+        tx_hash: txHash,
+        wallet: normalizedWallet,
+        space_id: finalSpaceId,
+        created_at: createdAt,
+      },
+      payload: { txHash, progressKey: returnedEntityKey },
+      lifetimeSeconds: ttlSeconds,
+    })
       .catch((err) => {
         // Non-blocking - log but don't fail
         console.warn('[createQuestStepProgress] Failed to create txhash entity:', err);
@@ -202,15 +200,12 @@ export async function getQuestStepProgress({
 
   try {
     const publicClient = getPublicClient();
-    const query = publicClient.buildQuery();
+    const query = arkivSelect('quest_step_progress', publicClient);
 
     const result = await query
-      .where(eq('type', 'quest_step_progress'))
-      .where(eq('wallet', normalizedWallet))
-      .where(eq('questId', questId))
-      .where(eq('spaceId', finalSpaceId))
-      .withAttributes(true)
-      .withPayload(true)
+      .where(eqAttr('wallet', normalizedWallet))
+      .where(eqAttr('quest_id', questId))
+      .where(eqAttr('space_id', finalSpaceId))
       .limit(100)
       .fetch();
 
@@ -221,31 +216,20 @@ export async function getQuestStepProgress({
     }
 
     return result.entities.map((entity: any) => {
-      const getAttr = (key: string) => entity.attributes?.find((a: any) => a.key === key)?.value;
+      const getAttr = (key: string) => readAttr(entity, key);
 
-      let payload: any = {};
-      try {
-        if (entity.payload) {
-          const payloadStr =
-            typeof entity.payload === 'string'
-              ? entity.payload
-              : new TextDecoder().decode(entity.payload);
-          payload = JSON.parse(payloadStr);
-        }
-      } catch (e) {
-        console.warn('[getQuestStepProgress] Failed to parse payload:', e);
-      }
+      const payload: any = parsePayload(entity);
 
       return {
         key: entity.key || '',
         wallet: getAttr('wallet') || normalizedWallet,
-        questId: getAttr('questId') || questId,
-        stepId: getAttr('stepId') || '',
-        stepType: (getAttr('stepType') || 'READ') as QuestStepType,
+        questId: getAttr('quest_id') || questId,
+        stepId: getAttr('step_id') || '',
+        stepType: (getAttr('step_type') || 'READ') as QuestStepType,
         evidence: payload.evidence || {},
         questVersion: payload.questVersion,
-        createdAt: getAttr('createdAt') || '',
-        spaceId: getAttr('spaceId') || finalSpaceId,
+        createdAt: getAttr('created_at') || '',
+        spaceId: getAttr('space_id') || finalSpaceId,
         txHash: entity.txHash,
         status: 'indexed' as ProgressStatus, // If we can query it, it's indexed
       };
@@ -330,42 +314,31 @@ export async function listAllQuestStepProgress({
     const publicClient = getPublicClient();
 
     const fetchForSpace = async (spaceId: string): Promise<QuestProgress[]> => {
-      const result = await publicClient
-        .buildQuery()
-        .where(eq('type', 'quest_step_progress'))
-        .where(eq('spaceId', spaceId))
-        .withAttributes(true)
-        .withPayload(false)
-        .limit(limit)
-        .fetch();
+      const result = await fetchAll(
+        arkivSelect('quest_step_progress', publicClient).where(eqAttr('space_id', spaceId)),
+        limit,
+        publicClient
+      );
 
       if (!result?.entities || !Array.isArray(result.entities)) return [];
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const getAttr = (entity: any, key: string): string => {
-        const attrs = entity.attributes || {};
-        if (Array.isArray(attrs)) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (entity: any, key: string): string => readAttr(entity, key);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return result.entities.map((entity: any) => ({
         key: entity.key,
         wallet: getAttr(entity, 'wallet'),
-        questId: getAttr(entity, 'questId'),
-        stepId: getAttr(entity, 'stepId'),
-        stepType: (getAttr(entity, 'stepType') || 'READ') as QuestStepType,
+        questId: getAttr(entity, 'quest_id'),
+        stepId: getAttr(entity, 'step_id'),
+        stepType: (getAttr(entity, 'step_type') || 'READ') as QuestStepType,
         evidence: {
-          stepId: getAttr(entity, 'stepId'),
-          completedAt: getAttr(entity, 'createdAt'),
+          stepId: getAttr(entity, 'step_id'),
+          completedAt: getAttr(entity, 'created_at'),
           evidenceType: 'completion' as const,
         },
-        createdAt: getAttr(entity, 'createdAt'),
-        spaceId: getAttr(entity, 'spaceId'),
+        createdAt: getAttr(entity, 'created_at'),
+        spaceId: getAttr(entity, 'space_id'),
         txHash: entity.txHash || undefined,
         status: 'indexed' as ProgressStatus,
       }));

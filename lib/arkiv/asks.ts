@@ -8,9 +8,12 @@
  * Reference: refs/mentor-graph/src/arkiv/asks.ts
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { PROJECT, eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr, getEntityByKey } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { addSignerMetadata } from './signer-metadata';
+import { createArkivEntity } from './write';
 import { SPACE_ID } from '@/lib/config';
 
 export const ASK_TTL_SECONDS = 604800; // 1 week default
@@ -59,53 +62,38 @@ export async function createAsk({
   }
 
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const spaceId = SPACE_ID;
   const status = 'open';
   const createdAt = new Date().toISOString();
   // Use expiresIn if provided and valid, otherwise use default
-  // Ensure ttl is always an integer (BigInt requirement)
   const ttlRaw =
     expiresIn !== undefined && expiresIn !== null && typeof expiresIn === 'number' && expiresIn > 0
       ? expiresIn
       : ASK_TTL_SECONDS;
   const ttl = Math.floor(ttlRaw);
 
-  // Build attributes array
-  const attributes: Array<{ key: string; value: string }> = [
-    { key: 'type', value: 'ask' },
-    { key: 'wallet', value: wallet.toLowerCase() },
-    { key: 'spaceId', value: spaceId },
-    { key: 'createdAt', value: createdAt },
-    { key: 'status', value: status },
-    { key: 'ttlSeconds', value: String(ttl) },
-  ];
-
-  // Add skill fields (legacy for compatibility, new for beta)
-  if (skill) {
-    attributes.push({ key: 'skill', value: skill });
-  }
-  if (skill_id) {
-    attributes.push({ key: 'skill_id', value: skill_id });
-  }
-  if (skill_label) {
-    attributes.push({ key: 'skill_label', value: skill_label });
-  }
-
+  // Attributes: short, queryable fields (skill fields: legacy for compatibility, new for beta)
   // Add signer metadata (U1.x.2: Central Signer Metadata)
-  const { addSignerMetadata } = await import('./signer-metadata');
-  const attributesWithSigner = addSignerMetadata(attributes, privateKey);
+  const attributes = addSignerMetadata(
+    {
+      wallet: wallet.toLowerCase(),
+      space_id: spaceId,
+      created_at: createdAt,
+      status,
+      ttl_seconds: String(ttl),
+      skill,
+      skill_id,
+      skill_label,
+    },
+    privateKey
+  );
 
   const result = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(
-        JSON.stringify({
-          message,
-        })
-      ),
-      contentType: 'application/json',
-      attributes: attributesWithSigner,
-      expiresIn: ttl,
+    return await createArkivEntity(walletClient, {
+      type: 'ask',
+      attributes,
+      payload: { message },
+      lifetimeSeconds: ttl,
     });
   });
 
@@ -125,25 +113,18 @@ export async function createAsk({
 
   // Create separate txhash entity (like mentor-graph)
   // Don't wait for this one - it's optional metadata
-  walletClient
-    .createEntity({
-      payload: enc.encode(
-        JSON.stringify({
-          txHash,
-        })
-      ),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'ask_txhash' },
-        { key: 'askKey', value: entityKey },
-        { key: 'wallet', value: wallet.toLowerCase() },
-        { key: 'spaceId', value: spaceId },
-      ],
-      expiresIn: ttl,
-    })
-    .catch((error: any) => {
-      console.warn('[createAsk] Failed to create ask_txhash entity:', error);
-    });
+  createArkivEntity(walletClient, {
+    type: 'ask_txhash',
+    attributes: {
+      ask_key: entityKey,
+      wallet: wallet.toLowerCase(),
+      space_id: spaceId,
+    },
+    payload: { txHash },
+    lifetimeSeconds: ttl,
+  }).catch((error: any) => {
+    console.warn('[createAsk] Failed to create ask_txhash entity:', error);
+  });
 
   // Create tx_event entity (non-blocking, best-effort)
   const { createTxEvent } = await import('./txEvent');
@@ -181,18 +162,17 @@ export async function listAsks(params?: {
 
   try {
     const publicClient = getPublicClient();
-    const query = publicClient.buildQuery();
+    const query = arkivSelect(undefined, publicClient);
     const limit = params?.limit ?? 500; // raise limit so expired/historical entries can be fetched
-    let queryBuilder = query.where(eq('type', 'ask')).where(eq('status', 'open'));
+    let queryBuilder = query.where(eqAttr('type', 'ask')).where(eqAttr('status', 'open'));
 
     // Support multiple spaceIds (builder mode) or single spaceId
     if (params?.spaceIds && params.spaceIds.length > 0) {
-      // Query all, filter client-side (Arkiv doesn't support OR queries)
-      queryBuilder = queryBuilder.limit(limit);
+      // Query all, filter client-side (OR queries are not used here)
     } else {
       // Use provided spaceId or default to SPACE_ID from config
       const spaceId = params?.spaceId || SPACE_ID;
-      queryBuilder = queryBuilder.where(eq('spaceId', spaceId));
+      queryBuilder = queryBuilder.where(eqAttr('space_id', spaceId));
     }
 
     let result: any = null;
@@ -200,14 +180,12 @@ export async function listAsks(params?: {
 
     try {
       [result, txHashResult] = await Promise.all([
-        queryBuilder.withAttributes(true).withPayload(true).limit(limit).fetch(),
-        publicClient
-          .buildQuery()
-          .where(eq('type', 'ask_txhash'))
-          .withAttributes(true)
-          .withPayload(true)
-          .limit(limit)
-          .fetch(),
+        fetchAll(queryBuilder, limit, publicClient),
+        fetchAll(
+          arkivSelect(undefined, publicClient).where(eqAttr('type', 'ask_txhash')),
+          limit,
+          publicClient
+        ),
       ]);
     } catch (fetchError: any) {
       console.error('[listAsks] Arkiv query failed:', {
@@ -235,15 +213,8 @@ export async function listAsks(params?: {
     const txHashMap: Record<string, string> = {};
     const txHashEntities = txHashResult?.entities || [];
     txHashEntities.forEach((entity: any) => {
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
-      const askKey = getAttr('askKey');
+      const getAttr = (key: string): string => readAttr(entity, key);
+      const askKey = getAttr('ask_key');
       if (askKey) {
         let payload: any = {};
         try {
@@ -281,17 +252,10 @@ export async function listAsks(params?: {
         console.error('Error decoding payload:', e);
       }
 
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (key: string): string => readAttr(entity, key);
 
       // Get TTL from attributes (stored when created), fallback to default for backward compatibility
-      const ttlSecondsAttr = getAttr('ttlSeconds');
+      const ttlSecondsAttr = getAttr('ttl_seconds');
       const ttlSeconds = ttlSecondsAttr ? parseInt(ttlSecondsAttr, 10) : ASK_TTL_SECONDS;
 
       return {
@@ -300,14 +264,14 @@ export async function listAsks(params?: {
         skill: getAttr('skill') || payload.skill || '', // Legacy: kept for backward compatibility
         skill_id: getAttr('skill_id') || payload.skill_id || undefined, // New: preferred for beta
         skill_label: getAttr('skill_label') || payload.skill_label || undefined, // Derived from Skill entity
-        spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
-        createdAt: getAttr('createdAt') || payload.createdAt || '',
+        spaceId: getAttr('space_id') || payload.spaceId || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
+        createdAt: getAttr('created_at') || payload.createdAt || '',
         status: getAttr('status') || payload.status || 'open',
         message: payload.message || '',
         ttlSeconds: isNaN(ttlSeconds) ? ASK_TTL_SECONDS : ttlSeconds, // Ensure valid number
         txHash:
           txHashMap[entity.key] ||
-          getAttr('txHash') ||
+          getAttr('tx_hash') ||
           payload.txHash ||
           (entity as any).txHash ||
           undefined,
@@ -366,21 +330,20 @@ export async function listAsks(params?: {
  */
 export async function listAsksForWallet(wallet: string, spaceId?: string): Promise<Ask[]> {
   const publicClient = getPublicClient();
-  const query = publicClient.buildQuery();
-  let queryBuilder = query.where(eq('type', 'ask')).where(eq('wallet', wallet.toLowerCase()));
+  const query = arkivSelect(undefined, publicClient);
+  let queryBuilder = query
+    .where(eqAttr('type', 'ask'))
+    .where(eqAttr('wallet', wallet.toLowerCase()));
 
   // Use provided spaceId or default to SPACE_ID from config
   const finalSpaceId = spaceId || SPACE_ID;
-  queryBuilder = queryBuilder.where(eq('spaceId', finalSpaceId));
+  queryBuilder = queryBuilder.where(eqAttr('space_id', finalSpaceId));
 
   const [result, txHashResult] = await Promise.all([
-    queryBuilder.withAttributes(true).withPayload(true).limit(100).fetch(),
-    publicClient
-      .buildQuery()
-      .where(eq('type', 'ask_txhash'))
-      .where(eq('wallet', wallet.toLowerCase()))
-      .withAttributes(true)
-      .withPayload(true)
+    queryBuilder.limit(100).fetch(),
+    arkivSelect(undefined, publicClient)
+      .where(eqAttr('type', 'ask_txhash'))
+      .where(eqAttr('wallet', wallet.toLowerCase()))
       .limit(100)
       .fetch(),
   ]);
@@ -394,15 +357,8 @@ export async function listAsksForWallet(wallet: string, spaceId?: string): Promi
   const txHashMap: Record<string, string> = {};
   const txHashEntities = txHashResult?.entities || [];
   txHashEntities.forEach((entity: any) => {
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
-    const askKey = getAttr('askKey');
+    const getAttr = (key: string): string => readAttr(entity, key);
+    const askKey = getAttr('ask_key');
     if (askKey) {
       let payload: any = {};
       try {
@@ -440,17 +396,10 @@ export async function listAsksForWallet(wallet: string, spaceId?: string): Promi
       console.error('Error decoding payload:', e);
     }
 
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (key: string): string => readAttr(entity, key);
 
     // Get TTL from attributes (stored when created), fallback to default for backward compatibility
-    const ttlSecondsAttr = getAttr('ttlSeconds');
+    const ttlSecondsAttr = getAttr('ttl_seconds');
     const ttlSeconds = ttlSecondsAttr ? parseInt(ttlSecondsAttr, 10) : ASK_TTL_SECONDS;
 
     return {
@@ -459,14 +408,14 @@ export async function listAsksForWallet(wallet: string, spaceId?: string): Promi
       skill: getAttr('skill') || payload.skill || '', // Legacy: kept for backward compatibility
       skill_id: getAttr('skill_id') || payload.skill_id || undefined, // New: preferred for beta
       skill_label: getAttr('skill_label') || payload.skill_label || undefined, // Derived from Skill entity
-      spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
-      createdAt: getAttr('createdAt') || payload.createdAt || '',
+      spaceId: getAttr('space_id') || payload.spaceId || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
+      createdAt: getAttr('created_at') || payload.createdAt || '',
       status: getAttr('status') || payload.status || 'open',
       message: payload.message || '',
       ttlSeconds: isNaN(ttlSeconds) ? ASK_TTL_SECONDS : ttlSeconds, // Ensure valid number
       txHash:
         txHashMap[entity.key] ||
-        getAttr('txHash') ||
+        getAttr('tx_hash') ||
         payload.txHash ||
         (entity as any).txHash ||
         undefined,
@@ -480,28 +429,15 @@ export async function listAsksForWallet(wallet: string, spaceId?: string): Promi
 export async function getAskByKey(key: string): Promise<Ask | null> {
   try {
     const publicClient = getPublicClient();
-    const result = await publicClient
-      .buildQuery()
-      .where(eq('type', 'ask'))
-      .where(eq('key', key))
-      .withAttributes(true)
-      .withPayload(true)
-      .limit(1)
-      .fetch();
-
-    if (!result?.entities || !Array.isArray(result.entities) || result.entities.length === 0) {
+    const entity = await getEntityByKey(key, publicClient);
+    if (!entity || readAttr(entity, 'type') !== 'ask' || readAttr(entity, 'project') !== PROJECT) {
       return null;
     }
 
-    const entity = result.entities[0];
-
     // Fetch txHash
-    const txHashResult = await publicClient
-      .buildQuery()
-      .where(eq('type', 'ask_txhash'))
-      .where(eq('askKey', key))
-      .withAttributes(true)
-      .withPayload(true)
+    const txHashResult = await arkivSelect(undefined, publicClient)
+      .where(eqAttr('type', 'ask_txhash'))
+      .where(eqAttr('ask_key', key))
       .limit(1)
       .fetch();
 
@@ -528,14 +464,7 @@ export async function getAskByKey(key: string): Promise<Ask | null> {
       }
     }
 
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (key: string): string => readAttr(entity, key);
 
     let payload: any = {};
     try {
@@ -552,7 +481,7 @@ export async function getAskByKey(key: string): Promise<Ask | null> {
       console.error('[getAskByKey] Error decoding payload:', e);
     }
 
-    const ttlSeconds = parseInt(getAttr('ttlSeconds')) || ASK_TTL_SECONDS;
+    const ttlSeconds = parseInt(getAttr('ttl_seconds')) || ASK_TTL_SECONDS;
 
     return {
       key: entity.key,
@@ -560,12 +489,12 @@ export async function getAskByKey(key: string): Promise<Ask | null> {
       skill: getAttr('skill') || payload.skill || '',
       skill_id: getAttr('skill_id') || payload.skill_id || undefined,
       skill_label: getAttr('skill_label') || payload.skill_label || undefined,
-      spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID,
-      createdAt: getAttr('createdAt') || payload.createdAt || '',
+      spaceId: getAttr('space_id') || payload.spaceId || SPACE_ID,
+      createdAt: getAttr('created_at') || payload.createdAt || '',
       status: getAttr('status') || payload.status || 'open',
       message: payload.message || '',
       ttlSeconds: isNaN(ttlSeconds) ? ASK_TTL_SECONDS : ttlSeconds,
-      txHash: txHash || getAttr('txHash') || payload.txHash || undefined,
+      txHash: txHash || getAttr('tx_hash') || payload.txHash || undefined,
     };
   } catch (error: any) {
     console.error('[getAskByKey] Error:', error);

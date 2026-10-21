@@ -1,5 +1,7 @@
 # Braga Testnet Migration
 
+> **Historical.** Braga was retired by Arkiv on 2026-08-12. p2pmentor now runs on the Tiramisu testnet: see [Tiramisu Testnet Migration](tiramisu-migration.md).
+
 ## Overview
 
 p2pmentor moved from the Arkiv Kaolin testnet to the new Braga testnet in May 2026, alongside Arkiv's own network evolution. This page explains what changed, why, and how it affects builders running the project locally or in CI.

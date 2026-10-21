@@ -45,13 +45,9 @@ import { eq, and } from '@arkiv-network/sdk/query';
 import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'learning_follow'))
-  .where(eq('profile_wallet', walletAddress.toLowerCase()))
-  .where(eq('active', 'true'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('learning_follow')
+  .where(eqAttr('profile_wallet', walletAddress.toLowerCase()))
+  .where(eqAttr('active', 'true'))
   .limit(100)
   .fetch();
 
@@ -64,13 +60,9 @@ const follows = result.entities.map((e) => ({
 ### Get All Followers for Skill
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'learning_follow'))
-  .where(eq('skill_id', skillId))
-  .where(eq('active', 'true'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('learning_follow')
+  .where(eqAttr('skill_id', skillId))
+  .where(eqAttr('active', 'true'))
   .limit(100)
   .fetch();
 
@@ -83,13 +75,9 @@ const followers = result.entities.map((e) => ({
 ### Get Follows by Mode
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'learning_follow'))
-  .where(eq('profile_wallet', walletAddress.toLowerCase()))
-  .where(eq('active', 'true'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('learning_follow')
+  .where(eqAttr('profile_wallet', walletAddress.toLowerCase()))
+  .where(eqAttr('active', 'true'))
   .limit(1000)
   .fetch();
 

@@ -46,12 +46,8 @@ import { getPublicClient } from '@/lib/arkiv/client';
 const publicClient = getPublicClient();
 const normalizedCode = code.toLowerCase().trim();
 
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'beta_code_usage'))
-  .where(eq('code', normalizedCode))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('beta_code_usage')
+  .where(eqAttr('code', normalizedCode))
   .limit(10)
   .fetch();
 

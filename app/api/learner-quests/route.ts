@@ -7,7 +7,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getLearnerQuest, listLearnerQuests, markMaterialAsRead } from '@/lib/arkiv/learnerQuest';
+import {
+  getLearnerQuest,
+  learnerQuestSelect,
+  listLearnerQuests,
+  markMaterialAsRead,
+} from '@/lib/arkiv/learnerQuest';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { parsePayload } from '@/lib/arkiv/read';
 import { getPrivateKey, SPACE_ID } from '@/lib/config';
 import { verifyBetaAccess } from '@/lib/auth/betaAccess';
 import fs from 'fs';
@@ -92,26 +99,15 @@ export async function GET(request: NextRequest) {
       // For language assessment quests, we need to include the payload
       // (which contains sections and questions)
       if (quest.questType === 'language_assessment') {
-        const publicClient = (await import('@/lib/arkiv/client')).getPublicClient();
-        const result = await publicClient
-          .buildQuery()
-          .where((await import('@arkiv-network/sdk/query')).eq('type', 'learner_quest'))
-          .where((await import('@arkiv-network/sdk/query')).eq('questId', questId))
-          .where((await import('@arkiv-network/sdk/query')).eq('status', 'active'))
-          .withAttributes(true)
-          .withPayload(true)
+        const result = await learnerQuestSelect()
+          .where(eqAttr('quest_id', questId))
+          .where(eqAttr('status', 'active'))
           .limit(1)
           .fetch();
 
         if (result?.entities && result.entities.length > 0) {
           const entity = result.entities[0];
-          const decoded =
-            entity.payload instanceof Uint8Array
-              ? new TextDecoder().decode(entity.payload)
-              : typeof entity.payload === 'string'
-                ? entity.payload
-                : JSON.stringify(entity.payload);
-          const payload = JSON.parse(decoded);
+          const payload = parsePayload<any>(entity);
 
           return NextResponse.json({
             ok: true,

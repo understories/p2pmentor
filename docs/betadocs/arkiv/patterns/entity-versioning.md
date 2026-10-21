@@ -25,12 +25,8 @@ Since Arkiv transactions are immutable, this pattern creates new entities for ea
 
 ```typescript
 async function getLatestProfile(wallet: string) {
-  const result = await publicClient
-    .buildQuery()
-    .where(eq('type', 'user_profile'))
-    .where(eq('wallet', wallet.toLowerCase()))
-    .withAttributes(true)
-    .withPayload(true)
+  const result = await arkivSelect('user_profile')
+    .where(eqAttr('wallet', wallet.toLowerCase()))
     .limit(100)
     .fetch();
 
@@ -75,12 +71,8 @@ All versions are preserved, enabling history tracking:
 
 ```typescript
 async function getProfileHistory(wallet: string) {
-  const result = await publicClient
-    .buildQuery()
-    .where(eq('type', 'user_profile'))
-    .where(eq('wallet', wallet.toLowerCase()))
-    .withAttributes(true)
-    .withPayload(true)
+  const result = await arkivSelect('user_profile')
+    .where(eqAttr('wallet', wallet.toLowerCase()))
     .limit(100)
     .fetch();
 

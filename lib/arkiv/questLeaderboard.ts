@@ -7,7 +7,8 @@
  * Week 4 (Feb 22-29) - Partner-ready weekly quests
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr } from '@/lib/arkiv/read';
 import { getPublicClient } from './client';
 import { SPACE_ID } from '../config';
 
@@ -42,17 +43,15 @@ export async function getQuestLeaderboard({
 
   try {
     const publicClient = getPublicClient();
-    const query = publicClient.buildQuery();
+    const query = arkivSelect('proof_of_skill_badge', publicClient);
 
-    let queryBuilder = query
-      .where(eq('type', 'proof_of_skill_badge'))
-      .where(eq('spaceId', finalSpaceId));
+    let queryBuilder = query.where(eqAttr('space_id', finalSpaceId));
 
     if (questId) {
-      queryBuilder = queryBuilder.where(eq('questId', questId));
+      queryBuilder = queryBuilder.where(eqAttr('quest_id', questId));
     }
 
-    const result = await queryBuilder.withAttributes(true).withPayload(false).limit(500).fetch();
+    const result = await fetchAll(queryBuilder, 500, publicClient);
 
     if (!result || !result.entities || !Array.isArray(result.entities)) {
       return [];
@@ -61,17 +60,14 @@ export async function getQuestLeaderboard({
     const walletMap = new Map<string, LeaderboardEntry>();
 
     for (const entity of result.entities) {
-      const getAttr = (key: string): string => {
-        const val = entity.attributes?.find((a: any) => a.key === key)?.value;
-        return typeof val === 'string' ? val : typeof val === 'number' ? String(val) : '';
-      };
+      const getAttr = (key: string): string => readAttr(entity, key);
 
       const wallet = getAttr('wallet').toLowerCase();
       if (!wallet) continue;
 
-      const badgeType = getAttr('badgeType');
-      const entityQuestId = getAttr('questId');
-      const issuedAt = getAttr('issuedAt');
+      const badgeType = getAttr('badge_type');
+      const entityQuestId = getAttr('quest_id');
+      const issuedAt = getAttr('issued_at');
 
       const existing = walletMap.get(wallet) || {
         wallet,

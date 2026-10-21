@@ -5,11 +5,13 @@
  * This allows users to customize their notification experience while staying Arkiv-native.
  */
 
-import { eq, and } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { SPACE_ID, ENTITY_UPDATE_MODE } from '@/lib/config';
 import { arkivUpsertEntity } from './entity-utils';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { createArkivEntity } from './write';
 
 export type NotificationPreferenceType =
   | 'meeting_request'
@@ -27,6 +29,7 @@ export type NotificationPreference = {
   archived: boolean; // true = deleted/hidden
   createdAt: string;
   updatedAt: string;
+  spaceId?: string;
   txHash?: string;
 };
 
@@ -47,14 +50,10 @@ async function getNotificationPreferenceByKey(
   try {
     const publicClient = getPublicClient();
 
-    let query = publicClient
-      .buildQuery()
-      .where(eq('type', 'notification_preference'))
-      .where(eq('wallet', normalizedWallet))
-      .where(eq('notificationId', notificationId))
-      .where(eq('spaceId', spaceId))
-      .withAttributes(true)
-      .withPayload(true)
+    let query = arkivSelect('notification_preference', publicClient)
+      .where(eqAttr('wallet', normalizedWallet))
+      .where(eqAttr('notification_id', notificationId))
+      .where(eqAttr('space_id', spaceId))
       .limit(100); // Get multiple to find latest by updatedAt
 
     const result = await query.fetch();
@@ -85,24 +84,17 @@ async function getNotificationPreferenceByKey(
         console.error('Error decoding notification preference payload:', e);
       }
 
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (key: string): string => readAttr(entity, key);
 
       return {
         key: entity.key,
         wallet: getAttr('wallet'),
-        notificationId: getAttr('notificationId'),
-        notificationType: getAttr('notificationType') as NotificationPreferenceType,
+        notificationId: getAttr('notification_id'),
+        notificationType: getAttr('notification_type') as NotificationPreferenceType,
         read: getAttr('read') === 'true' || payload.read === true,
         archived: getAttr('archived') === 'true' || payload.archived === true,
-        createdAt: getAttr('createdAt') || payload.createdAt,
-        updatedAt: getAttr('updatedAt') || payload.updatedAt,
+        createdAt: getAttr('created_at') || payload.createdAt,
+        updatedAt: getAttr('updated_at') || payload.updatedAt,
         txHash: entity.txHash || payload.txHash,
       };
     });
@@ -150,7 +142,6 @@ export async function upsertNotificationPreference({
   spaceId?: string;
 }): Promise<{ key: string; txHash: string }> {
   const normalizedWallet = wallet.toLowerCase().trim();
-  const enc = new TextEncoder();
   const now = new Date().toISOString();
   const finalSpaceId = spaceId || SPACE_ID;
 
@@ -199,19 +190,17 @@ export async function upsertNotificationPreference({
     const updateResult = await arkivUpsertEntity({
       type: 'notification_preference',
       key: preferenceKey, // Direct update by key - no query needed
-      attributes: [
-        { key: 'type', value: 'notification_preference' },
-        { key: 'wallet', value: normalizedWallet },
-        { key: 'notificationId', value: notificationId },
-        { key: 'notificationType', value: notificationType },
-        { key: 'read', value: String(read) },
-        { key: 'archived', value: String(archived) },
-        { key: 'spaceId', value: finalSpaceId },
-        { key: 'createdAt', value: createdAt },
-        { key: 'updatedAt', value: now },
-      ],
-      payload: enc.encode(JSON.stringify(payload)),
-      expiresIn: 31536000, // 1 year
+      attributes: {
+        wallet: normalizedWallet,
+        notification_id: notificationId,
+        notification_type: notificationType,
+        read: String(read),
+        archived: String(archived),
+        space_id: finalSpaceId,
+        created_at: createdAt,
+        updated_at: now,
+      },
+      payload,
       privateKey,
     });
 
@@ -282,19 +271,17 @@ export async function upsertNotificationPreference({
       const updateResult = await arkivUpsertEntity({
         type: 'notification_preference',
         key: existing.key, // Stable entity_key
-        attributes: [
-          { key: 'type', value: 'notification_preference' },
-          { key: 'wallet', value: normalizedWallet },
-          { key: 'notificationId', value: notificationId },
-          { key: 'notificationType', value: notificationType },
-          { key: 'read', value: String(read) },
-          { key: 'archived', value: String(archived) },
-          { key: 'spaceId', value: finalSpaceId },
-          { key: 'createdAt', value: existing.createdAt },
-          { key: 'updatedAt', value: now },
-        ],
-        payload: enc.encode(JSON.stringify(payload)),
-        expiresIn: 31536000, // 1 year
+        attributes: {
+          wallet: normalizedWallet,
+          notification_id: notificationId,
+          notification_type: notificationType,
+          read: String(read),
+          archived: String(archived),
+          space_id: finalSpaceId,
+          created_at: existing.createdAt,
+          updated_at: now,
+        },
+        payload,
         privateKey,
       });
 
@@ -338,25 +325,23 @@ export async function upsertNotificationPreference({
   };
 
   const { addSignerMetadata } = await import('./signer-metadata');
-  const baseAttributes = [
-    { key: 'type', value: 'notification_preference' },
-    { key: 'wallet', value: normalizedWallet },
-    { key: 'notificationId', value: notificationId },
-    { key: 'notificationType', value: notificationType },
-    { key: 'read', value: String(read) },
-    { key: 'archived', value: String(archived) },
-    { key: 'spaceId', value: finalSpaceId },
-    { key: 'createdAt', value: now },
-    { key: 'updatedAt', value: now },
-  ];
+  const baseAttributes = {
+    wallet: normalizedWallet,
+    notification_id: notificationId,
+    notification_type: notificationType,
+    read: String(read),
+    archived: String(archived),
+    space_id: finalSpaceId,
+    created_at: now,
+    updated_at: now,
+  };
   const attributesWithSigner = addSignerMetadata(baseAttributes, privateKey);
 
   const result = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify(payload)),
-      contentType: 'application/json',
+    return await createArkivEntity(walletClient, {
+      type: 'notification_preference',
       attributes: attributesWithSigner,
-      expiresIn: 31536000, // 1 year
+      payload,
     });
   });
 
@@ -391,20 +376,21 @@ export async function listNotificationPreferences({
   try {
     const publicClient = getPublicClient();
 
-    let query = publicClient
-      .buildQuery()
-      .where(eq('type', 'notification_preference'))
-      .withAttributes(true)
-      .withPayload(true);
+    let query = arkivSelect('notification_preference', publicClient);
 
     // Filter by spaceId if provided (important for cross-environment isolation)
     if (spaceId) {
-      query = query.where(eq('spaceId', spaceId));
+      query = query.where(eqAttr('space_id', spaceId));
+    }
+    // Filter by wallet / notificationId at the Arkiv level (also filtered client-side below)
+    if (wallet) {
+      query = query.where(eqAttr('wallet', wallet.toLowerCase()));
+    }
+    if (notificationId) {
+      query = query.where(eqAttr('notification_id', notificationId));
     }
 
-    query = query.limit(limit);
-
-    const result = await query.fetch();
+    const result = await fetchAll(query, limit, publicClient);
 
     if (!result || !result.entities || !Array.isArray(result.entities)) {
       return [];
@@ -426,24 +412,18 @@ export async function listNotificationPreferences({
         console.error('Error decoding notification preference payload:', e);
       }
 
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (key: string): string => readAttr(entity, key);
 
       return {
         key: entity.key,
         wallet: getAttr('wallet'),
-        notificationId: getAttr('notificationId'),
-        notificationType: getAttr('notificationType') as NotificationPreferenceType,
+        notificationId: getAttr('notification_id'),
+        notificationType: getAttr('notification_type') as NotificationPreferenceType,
         read: getAttr('read') === 'true' || payload.read === true,
         archived: getAttr('archived') === 'true' || payload.archived === true,
-        createdAt: getAttr('createdAt') || payload.createdAt,
-        updatedAt: getAttr('updatedAt') || payload.updatedAt,
+        createdAt: getAttr('created_at') || payload.createdAt,
+        updatedAt: getAttr('updated_at') || payload.updatedAt,
+        spaceId: getAttr('space_id') || undefined,
         txHash: entity.txHash || payload.txHash,
       };
     });
@@ -455,18 +435,7 @@ export async function listNotificationPreferences({
     }
     if (spaceId) {
       // Filter by spaceId (client-side if not filtered in query)
-      filtered = filtered.filter((p) => {
-        const attrs = (p as any).attributes || {};
-        const getAttr = (key: string): string => {
-          if (Array.isArray(attrs)) {
-            const attr = attrs.find((a: any) => a.key === key);
-            return String(attr?.value || '');
-          }
-          return String(attrs[key] || '');
-        };
-        const prefSpaceId = getAttr('spaceId') || (p as any).spaceId;
-        return prefSpaceId === spaceId;
-      });
+      filtered = filtered.filter((p) => p.spaceId === spaceId);
     }
     if (notificationType) {
       filtered = filtered.filter((p) => p.notificationType === notificationType);
@@ -522,6 +491,6 @@ export async function getNotificationPreference(
   wallet: string,
   notificationId: string
 ): Promise<NotificationPreference | null> {
-  const preferences = await listNotificationPreferences({ wallet, notificationId, limit: 1 });
+  const preferences = await listNotificationPreferences({ wallet, notificationId, limit: 100 }); // latest of any duplicates
   return preferences.length > 0 ? preferences[0] : null;
 }

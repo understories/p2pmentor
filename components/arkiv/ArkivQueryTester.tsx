@@ -14,10 +14,24 @@
 import { useState } from 'react';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 
+/**
+ * Entity as returned by /api/admin/m1-query (Arkiv SDK 0.8):
+ * attributes are a plain name -> string record, payload is decoded JSON.
+ */
+interface QueryResultEntity {
+  key: string;
+  owner?: string;
+  creator?: string;
+  createdAt?: string;
+  expiresAt?: string;
+  attributes?: Record<string, string>;
+  payload?: unknown;
+}
+
 interface QueryResult {
   ok: boolean;
   result: {
-    entities: any[];
+    entities: QueryResultEntity[];
     count: number;
   } | null;
   error: string | null;
@@ -427,18 +441,11 @@ export function ArkivQueryTester({ className = '', compact = false }: ArkivQuery
                             Attributes
                           </p>
                           <pre className="overflow-x-auto rounded bg-gray-50 p-2 text-xs dark:bg-gray-900">
-                            {JSON.stringify(
-                              entity.attributes?.reduce((acc: any, attr: any) => {
-                                acc[attr.key] = attr.value;
-                                return acc;
-                              }, {}) || {},
-                              null,
-                              2
-                            )}
+                            {JSON.stringify(entity.attributes || {}, null, 2)}
                           </pre>
                         </div>
 
-                        {entity.payload && (
+                        {entity.payload != null && (
                           <div>
                             <p className="mb-1 text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
                               Payload

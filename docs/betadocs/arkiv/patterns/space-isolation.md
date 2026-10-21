@@ -83,19 +83,18 @@ export async function createEntity({
   const finalSpaceId = spaceId || SPACE_ID; // Always fallback to config
   // ...
   attributes: [
-    { key: 'spaceId', value: finalSpaceId },
+    { space_id: finalSpaceId },
     // ...
   ],
 }
 
 // Querying
-let queryBuilder = publicClient.buildQuery()
-  .where(eq('type', 'entity_type'));
+let queryBuilder = arkivSelect('entity_type');
 
 if (spaceId) {
-  queryBuilder = queryBuilder.where(eq('spaceId', spaceId));
+  queryBuilder = queryBuilder.where(eqAttr('space_id', spaceId));
 } else {
-  queryBuilder = queryBuilder.where(eq('spaceId', SPACE_ID));
+  queryBuilder = queryBuilder.where(eqAttr('space_id', SPACE_ID));
 }
 
 // Builder mode (multiple spaceIds)

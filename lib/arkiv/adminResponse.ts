@@ -7,8 +7,10 @@
  * Reference: Admin feedback response system
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { PROJECT, eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr, getEntityByKey } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { createArkivEntity } from './write';
 import { SPACE_ID } from '@/lib/config';
 import { handleTransactionWithTimeout } from './transaction-utils';
 
@@ -42,7 +44,6 @@ export async function createAdminResponse({
   spaceId?: string;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const createdAt = new Date().toISOString();
 
   // Validate message is not empty
@@ -55,40 +56,32 @@ export async function createAdminResponse({
     createdAt,
   };
 
-  // Admin responses should persist (1 year) for record keeping
-  const expiresIn = 31536000; // 1 year in seconds
-
+  // Admin responses use the type default lifetime (see lib/arkiv/schema.ts)
   // Wrap in handleTransactionWithTimeout for graceful timeout handling
   const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify(payload)),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'admin_response' },
-        { key: 'feedbackKey', value: feedbackKey },
-        { key: 'wallet', value: wallet.toLowerCase() },
-        { key: 'adminWallet', value: adminWallet.toLowerCase() },
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: createdAt },
-      ],
-      expiresIn,
+    return await createArkivEntity(walletClient, {
+      type: 'admin_response',
+      attributes: {
+        feedback_key: feedbackKey,
+        wallet: wallet.toLowerCase(),
+        admin_wallet: adminWallet.toLowerCase(),
+        space_id: spaceId,
+        created_at: createdAt,
+      },
+      payload,
     });
   });
 
   // Store txHash in a separate entity for reliable querying (don't wait for this)
-  walletClient
-    .createEntity({
-      payload: enc.encode(JSON.stringify({ txHash })),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'admin_response_txhash' },
-        { key: 'responseKey', value: entityKey },
-        { key: 'wallet', value: wallet.toLowerCase() },
-        { key: 'spaceId', value: spaceId },
-      ],
-      expiresIn,
-    })
-    .catch((err: any) => {
+  createArkivEntity(walletClient, {
+    type: 'admin_response_txhash',
+    attributes: {
+      response_key: entityKey,
+      wallet: wallet.toLowerCase(),
+      space_id: spaceId,
+    },
+    payload: { txHash },
+  }).catch((err: any) => {
       console.warn('[createAdminResponse] Failed to create txHash entity:', err);
       // Don't throw - txHash entity is optional metadata
     });
@@ -142,19 +135,8 @@ export async function listAdminResponses({
 
     // Fetch response entities and txHash entities in parallel
     const [result, txHashResult] = await Promise.all([
-      publicClient
-        .buildQuery()
-        .where(eq('type', 'admin_response'))
-        .withAttributes(true)
-        .withPayload(true)
-        .limit(limit || 100)
-        .fetch(),
-      publicClient
-        .buildQuery()
-        .where(eq('type', 'admin_response_txhash'))
-        .withAttributes(true)
-        .withPayload(true)
-        .fetch(),
+      fetchAll(arkivSelect('admin_response', publicClient), limit || 100, publicClient),
+      fetchAll(arkivSelect('admin_response_txhash', publicClient), 1000, publicClient),
     ]);
 
     if (!result || !result.entities || !Array.isArray(result.entities)) {
@@ -166,15 +148,8 @@ export async function listAdminResponses({
     const txHashMap: Record<string, string> = {};
     if (txHashResult?.entities && Array.isArray(txHashResult.entities)) {
       txHashResult.entities.forEach((entity: any) => {
-        const attrs = entity.attributes || {};
-        const getAttr = (key: string): string => {
-          if (Array.isArray(attrs)) {
-            const attr = attrs.find((a: any) => a.key === key);
-            return String(attr?.value || '');
-          }
-          return String(attrs[key] || '');
-        };
-        const responseKey = getAttr('responseKey');
+        const getAttr = (key: string): string => readAttr(entity, key);
+        const responseKey = getAttr('response_key');
         try {
           if (entity.payload) {
             const decoded =
@@ -210,23 +185,16 @@ export async function listAdminResponses({
         console.error('Error decoding admin response payload:', e);
       }
 
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (key: string): string => readAttr(entity, key);
 
       return {
         key: entity.key,
-        feedbackKey: getAttr('feedbackKey'),
+        feedbackKey: getAttr('feedback_key'),
         wallet: getAttr('wallet'),
         message: payload.message || '',
-        adminWallet: getAttr('adminWallet'),
-        spaceId: getAttr('spaceId') || SPACE_ID,
-        createdAt: getAttr('createdAt'),
+        adminWallet: getAttr('admin_wallet'),
+        spaceId: getAttr('space_id') || SPACE_ID,
+        createdAt: getAttr('created_at'),
         txHash: txHashMap[entity.key] || payload.txHash || entity.txHash || undefined,
       };
     });
@@ -268,29 +236,19 @@ export async function getAdminResponseByKey(key: string): Promise<AdminResponse 
   const publicClient = getPublicClient();
 
   try {
-    // Query by key using where clause
-    const result = await publicClient
-      .buildQuery()
-      .where(eq('type', 'admin_response'))
-      .where(eq('key', key))
-      .withAttributes(true)
-      .withPayload(true)
-      .limit(1)
-      .fetch();
-
-    if (!result || !result.entities || result.entities.length === 0) {
+    const entity = await getEntityByKey(key, publicClient);
+    if (
+      !entity ||
+      readAttr(entity, 'type') !== 'admin_response' ||
+      readAttr(entity, 'project') !== PROJECT
+    ) {
       return null;
     }
 
-    const entity = result.entities[0];
-
     // Fetch txHash
-    const txHashResult = await publicClient
-      .buildQuery()
-      .where(eq('type', 'admin_response_txhash'))
-      .where(eq('responseKey', key))
-      .withAttributes(true)
-      .withPayload(true)
+    const txHashResult = await arkivSelect(undefined, publicClient)
+      .where(eqAttr('type', 'admin_response_txhash'))
+      .where(eqAttr('response_key', key))
       .limit(1)
       .fetch();
 
@@ -332,23 +290,16 @@ export async function getAdminResponseByKey(key: string): Promise<AdminResponse 
       console.error('Error decoding admin response payload:', e);
     }
 
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (key: string): string => readAttr(entity, key);
 
     return {
       key: entity.key,
-      feedbackKey: getAttr('feedbackKey'),
+      feedbackKey: getAttr('feedback_key'),
       wallet: getAttr('wallet'),
       message: payload.message || '',
-      adminWallet: getAttr('adminWallet'),
-      spaceId: getAttr('spaceId') || SPACE_ID,
-      createdAt: getAttr('createdAt'),
+      adminWallet: getAttr('admin_wallet'),
+      spaceId: getAttr('space_id') || SPACE_ID,
+      createdAt: getAttr('created_at'),
       txHash: txHash || payload.txHash || undefined,
     };
   } catch (error: any) {

@@ -23,7 +23,8 @@
 
 import 'dotenv/config';
 import { getPublicClient } from '../lib/arkiv/client';
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr } from '@/lib/arkiv/read';
 import { SPACE_ID } from '../lib/config';
 
 interface DuplicateSet {
@@ -55,14 +56,11 @@ async function findDuplicatePreferences(
 
   // Query raw entities (bypass deduplication to see all)
   const publicClient = getPublicClient();
-  const result = await publicClient
-    .buildQuery()
-    .where(eq('type', 'notification_preference'))
-    .where(eq('spaceId', spaceId))
-    .withAttributes(true)
-    .withPayload(true)
-    .limit(10000)
-    .fetch();
+  const result = await fetchAll(
+    arkivSelect('notification_preference', publicClient).where(eqAttr('space_id', spaceId)),
+    10000,
+    publicClient
+  );
 
   if (!result?.entities || !Array.isArray(result.entities)) {
     return new Map();
@@ -85,24 +83,17 @@ async function findDuplicatePreferences(
       console.error('Error decoding payload:', e);
     }
 
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (key: string): string => readAttr(entity, key);
 
     return {
       key: entity.key,
       wallet: getAttr('wallet'),
-      notificationId: getAttr('notificationId'),
+      notificationId: getAttr('notification_id'),
       read: getAttr('read') === 'true' || payload.read === true,
       archived: getAttr('archived') === 'true' || payload.archived === true,
       updatedAt:
-        getAttr('updatedAt') || payload.updatedAt || getAttr('createdAt') || payload.createdAt,
-      createdAt: getAttr('createdAt') || payload.createdAt,
+        getAttr('updated_at') || payload.updatedAt || getAttr('created_at') || payload.createdAt,
+      createdAt: getAttr('created_at') || payload.createdAt,
     };
   });
 
@@ -277,7 +268,7 @@ async function verifyDuplicates(
 
     if (totalIssues === 0) {
       console.log('\n✅ All duplicates are handled correctly by deduplication logic!');
-      console.log('  Future updates will use Pattern B (updateEntity) with canonical keys');
+      console.log('  Future updates will use Pattern B (in-place patch) with canonical keys');
       console.log(
         '  Old duplicate entities remain on-chain (immutable) but are ignored by queries'
       );

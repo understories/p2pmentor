@@ -7,7 +7,8 @@
 
 import { listSessions, getSessionByKey } from '../lib/arkiv/sessions';
 import { getPublicClient } from '../lib/arkiv/client';
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, getAttr as readAttr } from '@/lib/arkiv/read';
 
 async function testJitsiGeneration() {
   console.log('Testing Jitsi generation...\n');
@@ -27,26 +28,15 @@ async function testJitsiGeneration() {
 
     // Check if Jitsi entity exists directly
     const publicClient = getPublicClient();
-    const jitsiResult = await publicClient
-      .buildQuery()
-      .where(eq('type', 'session_jitsi'))
-      .where(eq('sessionKey', session.key))
-      .withAttributes(true)
-      .withPayload(true)
+    const jitsiResult = await arkivSelect('session_jitsi', publicClient)
+      .where(eqAttr('session_key', session.key))
       .limit(1)
       .fetch();
 
     if (jitsiResult.entities.length > 0) {
       console.log(`✅ Jitsi entity found!`);
       const jitsiEntity = jitsiResult.entities[0];
-      const attrs = jitsiEntity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (key: string): string => readAttr(jitsiEntity, key);
 
       let payload: any = {};
       try {
@@ -63,8 +53,8 @@ async function testJitsiGeneration() {
         console.error('Error decoding payload:', e);
       }
 
-      console.log(`  - Room name: ${payload.videoRoomName || getAttr('videoRoomName') || 'N/A'}`);
-      console.log(`  - Join URL: ${payload.videoJoinUrl || getAttr('videoJoinUrl') || 'N/A'}`);
+      console.log(`  - Room name: ${payload.videoRoomName || 'N/A'}`);
+      console.log(`  - Join URL: ${payload.videoJoinUrl || 'N/A'}`);
     } else {
       console.log(`❌ No Jitsi entity found for this session`);
       if (session.mentorConfirmed && session.learnerConfirmed) {

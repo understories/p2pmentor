@@ -8,8 +8,10 @@
  */
 
 import { getPublicClient, getWalletClientFromPrivateKey } from '@/lib/arkiv/client';
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, getAttr as readAttr, parsePayload } from '@/lib/arkiv/read';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { createArkivEntity } from './write';
 import { SPACE_ID } from '@/lib/config';
 
 /**
@@ -54,7 +56,7 @@ export async function createQuizResult({
   progressEntityKey,
   privateKey,
   spaceId = SPACE_ID,
-  ttlSeconds = 31536000, // 1 year default
+  ttlSeconds, // Optional lifetime override; defaults to the type lifetime (schema.ts)
 }: {
   wallet: string;
   questId: string;
@@ -84,19 +86,17 @@ export async function createQuizResult({
 
   try {
     const walletClient = getWalletClientFromPrivateKey(privateKey);
-    const enc = new TextEncoder();
 
     // Build attributes (queryable fields)
-    const attributes = [
-      { key: 'type', value: 'learner_quest_assessment_result' },
-      { key: 'wallet', value: normalizedWallet },
-      { key: 'questId', value: questId },
-      { key: 'stepId', value: stepId },
-      { key: 'rubricVersion', value: rubricVersion },
-      { key: 'spaceId', value: finalSpaceId },
-      { key: 'createdAt', value: createdAt },
-      { key: 'passed', value: String(passed) },
-    ];
+    const attributes = {
+      wallet: normalizedWallet,
+      quest_id: questId,
+      step_id: stepId,
+      rubric_version: rubricVersion,
+      space_id: finalSpaceId,
+      created_at: createdAt,
+      passed: String(passed),
+    };
 
     // Build payload (non-queryable content)
     const payload = {
@@ -110,29 +110,29 @@ export async function createQuizResult({
       completedAt: createdAt,
     };
 
-    const { txHash } = await handleTransactionWithTimeout(async () => {
-      return await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify(payload)),
-        contentType: 'application/json',
+    const { entityKey: arkivEntityKey, txHash } = await handleTransactionWithTimeout(async () => {
+      return await createArkivEntity(walletClient, {
+        type: 'learner_quest_assessment_result',
         attributes,
-        expiresIn: ttlSeconds,
+        payload,
+        lifetimeSeconds: ttlSeconds,
       });
     });
 
     // Create txhash entity for observability (fire and forget)
-    walletClient
-      .createEntity({
-        payload: enc.encode(JSON.stringify({ txHash, resultKey: entityKey })),
-        contentType: 'application/json',
-        attributes: [
-          { key: 'type', value: 'learner_quest_assessment_result_txhash' },
-          { key: 'resultKey', value: entityKey },
-          { key: 'txHash', value: txHash },
-          { key: 'spaceId', value: finalSpaceId },
-          { key: 'createdAt', value: createdAt },
-        ],
-        expiresIn: ttlSeconds,
-      })
+    // result_key is the Arkiv entity key: the stable key string exceeds the 128-byte
+    // attribute limit, so it is kept in the payload only.
+    createArkivEntity(walletClient, {
+      type: 'learner_quest_assessment_result_txhash',
+      attributes: {
+        result_key: arkivEntityKey,
+        tx_hash: txHash,
+        space_id: finalSpaceId,
+        created_at: createdAt,
+      },
+      payload: { txHash, resultKey: entityKey },
+      lifetimeSeconds: ttlSeconds,
+    })
       .catch((err) => {
         console.warn('[createQuizResult] Failed to create txhash entity:', err);
       });
@@ -164,26 +164,24 @@ export async function getQuizResults({
 
   try {
     const publicClient = getPublicClient();
-    const query = publicClient.buildQuery();
+    const query = arkivSelect('learner_quest_assessment_result', publicClient);
 
-    let queryBuilder = query
-      .where(eq('type', 'learner_quest_assessment_result'))
-      .where(eq('spaceId', finalSpaceId));
+    let queryBuilder = query.where(eqAttr('space_id', finalSpaceId));
 
     if (wallet) {
-      queryBuilder = queryBuilder.where(eq('wallet', wallet.toLowerCase()));
+      queryBuilder = queryBuilder.where(eqAttr('wallet', wallet.toLowerCase()));
     }
     if (questId) {
-      queryBuilder = queryBuilder.where(eq('questId', questId));
+      queryBuilder = queryBuilder.where(eqAttr('quest_id', questId));
     }
     if (stepId) {
-      queryBuilder = queryBuilder.where(eq('stepId', stepId));
+      queryBuilder = queryBuilder.where(eqAttr('step_id', stepId));
     }
     if (rubricVersion) {
-      queryBuilder = queryBuilder.where(eq('rubricVersion', rubricVersion));
+      queryBuilder = queryBuilder.where(eqAttr('rubric_version', rubricVersion));
     }
 
-    const result = await queryBuilder.withAttributes(true).withPayload(true).limit(100).fetch();
+    const result = await queryBuilder.limit(100).fetch();
 
     // Defensive check
     if (!result || !result.entities || !Array.isArray(result.entities)) {
@@ -196,30 +194,26 @@ export async function getQuizResults({
 
     for (const entity of result.entities) {
       try {
-        const payload = entity.payload ? JSON.parse(new TextDecoder().decode(entity.payload)) : {};
+        const payload: any = parsePayload(entity);
 
-        const walletAttr = entity.attributes.find((a) => a.key === 'wallet')?.value;
-        const questIdAttr = entity.attributes.find((a) => a.key === 'questId')?.value;
-        const stepIdAttr = entity.attributes.find((a) => a.key === 'stepId')?.value;
-        const rubricVersionAttr = entity.attributes.find((a) => a.key === 'rubricVersion')?.value;
-        const passedAttr = entity.attributes.find((a) => a.key === 'passed')?.value;
-        const createdAtAttr = entity.attributes.find((a) => a.key === 'createdAt')?.value;
+        const passedAttr = readAttr(entity, 'passed');
+        const createdAtAttr = readAttr(entity, 'created_at');
 
         const quizResult: QuizResult = {
           key: entity.key,
-          wallet: typeof walletAttr === 'string' ? walletAttr : '',
-          questId: typeof questIdAttr === 'string' ? questIdAttr : '',
-          stepId: typeof stepIdAttr === 'string' ? stepIdAttr : '',
-          rubricVersion: typeof rubricVersionAttr === 'string' ? rubricVersionAttr : '',
+          wallet: readAttr(entity, 'wallet'),
+          questId: readAttr(entity, 'quest_id'),
+          stepId: readAttr(entity, 'step_id'),
+          rubricVersion: readAttr(entity, 'rubric_version'),
           questionIds: payload.questionIds || [],
           answers: payload.answers || {},
           score: payload.score || 0,
           maxScore: payload.maxScore || 0,
           percentage: payload.percentage || 0,
-          passed: passedAttr === 'true' || passedAttr === '1' || passedAttr === 1,
+          passed: passedAttr === 'true' || passedAttr === '1',
           progressEntityKey: payload.progressEntityKey || '',
           completedAt:
-            payload.completedAt || (typeof createdAtAttr === 'string' ? createdAtAttr : '') || '',
+            payload.completedAt || createdAtAttr || '',
           spaceId: finalSpaceId,
           txHash: undefined, // Would need to query txhash entity to get this
         };

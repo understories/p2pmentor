@@ -6,9 +6,11 @@
  * Reference: refs/doc/learner_communities.md
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { createArkivEntity } from './write';
 import { SPACE_ID } from '@/lib/config';
 
 export type LearningFollow = {
@@ -39,33 +41,26 @@ export async function createLearningFollow({
   spaceId?: string;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const createdAt = new Date().toISOString();
   const active = true;
 
-  // LearningFollow should persist long-term (1 year)
-  const expiresIn = 31536000; // 1 year in seconds
-
+  // LearningFollow should persist long-term (type default lifetime from schema.ts)
   const result = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(
-        JSON.stringify({
-          mode,
-          active,
-          createdAt,
-        })
-      ),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'learning_follow' },
-        { key: 'profile_wallet', value: profile_wallet.toLowerCase() },
-        { key: 'skill_id', value: skill_id },
-        { key: 'mode', value: mode },
-        { key: 'active', value: String(active) },
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: createdAt },
-      ],
-      expiresIn,
+    return await createArkivEntity(walletClient, {
+      type: 'learning_follow',
+      attributes: {
+        profile_wallet: profile_wallet.toLowerCase(),
+        skill_id,
+        mode,
+        active: String(active),
+        space_id: spaceId,
+        created_at: createdAt,
+      },
+      payload: {
+        mode,
+        active,
+        createdAt,
+      },
     });
   });
 
@@ -73,17 +68,15 @@ export async function createLearningFollow({
 
   // Store txHash in separate entity for reliable querying
   try {
-    await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify({ txHash })),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'learning_follow_txhash' },
-        { key: 'followKey', value: entityKey },
-        { key: 'profile_wallet', value: profile_wallet.toLowerCase() },
-        { key: 'skill_id', value: skill_id },
-        { key: 'spaceId', value: spaceId },
-      ],
-      expiresIn,
+    await createArkivEntity(walletClient, {
+      type: 'learning_follow_txhash',
+      attributes: {
+        follow_key: entityKey,
+        profile_wallet: profile_wallet.toLowerCase(),
+        skill_id,
+        space_id: spaceId,
+      },
+      payload: { txHash },
     });
   } catch (error: any) {
     console.warn(
@@ -117,31 +110,21 @@ export async function listLearningFollows({
     const publicClient = getPublicClient();
 
     // Build query with space ID filtering
-    let queryBuilder = publicClient
-      .buildQuery()
-      .where(eq('type', 'learning_follow'))
-      .withAttributes(true)
-      .withPayload(true);
+    let queryBuilder = arkivSelect('learning_follow', publicClient);
 
     // Support multiple spaceIds (builder mode) or single spaceId
     if (spaceIds && spaceIds.length > 0) {
-      // Query all, filter client-side (Arkiv doesn't support OR queries)
-      queryBuilder = queryBuilder.limit(limit || 100);
+      // Query all, filter client-side (OR queries are not used here)
     } else {
       // Use provided spaceId or default to SPACE_ID from config
       const finalSpaceId = spaceId || SPACE_ID;
-      queryBuilder = queryBuilder.where(eq('spaceId', finalSpaceId)).limit(limit || 100);
+      queryBuilder = queryBuilder.where(eqAttr('space_id', finalSpaceId));
     }
 
     // Fetch follow entities and txHash entities in parallel
     const [result, txHashResult] = await Promise.all([
-      queryBuilder.fetch(),
-      publicClient
-        .buildQuery()
-        .where(eq('type', 'learning_follow_txhash'))
-        .withAttributes(true)
-        .withPayload(true)
-        .fetch(),
+      fetchAll(queryBuilder, limit || 100, publicClient),
+      fetchAll(arkivSelect('learning_follow_txhash', publicClient), 500, publicClient),
     ]);
 
     if (!result || !result.entities || !Array.isArray(result.entities)) {
@@ -153,15 +136,8 @@ export async function listLearningFollows({
     const txHashMap: Record<string, string> = {};
     if (txHashResult?.entities && Array.isArray(txHashResult.entities)) {
       txHashResult.entities.forEach((entity: any) => {
-        const attrs = entity.attributes || {};
-        const getAttr = (key: string): string => {
-          if (Array.isArray(attrs)) {
-            const attr = attrs.find((a: any) => a.key === key);
-            return String(attr?.value || '');
-          }
-          return String(attrs[key] || '');
-        };
-        const followKey = getAttr('followKey');
+        const getAttr = (key: string): string => readAttr(entity, key);
+        const followKey = getAttr('follow_key');
         try {
           if (entity.payload) {
             const decoded =
@@ -197,14 +173,7 @@ export async function listLearningFollows({
         console.error('[listLearningFollows] Error decoding payload:', e);
       }
 
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (key: string): string => readAttr(entity, key);
 
       return {
         key: entity.key,
@@ -212,8 +181,8 @@ export async function listLearningFollows({
         skill_id: getAttr('skill_id'),
         mode: (getAttr('mode') || 'learning') as 'learning' | 'teaching' | 'both',
         active: getAttr('active') === 'true' || payload.active === true,
-        spaceId: getAttr('spaceId') || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
-        createdAt: getAttr('createdAt') || payload.createdAt,
+        spaceId: getAttr('space_id') || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
+        createdAt: getAttr('created_at') || payload.createdAt,
         txHash: txHashMap[entity.key] || payload.txHash || undefined,
       };
     });
@@ -290,33 +259,26 @@ export async function unfollowSkill({
   // For beta: Create a new entity with active = false
   // This maintains immutability while allowing "unfollow" functionality
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const createdAt = new Date().toISOString();
   const active = false;
 
-  const expiresIn = 31536000; // 1 year in seconds
-
   const result = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(
-        JSON.stringify({
-          mode: 'learning', // Default mode
-          active,
-          createdAt,
-          unfollowed: true, // Flag to indicate this is an unfollow
-        })
-      ),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'learning_follow' },
-        { key: 'profile_wallet', value: profile_wallet.toLowerCase() },
-        { key: 'skill_id', value: skill_id },
-        { key: 'mode', value: 'learning' },
-        { key: 'active', value: String(active) },
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: createdAt },
-      ],
-      expiresIn,
+    return await createArkivEntity(walletClient, {
+      type: 'learning_follow',
+      attributes: {
+        profile_wallet: profile_wallet.toLowerCase(),
+        skill_id,
+        mode: 'learning',
+        active: String(active),
+        space_id: spaceId,
+        created_at: createdAt,
+      },
+      payload: {
+        mode: 'learning', // Default mode
+        active,
+        createdAt,
+        unfollowed: true, // Flag to indicate this is an unfollow
+      },
     });
   });
 

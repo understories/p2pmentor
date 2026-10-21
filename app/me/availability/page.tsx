@@ -26,6 +26,7 @@ import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { EntityWriteInfo } from '@/components/EntityWriteInfo';
+import { getArkivExplorerTxUrl } from '@/lib/arkiv/explorer';
 
 export default function AvailabilityPage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -356,7 +357,7 @@ export default function AvailabilityPage() {
                       <div className="ml-4 flex items-center gap-2">
                         {!arkivBuilderMode && availability.txHash && (
                           <a
-                            href={`https://explorer.braga.hoodi.arkiv.network/tx/${availability.txHash}`}
+                            href={getArkivExplorerTxUrl(availability.txHash)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs text-blue-600 hover:underline dark:text-blue-400"
@@ -638,7 +639,7 @@ export default function AvailabilityPage() {
                         <div className="ml-4 flex items-center gap-2">
                           {!arkivBuilderMode && availability.txHash && (
                             <a
-                              href={`https://explorer.braga.hoodi.arkiv.network/tx/${availability.txHash}`}
+                              href={getArkivExplorerTxUrl(availability.txHash)}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-xs text-blue-600 hover:underline dark:text-blue-400"

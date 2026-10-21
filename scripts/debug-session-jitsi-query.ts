@@ -4,7 +4,8 @@
 
 import { listSessions } from '../lib/arkiv/sessions';
 import { getPublicClient } from '../lib/arkiv/client';
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, getAttr as readAttr } from '@/lib/arkiv/read';
 
 async function debugSessionJitsiQuery() {
   console.log('=== Debugging Session-Jitsi Matching ===\n');
@@ -23,12 +24,8 @@ async function debugSessionJitsiQuery() {
 
     // Query Jitsi entities directly for this session key
     const publicClient = getPublicClient();
-    const jitsiQuery = await publicClient
-      .buildQuery()
-      .where(eq('type', 'session_jitsi'))
-      .where(eq('sessionKey', session.key))
-      .withAttributes(true)
-      .withPayload(true)
+    const jitsiQuery = await arkivSelect('session_jitsi', publicClient)
+      .where(eqAttr('session_key', session.key))
       .limit(10)
       .fetch();
 
@@ -37,14 +34,7 @@ async function debugSessionJitsiQuery() {
 
     if (jitsiQuery.entities.length > 0) {
       jitsiQuery.entities.forEach((entity: any, idx: number) => {
-        const attrs = entity.attributes || {};
-        const getAttr = (key: string): string => {
-          if (Array.isArray(attrs)) {
-            const attr = attrs.find((a: any) => a.key === key);
-            return String(attr?.value || '');
-          }
-          return String(attrs[key] || '');
-        };
+        const getAttr = (key: string): string => readAttr(entity, key);
 
         let payload: any = {};
         try {
@@ -61,38 +51,26 @@ async function debugSessionJitsiQuery() {
           console.error('  Error decoding payload:', e);
         }
 
-        const sessionKeyFromEntity = getAttr('sessionKey');
+        const sessionKeyFromEntity = getAttr('session_key');
         console.log(`\n  Entity ${idx + 1}:`);
         console.log(`    Entity key: ${entity.key}`);
         console.log(`    Session key from entity: ${sessionKeyFromEntity}`);
         console.log(`    Session key from session: ${session.key}`);
         console.log(`    Match: ${sessionKeyFromEntity === session.key}`);
-        console.log(`    Room name: ${payload.videoRoomName || getAttr('videoRoomName') || 'N/A'}`);
-        console.log(`    Join URL: ${payload.videoJoinUrl || getAttr('videoJoinUrl') || 'N/A'}`);
+        console.log(`    Room name: ${payload.videoRoomName || 'N/A'}`);
+        console.log(`    Join URL: ${payload.videoJoinUrl || 'N/A'}`);
       });
     } else {
       // Try querying all Jitsi entities to see what sessionKeys exist
-      const allJitsi = await publicClient
-        .buildQuery()
-        .where(eq('type', 'session_jitsi'))
-        .withAttributes(true)
-        .limit(20)
-        .fetch();
+      const allJitsi = await arkivSelect('session_jitsi', publicClient).limit(20).fetch();
 
       console.log(`\n  No match found. Checking all Jitsi entities...`);
       console.log(`  Total Jitsi entities: ${allJitsi.entities.length}`);
 
       const sessionKeysInJitsi = new Set<string>();
       allJitsi.entities.forEach((entity: any) => {
-        const attrs = entity.attributes || {};
-        const getAttr = (key: string): string => {
-          if (Array.isArray(attrs)) {
-            const attr = attrs.find((a: any) => a.key === key);
-            return String(attr?.value || '');
-          }
-          return String(attrs[key] || '');
-        };
-        const sk = getAttr('sessionKey');
+        const getAttr = (key: string): string => readAttr(entity, key);
+        const sk = getAttr('session_key');
         if (sk) sessionKeysInJitsi.add(sk);
       });
 

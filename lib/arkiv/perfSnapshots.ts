@@ -7,9 +7,11 @@
  * Reference: Performance monitoring best practices
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { createArkivEntity } from './write';
 import { SPACE_ID } from '@/lib/config';
 
 export type PerfSnapshot = {
@@ -19,7 +21,7 @@ export type PerfSnapshot = {
   method: 'arkiv' | 'graphql' | 'both'; // Which method was actually tested (may differ from requested)
   arkivMetadata?: {
     blockHeight?: number; // Arkiv block height at snapshot time
-    chainId?: number; // Chain ID (Braga testnet)
+    chainId?: number; // Chain ID (Arkiv testnet)
     timestamp: string; // ISO timestamp when metadata was captured
   };
   graphql?: {
@@ -67,7 +69,6 @@ export async function createPerfSnapshot({
   spaceId?: string;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const createdAt = snapshot.createdAt || new Date().toISOString();
 
   const payload = {
@@ -81,39 +82,34 @@ export async function createPerfSnapshot({
     createdAt,
   };
 
-  // Performance snapshots should persist long-term (1 year) for historical analysis
-  const expiresIn = 31536000; // 1 year in seconds
+  // Performance snapshots use the type default lifetime (see lib/arkiv/schema.ts)
 
   // Wrap in handleTransactionWithTimeout to handle receipt timeouts gracefully (same pattern as createDxMetric)
   const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify(payload)),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'perf_snapshot' },
-        { key: 'operation', value: snapshot.operation },
-        { key: 'method', value: snapshot.method },
-        { key: 'timestamp', value: snapshot.timestamp },
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: createdAt },
-      ],
-      expiresIn,
+    return await createArkivEntity(walletClient, {
+      type: 'perf_snapshot',
+      attributes: {
+        operation: snapshot.operation,
+        method: snapshot.method,
+        timestamp: snapshot.timestamp,
+        space_id: spaceId,
+        created_at: createdAt,
+      },
+      payload,
     });
   });
 
   // Store txHash in a separate entity for reliable querying
   // This can fail gracefully - the main entity is more important (same pattern as createDxMetric)
   try {
-    await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify({ txHash })),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'perf_snapshot_txhash' },
-        { key: 'snapshotKey', value: entityKey },
-        { key: 'operation', value: snapshot.operation },
-        { key: 'spaceId', value: spaceId },
-      ],
-      expiresIn,
+    await createArkivEntity(walletClient, {
+      type: 'perf_snapshot_txhash',
+      attributes: {
+        snapshot_key: entityKey,
+        operation: snapshot.operation,
+        space_id: spaceId,
+      },
+      payload: { txHash },
     });
   } catch (error: any) {
     // If txHash entity creation fails but we have the main entity, log and continue
@@ -144,21 +140,15 @@ export async function listPerfSnapshots({
   try {
     const publicClient = getPublicClient();
 
+    // Filter operation/method on the node when given (also re-checked client-side below)
+    let snapshotQuery = arkivSelect('perf_snapshot', publicClient);
+    if (operation) snapshotQuery = snapshotQuery.where(eqAttr('operation', operation));
+    if (method) snapshotQuery = snapshotQuery.where(eqAttr('method', method));
+
     // Fetch snapshot entities and txHash entities in parallel
     const [result, txHashResult] = await Promise.all([
-      publicClient
-        .buildQuery()
-        .where(eq('type', 'perf_snapshot'))
-        .withAttributes(true)
-        .withPayload(true)
-        .limit(limit || 100)
-        .fetch(),
-      publicClient
-        .buildQuery()
-        .where(eq('type', 'perf_snapshot_txhash'))
-        .withAttributes(true)
-        .withPayload(true)
-        .fetch(),
+      fetchAll(snapshotQuery, limit || 100, publicClient),
+      fetchAll(arkivSelect('perf_snapshot_txhash', publicClient), 1000, publicClient),
     ]);
 
     if (!result || !result.entities || !Array.isArray(result.entities)) {
@@ -170,15 +160,8 @@ export async function listPerfSnapshots({
     const txHashMap: Record<string, string> = {};
     if (txHashResult?.entities && Array.isArray(txHashResult.entities)) {
       txHashResult.entities.forEach((entity: any) => {
-        const attrs = entity.attributes || {};
-        const getAttr = (key: string): string => {
-          if (Array.isArray(attrs)) {
-            const attr = attrs.find((a: any) => a.key === key);
-            return String(attr?.value || '');
-          }
-          return String(attrs[key] || '');
-        };
-        const snapshotKey = getAttr('snapshotKey');
+        const getAttr = (key: string): string => readAttr(entity, key);
+        const snapshotKey = getAttr('snapshot_key');
         try {
           if (entity.payload) {
             const decoded =
@@ -214,14 +197,7 @@ export async function listPerfSnapshots({
         console.error('Error decoding perf snapshot payload:', e);
       }
 
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (key: string): string => readAttr(entity, key);
 
       return {
         key: entity.key,
@@ -231,7 +207,7 @@ export async function listPerfSnapshots({
         graphql: payload.graphql,
         arkiv: payload.arkiv,
         pageLoadTimes: payload.pageLoadTimes,
-        createdAt: payload.createdAt || getAttr('createdAt'),
+        createdAt: payload.createdAt || getAttr('created_at'),
         txHash: txHashMap[entity.key] || payload.txHash || entity.txHash || undefined,
       };
     });

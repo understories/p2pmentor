@@ -7,10 +7,23 @@
  * Reference: refs/learner-quests-implementation-plan.md
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr, lifetimeSecondsFor } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr, parsePayload } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
-import { SPACE_ID } from '../config';
+import { createArkivEntity } from './write';
+import { SERVER_SIGNER_ADDRESS, SPACE_ID } from '../config';
+
+/**
+ * Start a query over learner_quest entities.
+ *
+ * Learner quest definitions are only written with the server key (admin seed scripts and
+ * /api/learner-quests/create), so reads are scoped to the server signer when it is known.
+ */
+export function learnerQuestSelect(publicClient: ReturnType<typeof getPublicClient> = getPublicClient()) {
+  const q = arkivSelect('learner_quest', publicClient);
+  return SERVER_SIGNER_ADDRESS ? q.createdBy(SERVER_SIGNER_ADDRESS) : q;
+}
 
 export type LearnerQuestMaterial = {
   id: string;
@@ -144,17 +157,23 @@ export async function createLearnerQuest({
       throw new Error('Failed to get wallet client');
     }
 
-    const enc = new TextEncoder();
     const createdAt = new Date().toISOString();
 
     // For meta_learning quests, store steps in payload instead of materials
+    // title/description/source are long text or URLs, so they live in the payload (not attributes)
     const payloadData =
       questType === 'meta_learning'
         ? {
+            title,
+            description,
+            source,
             steps: steps || [],
             metadata: metadata || {},
           }
         : {
+            title,
+            description,
+            source,
             materials: materials || [],
             metadata: {
               totalMaterials: (materials || []).length,
@@ -164,41 +183,35 @@ export async function createLearnerQuest({
           };
 
     const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
-      return await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify(payloadData)),
-        contentType: 'application/json',
-        attributes: [
-          { key: 'type', value: 'learner_quest' },
-          { key: 'questId', value: questId },
-          { key: 'title', value: title },
-          { key: 'description', value: description },
-          { key: 'source', value: source },
-          { key: 'questType', value: questType },
-          { key: 'questVersion', value: questVersion || '1' }, // Default to '1' for backward compatibility
-          ...(creatorWallet ? [{ key: 'creatorWallet', value: creatorWallet.toLowerCase() }] : []), // Normalize wallet
-          { key: 'status', value: 'active' },
-          { key: 'spaceId', value: spaceId },
-          { key: 'createdAt', value: createdAt },
-        ],
-        // Long-term TTL (10 years - quest definitions are curated content)
-        expiresIn: 315360000, // 10 years in seconds
+      // Lifetime: learner_quest type default (curated content, renewed)
+      return await createArkivEntity(walletClient, {
+        type: 'learner_quest',
+        attributes: {
+          quest_id: questId,
+          quest_type: questType,
+          quest_version: questVersion || '1', // Default to '1' for backward compatibility
+          creator_wallet: creatorWallet ? creatorWallet.toLowerCase() : undefined, // Normalize wallet
+          status: 'active',
+          space_id: spaceId,
+          created_at: createdAt,
+        },
+        payload: payloadData,
       });
     });
 
     // Create txhash entity
     try {
       await handleTransactionWithTimeout(async () => {
-        return await walletClient.createEntity({
-          payload: enc.encode(JSON.stringify({})),
-          contentType: 'application/json',
-          attributes: [
-            { key: 'type', value: 'learner_quest_txhash' },
-            { key: 'questKey', value: entityKey },
-            { key: 'txHash', value: txHash },
-            { key: 'spaceId', value: spaceId },
-            { key: 'createdAt', value: createdAt },
-          ],
-          expiresIn: 315360000, // 10 years (matches quest entity)
+        return await createArkivEntity(walletClient, {
+          type: 'learner_quest_txhash',
+          attributes: {
+            quest_key: entityKey,
+            tx_hash: txHash,
+            space_id: spaceId,
+            created_at: createdAt,
+          },
+          payload: {},
+          lifetimeSeconds: lifetimeSecondsFor('learner_quest'), // matches quest entity
         });
       });
     } catch (error) {
@@ -227,15 +240,11 @@ export async function listLearnerQuests(options?: {
     const publicClient = getPublicClient();
 
     // Build query with space ID filtering
-    let queryBuilder = publicClient
-      .buildQuery()
-      .where(eq('type', 'learner_quest'))
-      .where(eq('status', 'active'));
+    let queryBuilder = learnerQuestSelect(publicClient).where(eqAttr('status', 'active'));
 
     // Support multiple spaceIds (builder mode) or single spaceId
     if (options?.spaceIds && options.spaceIds.length > 0) {
       // Query all, filter client-side (Arkiv doesn't support OR queries)
-      queryBuilder = queryBuilder.limit(100);
       console.log('[listLearnerQuests] Querying multiple spaceIds:', options.spaceIds);
     } else {
       // Use provided spaceId or default to SPACE_ID from config
@@ -244,15 +253,15 @@ export async function listLearnerQuests(options?: {
         providedSpaceId: options?.spaceId,
         defaultSPACE_ID: SPACE_ID,
       });
-      queryBuilder = queryBuilder.where(eq('spaceId', finalSpaceId)).limit(100);
+      queryBuilder = queryBuilder.where(eqAttr('space_id', finalSpaceId));
     }
 
     // Filter by quest type if specified (but exclude meta_learning since we load from JSON)
     if (options?.questType && options.questType !== 'meta_learning') {
-      queryBuilder = queryBuilder.where(eq('questType', options.questType));
+      queryBuilder = queryBuilder.where(eqAttr('quest_type', options.questType));
     }
 
-    const result = await queryBuilder.withAttributes(true).withPayload(true).fetch();
+    const result = await queryBuilder.limit(100).fetch();
 
     console.log('[listLearnerQuests] Raw query result:', {
       entityCount: result?.entities?.length || 0,
@@ -266,14 +275,7 @@ export async function listLearnerQuests(options?: {
     }
 
     // Helper to get attribute value
-    const getAttr = (entity: any, key: string): string => {
-      const attrs = entity.attributes || {};
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (entity: any, key: string): string => readAttr(entity, key);
 
     // Map entities to quest objects
     const quests: LearnerQuest[] = result.entities
@@ -288,23 +290,24 @@ export async function listLearnerQuests(options?: {
           const payload = JSON.parse(decoded);
 
           // Default to 'reading_list' for backward compatibility
-          const questType = (getAttr(entity, 'questType') || 'reading_list') as
+          const questType = (getAttr(entity, 'quest_type') || 'reading_list') as
             | 'reading_list'
             | 'language_assessment'
             | 'meta_learning';
 
           const quest: LearnerQuest = {
             key: entity.key,
-            questId: getAttr(entity, 'questId'),
-            title: getAttr(entity, 'title'),
-            description: getAttr(entity, 'description'),
-            source: getAttr(entity, 'source'),
+            questId: getAttr(entity, 'quest_id'),
+            // title/description/source live in the payload (attribute fallback for legacy entities)
+            title: payload.title || getAttr(entity, 'title'),
+            description: payload.description || getAttr(entity, 'description'),
+            source: payload.source || getAttr(entity, 'source'),
             questType,
-            questVersion: getAttr(entity, 'questVersion') || '1', // Default to '1' for backward compatibility
-            creatorWallet: getAttr(entity, 'creatorWallet') || undefined, // Optional
+            questVersion: getAttr(entity, 'quest_version') || '1', // Default to '1' for backward compatibility
+            creatorWallet: getAttr(entity, 'creator_wallet') || undefined, // Optional
             status: getAttr(entity, 'status') as 'active' | 'archived',
-            spaceId: getAttr(entity, 'spaceId') || SPACE_ID,
-            createdAt: getAttr(entity, 'createdAt'),
+            spaceId: getAttr(entity, 'space_id') || SPACE_ID,
+            createdAt: getAttr(entity, 'created_at'),
             txHash: (entity as any).txHash || undefined,
           };
 
@@ -355,13 +358,9 @@ export async function getLearnerQuest(questId: string): Promise<LearnerQuest | n
     // This keeps fs/path imports out of the library code
 
     const publicClient = getPublicClient();
-    const result = await publicClient
-      .buildQuery()
-      .where(eq('type', 'learner_quest'))
-      .where(eq('questId', questId))
-      .where(eq('status', 'active'))
-      .withAttributes(true)
-      .withPayload(true)
+    const result = await learnerQuestSelect(publicClient)
+      .where(eqAttr('quest_id', questId))
+      .where(eqAttr('status', 'active'))
       .limit(100)
       .fetch();
 
@@ -370,14 +369,7 @@ export async function getLearnerQuest(questId: string): Promise<LearnerQuest | n
     }
 
     // Helper to get attribute value
-    const getAttr = (entity: any, key: string): string => {
-      const attrs = entity.attributes || {};
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (entity: any, key: string): string => readAttr(entity, key);
 
     // Get most recent quest definition (immutability pattern)
     const quests: LearnerQuest[] = result.entities
@@ -392,7 +384,7 @@ export async function getLearnerQuest(questId: string): Promise<LearnerQuest | n
           const payload = JSON.parse(decoded);
 
           // Default to 'reading_list' for backward compatibility
-          const questType = (getAttr(entity, 'questType') || 'reading_list') as
+          const questType = (getAttr(entity, 'quest_type') || 'reading_list') as
             | 'reading_list'
             | 'language_assessment'
             | 'meta_learning';
@@ -401,16 +393,17 @@ export async function getLearnerQuest(questId: string): Promise<LearnerQuest | n
           // For language_assessment quests, payload contains the full LanguageAssessmentQuest structure
           const quest: LearnerQuest = {
             key: entity.key,
-            questId: getAttr(entity, 'questId'),
-            title: getAttr(entity, 'title'),
-            description: getAttr(entity, 'description'),
-            source: getAttr(entity, 'source'),
+            questId: getAttr(entity, 'quest_id'),
+            // title/description/source live in the payload (attribute fallback for legacy entities)
+            title: payload.title || getAttr(entity, 'title'),
+            description: payload.description || getAttr(entity, 'description'),
+            source: payload.source || getAttr(entity, 'source'),
             questType,
-            questVersion: getAttr(entity, 'questVersion') || '1', // Default to '1' for backward compatibility
-            creatorWallet: getAttr(entity, 'creatorWallet') || undefined, // Optional
+            questVersion: getAttr(entity, 'quest_version') || '1', // Default to '1' for backward compatibility
+            creatorWallet: getAttr(entity, 'creator_wallet') || undefined, // Optional
             status: getAttr(entity, 'status') as 'active' | 'archived',
-            spaceId: getAttr(entity, 'spaceId') || SPACE_ID,
-            createdAt: getAttr(entity, 'createdAt'),
+            spaceId: getAttr(entity, 'space_id') || SPACE_ID,
+            createdAt: getAttr(entity, 'created_at'),
             txHash: (entity as any).txHash || undefined,
           };
 
@@ -462,53 +455,46 @@ export async function markMaterialAsRead({
       throw new Error('Failed to get wallet client');
     }
 
-    const enc = new TextEncoder();
     const now = new Date().toISOString();
     const normalizedWallet = wallet.toLowerCase();
 
     const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
-      return await walletClient.createEntity({
-        payload: enc.encode(
-          JSON.stringify({
-            wallet: normalizedWallet,
-            questId,
-            materialId,
-            status: 'read',
-            readAt: now,
-            metadata: {
-              clickedAt: now,
-              sourceUrl,
-            },
-          })
-        ),
-        contentType: 'application/json',
-        attributes: [
-          { key: 'type', value: 'learner_quest_progress' },
-          { key: 'wallet', value: normalizedWallet },
-          { key: 'questId', value: questId },
-          { key: 'materialId', value: materialId },
-          { key: 'status', value: 'read' },
-          { key: 'spaceId', value: spaceId },
-          { key: 'createdAt', value: now },
-        ],
-        expiresIn: 31536000, // 1 year (same as onboarding events)
+      return await createArkivEntity(walletClient, {
+        type: 'learner_quest_progress',
+        attributes: {
+          wallet: normalizedWallet,
+          quest_id: questId,
+          material_id: materialId,
+          status: 'read',
+          space_id: spaceId,
+          created_at: now,
+        },
+        payload: {
+          wallet: normalizedWallet,
+          questId,
+          materialId,
+          status: 'read',
+          readAt: now,
+          metadata: {
+            clickedAt: now,
+            sourceUrl,
+          },
+        },
       });
     });
 
     // Create txhash entity
     try {
       await handleTransactionWithTimeout(async () => {
-        return await walletClient.createEntity({
-          payload: enc.encode(JSON.stringify({})),
-          contentType: 'application/json',
-          attributes: [
-            { key: 'type', value: 'learner_quest_progress_txhash' },
-            { key: 'progressKey', value: entityKey },
-            { key: 'txHash', value: txHash },
-            { key: 'spaceId', value: spaceId },
-            { key: 'createdAt', value: now },
-          ],
-          expiresIn: 31536000, // 1 year
+        return await createArkivEntity(walletClient, {
+          type: 'learner_quest_progress_txhash',
+          attributes: {
+            progress_key: entityKey,
+            tx_hash: txHash,
+            space_id: spaceId,
+            created_at: now,
+          },
+          payload: {},
         });
       });
     } catch (error) {
@@ -538,29 +524,20 @@ export async function getLearnerQuestProgress({
   try {
     const publicClient = getPublicClient();
     const normalizedWallet = wallet.toLowerCase();
-    const result = await publicClient
-      .buildQuery()
-      .where(eq('type', 'learner_quest_progress'))
-      .where(eq('wallet', normalizedWallet))
-      .where(eq('questId', questId))
-      .withAttributes(true)
-      .withPayload(true)
-      .limit(1000)
-      .fetch();
+    const result = await fetchAll(
+      arkivSelect('learner_quest_progress', publicClient)
+        .where(eqAttr('wallet', normalizedWallet))
+        .where(eqAttr('quest_id', questId)),
+      1000,
+      publicClient
+    );
 
     if (!result?.entities || !Array.isArray(result.entities) || result.entities.length === 0) {
       return {};
     }
 
     // Helper to get attribute value
-    const getAttr = (entity: any, key: string): string => {
-      const attrs = entity.attributes || {};
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (entity: any, key: string): string => readAttr(entity, key);
 
     // Map entities to progress objects
     const allProgress = result.entities
@@ -577,11 +554,11 @@ export async function getLearnerQuestProgress({
           return {
             key: entity.key,
             wallet: getAttr(entity, 'wallet'),
-            questId: getAttr(entity, 'questId'),
-            materialId: getAttr(entity, 'materialId'),
+            questId: getAttr(entity, 'quest_id'),
+            materialId: getAttr(entity, 'material_id'),
             status: getAttr(entity, 'status') as 'read' | 'in_progress' | 'not_started',
             readAt: payload.readAt,
-            createdAt: getAttr(entity, 'createdAt'),
+            createdAt: getAttr(entity, 'created_at'),
             txHash: (entity as any).txHash || undefined,
           };
         } catch (e) {
@@ -650,13 +627,9 @@ export async function updateLearnerQuest({
 
     // 2. Get full quest entity to parse payload
     const publicClient = getPublicClient();
-    const result = await publicClient
-      .buildQuery()
-      .where(eq('type', 'learner_quest'))
-      .where(eq('questId', questId))
-      .where(eq('status', 'active'))
-      .withAttributes(true)
-      .withPayload(true)
+    const result = await learnerQuestSelect(publicClient)
+      .where(eqAttr('quest_id', questId))
+      .where(eqAttr('status', 'active'))
       .limit(100)
       .fetch();
 
@@ -667,15 +640,7 @@ export async function updateLearnerQuest({
     // Get most recent entity (already sorted by createdAt descending in getLearnerQuest)
     const entity = result.entities
       .map((e: any) => {
-        const getAttr = (ent: any, key: string): string => {
-          const attrs = ent.attributes || {};
-          if (Array.isArray(attrs)) {
-            const attr = attrs.find((a: any) => a.key === key);
-            return String(attr?.value || '');
-          }
-          return String(attrs[key] || '');
-        };
-        const createdAt = getAttr(e, 'createdAt');
+        const createdAt = readAttr(e, 'created_at');
         return { ...e, createdAt };
       })
       .sort(
@@ -683,13 +648,7 @@ export async function updateLearnerQuest({
       )[0];
 
     // 3. Parse current payload
-    const decoded =
-      entity.payload instanceof Uint8Array
-        ? new TextDecoder().decode(entity.payload)
-        : typeof entity.payload === 'string'
-          ? entity.payload
-          : JSON.stringify(entity.payload);
-    const currentPayload = JSON.parse(decoded);
+    const currentPayload = parsePayload<any>(entity);
 
     // 4. Merge updates
     const updatedPayload = {

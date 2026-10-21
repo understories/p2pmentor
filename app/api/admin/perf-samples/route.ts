@@ -21,6 +21,7 @@ import { fetchNetworkOverview } from '@/lib/graph/networkQueries';
 import { createDxMetric, listDxMetrics } from '@/lib/arkiv/dxMetrics';
 import { CURRENT_WALLET, getPrivateKey } from '@/lib/config';
 import { authenticateAdmin } from '@/lib/auth/adminAuth';
+import { getArkivExplorerTxUrl } from '@/lib/arkiv/explorer';
 
 /**
  * GET /api/admin/perf-samples
@@ -611,9 +612,9 @@ export async function GET(request: NextRequest) {
             source: e.source,
             operation: e.operation,
             txHash: e.txHash,
-            explorer: `https://explorer.braga.hoodi.arkiv.network/tx/${e.txHash}`,
+            explorer: getArkivExplorerTxUrl(e.txHash),
           })),
-          note: 'Check Braga explorer to verify on-chain. In-memory samples also available at /api/admin/perf-samples',
+          note: 'Check the Arkiv explorer to verify on-chain. In-memory samples also available at /api/admin/perf-samples',
         });
       } catch (error: any) {
         console.error('[seed-perf] Error generating samples:', error);

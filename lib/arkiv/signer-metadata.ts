@@ -5,29 +5,24 @@
  * Adds signer_wallet metadata to entity attributes for auditability.
  */
 
-import { privateKeyToAccount } from '@arkiv-network/sdk/accounts';
+import { privateKeyToAccount } from 'viem/accounts';
+import type { AttrRecord } from './schema';
 
 /**
  * Add signer metadata to attributes
  *
- * @param attributes - Existing attributes
+ * @param attributes - Existing attributes (snake_case record)
  * @param privateKey - Private key to derive signing wallet from
  * @returns Attributes with signer_wallet added
  */
-export function addSignerMetadata(
-  attributes: Array<{ key: string; value: string }>,
+export function addSignerMetadata<T extends AttrRecord>(
+  attributes: T,
   privateKey: `0x${string}`
-): Array<{ key: string; value: string }> {
-  const signerWallet = privateKeyToAccount(privateKey).address;
-
-  // Check if signer_wallet already exists (avoid duplicates)
-  const hasSignerMetadata = attributes.some((attr) => attr.key === 'signer_wallet');
-
-  if (hasSignerMetadata) {
-    return attributes; // Already has signer metadata
+): T & { signer_wallet: string } {
+  if (typeof attributes.signer_wallet === 'string' && attributes.signer_wallet) {
+    return attributes as T & { signer_wallet: string };
   }
-
-  return [...attributes, { key: 'signer_wallet', value: signerWallet.toLowerCase() }];
+  return { ...attributes, signer_wallet: getSignerWallet(privateKey) };
 }
 
 /**

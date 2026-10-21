@@ -9,6 +9,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { arkivSelect } from '@/lib/arkiv/read';
+import { eqAttr } from '@/lib/arkiv/schema';
 import {
   createSession,
   listSessions,
@@ -301,25 +303,20 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        // Check for Braga/transaction errors that might indicate concurrent confirmation
+        // Check for transaction errors that might indicate concurrent confirmation
         if (
           errorMessage.includes('replacement transaction') ||
           errorMessage.includes('underpriced') ||
           errorMessage.includes('nonce') ||
-          errorMessage.toLowerCase().includes('braga') ||
           errorMessage.includes('Transaction is still processing')
         ) {
           // This could be a concurrent confirmation - check if confirmation actually exists
           try {
             const { getPublicClient } = await import('@/lib/arkiv/client');
-            const { eq } = await import('@arkiv-network/sdk/query');
             const publicClient = getPublicClient();
-            const existingConfirmations = await publicClient
-              .buildQuery()
-              .where(eq('type', 'session_confirmation'))
-              .where(eq('sessionKey', sessionKey))
-              .where(eq('confirmedBy', confirmedByWallet.toLowerCase()))
-              .withAttributes(true)
+            const existingConfirmations = await arkivSelect('session_confirmation', publicClient)
+              .where(eqAttr('session_key', sessionKey))
+              .where(eqAttr('confirmed_by', confirmedByWallet.toLowerCase()))
               .limit(1)
               .fetch();
 

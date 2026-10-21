@@ -14,6 +14,14 @@ import { EntityList } from '@/components/explorer/EntityList';
 import { AllTransactionsList } from '@/components/explorer/AllTransactionsList';
 import { HowItWorks } from '@/components/explorer/HowItWorks';
 import { ExplorerSidebar } from '@/components/explorer/ExplorerSidebar';
+import { getArkivExplorerAddressUrl } from '@/lib/arkiv/explorer';
+
+/**
+ * Public address of the app's server signing wallet (shows its recent activity).
+ * Override with NEXT_PUBLIC_ARKIV_SIGNER_ADDRESS when the signer key changes.
+ */
+const EXPLORER_SIGNER_ADDRESS =
+  process.env.NEXT_PUBLIC_ARKIV_SIGNER_ADDRESS || '0x4b6D14e3ad668a2273Ce3Cf9A22cda202f404c5F';
 
 interface Summary {
   profiles: number;
@@ -173,7 +181,7 @@ export default function ExplorerPage() {
               </h2>
               <div className="flex items-center gap-2">
                 <a
-                  href="https://explorer.braga.hoodi.arkiv.network/address/0x4b6D14e3ad668a2273Ce3Cf9A22cda202f404c5F?tab=txs"
+                  href={getArkivExplorerAddressUrl(EXPLORER_SIGNER_ADDRESS)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/30"

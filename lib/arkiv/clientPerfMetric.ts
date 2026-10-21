@@ -7,11 +7,17 @@
  * Reference: refs/doc/beta_metrics_QUESTIONS.md Question 5
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { MAX_ATTR_STRING_BYTES } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { createArkivEntity } from './write';
 import type { ClientPerfMetric } from '@/lib/metrics/clientPerf';
 import { SPACE_ID } from '@/lib/config';
+
+/** Short string for an attribute, or undefined when it exceeds the attribute limit (kept in payload) */
+const attrIfFits = (value?: string): string | undefined =>
+  value && new TextEncoder().encode(value).length <= MAX_ATTR_STRING_BYTES ? value : undefined;
 
 export type ClientPerfMetricEntity = {
   key: string;
@@ -41,7 +47,6 @@ export async function createClientPerfMetric({
   spaceId?: string;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const createdAt = metric.createdAt || new Date().toISOString();
 
   const payload = {
@@ -52,47 +57,42 @@ export async function createClientPerfMetric({
     cls: metric.cls,
     tti: metric.tti,
     renderTime: metric.renderTime,
-    userAgent: metric.userAgent,
+    userAgent: metric.userAgent, // Payload only (free text, often > 128 bytes)
+    page: metric.page,
     createdAt,
   };
 
-  // Client perf metrics persist for analysis (90 days)
-  const expiresIn = 7776000; // 90 days in seconds
+  // Client perf metrics use the type default lifetime (see lib/arkiv/schema.ts)
 
   const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify(payload)),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'client_perf_metric' },
-        { key: 'page', value: metric.page },
-        ...(metric.ttfb ? [{ key: 'ttfb', value: String(metric.ttfb) }] : []),
-        ...(metric.fcp ? [{ key: 'fcp', value: String(metric.fcp) }] : []),
-        ...(metric.lcp ? [{ key: 'lcp', value: String(metric.lcp) }] : []),
-        ...(metric.fid ? [{ key: 'fid', value: String(metric.fid) }] : []),
-        ...(metric.cls ? [{ key: 'cls', value: String(metric.cls) }] : []),
-        ...(metric.tti ? [{ key: 'tti', value: String(metric.tti) }] : []),
-        ...(metric.renderTime ? [{ key: 'renderTime', value: String(metric.renderTime) }] : []),
-        ...(metric.userAgent ? [{ key: 'userAgent', value: metric.userAgent }] : []),
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: createdAt },
-      ],
-      expiresIn,
+    return await createArkivEntity(walletClient, {
+      type: 'client_perf_metric',
+      attributes: {
+        page: attrIfFits(metric.page), // Full page is also in the payload
+        ttfb: metric.ttfb ? String(metric.ttfb) : undefined,
+        fcp: metric.fcp ? String(metric.fcp) : undefined,
+        lcp: metric.lcp ? String(metric.lcp) : undefined,
+        fid: metric.fid ? String(metric.fid) : undefined,
+        cls: metric.cls ? String(metric.cls) : undefined,
+        tti: metric.tti ? String(metric.tti) : undefined,
+        render_time: metric.renderTime ? String(metric.renderTime) : undefined,
+        space_id: spaceId,
+        created_at: createdAt,
+      },
+      payload,
     });
   });
 
   // Store txHash in separate entity
   try {
-    await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify({ txHash })),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'client_perf_metric_txhash' },
-        { key: 'metricKey', value: entityKey },
-        { key: 'page', value: metric.page },
-        { key: 'spaceId', value: spaceId },
-      ],
-      expiresIn,
+    await createArkivEntity(walletClient, {
+      type: 'client_perf_metric_txhash',
+      attributes: {
+        metric_key: entityKey,
+        page: attrIfFits(metric.page),
+        space_id: spaceId,
+      },
+      payload: { txHash },
     });
   } catch (error: any) {
     console.warn('[clientPerfMetric] Failed to create txhash entity:', error);
@@ -117,19 +117,8 @@ export async function listClientPerfMetrics({
     const publicClient = getPublicClient();
 
     const [result, txHashResult] = await Promise.all([
-      publicClient
-        .buildQuery()
-        .where(eq('type', 'client_perf_metric'))
-        .withAttributes(true)
-        .withPayload(true)
-        .limit(limit || 100)
-        .fetch(),
-      publicClient
-        .buildQuery()
-        .where(eq('type', 'client_perf_metric_txhash'))
-        .withAttributes(true)
-        .withPayload(true)
-        .fetch(),
+      fetchAll(arkivSelect('client_perf_metric', publicClient), limit || 100, publicClient),
+      fetchAll(arkivSelect('client_perf_metric_txhash', publicClient), 1000, publicClient),
     ]);
 
     if (!result?.entities || !Array.isArray(result.entities)) {
@@ -140,15 +129,8 @@ export async function listClientPerfMetrics({
     const txHashMap: Record<string, string> = {};
     if (txHashResult?.entities && Array.isArray(txHashResult.entities)) {
       txHashResult.entities.forEach((entity: any) => {
-        const attrs = entity.attributes || {};
-        const getAttr = (key: string): string => {
-          if (Array.isArray(attrs)) {
-            const attr = attrs.find((a: any) => a.key === key);
-            return String(attr?.value || '');
-          }
-          return String(attrs[key] || '');
-        };
-        const metricKey = getAttr('metricKey');
+        const getAttr = (key: string): string => readAttr(entity, key);
+        const metricKey = getAttr('metric_key');
         try {
           if (entity.payload) {
             const decoded =
@@ -184,18 +166,11 @@ export async function listClientPerfMetrics({
         console.error('[listClientPerfMetrics] Error decoding payload:', e);
       }
 
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (key: string): string => readAttr(entity, key);
 
       return {
         key: entity.key,
-        page: getAttr('page'),
+        page: payload.page || getAttr('page'),
         ttfb: payload.ttfb || (getAttr('ttfb') ? parseInt(getAttr('ttfb'), 10) : undefined),
         fcp: payload.fcp || (getAttr('fcp') ? parseInt(getAttr('fcp'), 10) : undefined),
         lcp: payload.lcp || (getAttr('lcp') ? parseInt(getAttr('lcp'), 10) : undefined),
@@ -204,9 +179,9 @@ export async function listClientPerfMetrics({
         tti: payload.tti || (getAttr('tti') ? parseInt(getAttr('tti'), 10) : undefined),
         renderTime:
           payload.renderTime ||
-          (getAttr('renderTime') ? parseInt(getAttr('renderTime'), 10) : undefined),
-        userAgent: getAttr('userAgent') || payload.userAgent || undefined,
-        createdAt: getAttr('createdAt') || payload.createdAt,
+          (getAttr('render_time') ? parseInt(getAttr('render_time'), 10) : undefined),
+        userAgent: payload.userAgent || getAttr('user_agent') || undefined,
+        createdAt: getAttr('created_at') || payload.createdAt,
         txHash: txHashMap[entity.key] || payload.txHash || undefined,
       };
     });

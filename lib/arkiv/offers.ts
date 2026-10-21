@@ -8,9 +8,12 @@
  * Reference: refs/mentor-graph/src/arkiv/offers.ts
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { PROJECT, eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr, getEntityByKey } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { addSignerMetadata } from './signer-metadata';
+import { createArkivEntity } from './write';
 import {
   getAvailabilityByKey,
   type WeeklyAvailability,
@@ -79,7 +82,6 @@ export async function createOffer({
     throw new Error('Either skill (legacy) or skill_id (beta) must be provided');
   }
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const spaceId = SPACE_ID;
   const status = 'active';
   const createdAt = new Date().toISOString();
@@ -106,42 +108,38 @@ export async function createOffer({
       typeof availabilityWindow === 'string' ? availabilityWindow : String(availabilityWindow);
   }
 
-  // Build attributes array
-  const attributes: Array<{ key: string; value: string }> = [
-    { key: 'type', value: 'offer' },
-    { key: 'wallet', value: wallet.toLowerCase() },
-    { key: 'spaceId', value: spaceId },
-    { key: 'createdAt', value: createdAt },
-    { key: 'status', value: status },
-    { key: 'isPaid', value: String(isPaid) },
-    { key: 'ttlSeconds', value: String(ttl) }, // Store TTL for retrieval
-    // Add skill fields (legacy for compatibility, new for beta)
-    ...(skill ? [{ key: 'skill', value: skill }] : []),
-    ...(skill_id ? [{ key: 'skill_id', value: skill_id }] : []),
-    ...(skill_label ? [{ key: 'skill_label', value: skill_label }] : []),
-    ...(cost ? [{ key: 'cost', value: cost }] : []),
-    ...(paymentAddress ? [{ key: 'paymentAddress', value: paymentAddress }] : []),
-    ...(availabilityKey ? [{ key: 'availabilityKey', value: availabilityKey }] : []),
-  ];
-
+  // Attributes: short, queryable fields (skill fields: legacy for compatibility, new for beta)
   // Add signer metadata (U1.x.2: Central Signer Metadata)
-  const { addSignerMetadata } = await import('./signer-metadata');
-  const attributesWithSigner = addSignerMetadata(attributes, privateKey);
+  const attributes = addSignerMetadata(
+    {
+      wallet: wallet.toLowerCase(),
+      space_id: spaceId,
+      created_at: createdAt,
+      status,
+      is_paid: String(isPaid),
+      ttl_seconds: String(ttl), // Store TTL for retrieval
+      skill,
+      skill_id,
+      skill_label,
+      cost,
+      payment_address: paymentAddress,
+      availability_key: availabilityKey,
+    },
+    privateKey
+  );
 
   const result = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(
-        JSON.stringify({
-          message,
-          availabilityWindow: availabilityWindowString,
-          isPaid,
-          cost: cost || undefined,
-          paymentAddress: paymentAddress || undefined,
-        })
-      ),
-      contentType: 'application/json',
-      attributes: attributesWithSigner,
-      expiresIn: ttl,
+    return await createArkivEntity(walletClient, {
+      type: 'offer',
+      attributes,
+      payload: {
+        message,
+        availabilityWindow: availabilityWindowString,
+        isPaid,
+        cost: cost || undefined,
+        paymentAddress: paymentAddress || undefined,
+      },
+      lifetimeSeconds: ttl,
     });
   });
 
@@ -161,25 +159,18 @@ export async function createOffer({
 
   // Create separate txhash entity (like mentor-graph)
   // Don't wait for this one - it's optional metadata
-  walletClient
-    .createEntity({
-      payload: enc.encode(
-        JSON.stringify({
-          txHash,
-        })
-      ),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'offer_txhash' },
-        { key: 'offerKey', value: entityKey },
-        { key: 'wallet', value: wallet.toLowerCase() },
-        { key: 'spaceId', value: spaceId },
-      ],
-      expiresIn: ttl,
-    })
-    .catch((error: any) => {
-      console.warn('[createOffer] Failed to create offer_txhash entity:', error);
-    });
+  createArkivEntity(walletClient, {
+    type: 'offer_txhash',
+    attributes: {
+      offer_key: entityKey,
+      wallet: wallet.toLowerCase(),
+      space_id: spaceId,
+    },
+    payload: { txHash },
+    lifetimeSeconds: ttl,
+  }).catch((error: any) => {
+    console.warn('[createOffer] Failed to create offer_txhash entity:', error);
+  });
 
   // Create tx_event entity (non-blocking, best-effort)
   const { createTxEvent } = await import('./txEvent');
@@ -217,18 +208,17 @@ export async function listOffers(params?: {
 
   try {
     const publicClient = getPublicClient();
-    const query = publicClient.buildQuery();
+    const query = arkivSelect(undefined, publicClient);
     const limit = params?.limit ?? 500; // raise limit so expired/historical entries can be fetched
-    let queryBuilder = query.where(eq('type', 'offer')).where(eq('status', 'active'));
+    let queryBuilder = query.where(eqAttr('type', 'offer')).where(eqAttr('status', 'active'));
 
     // Support multiple spaceIds (builder mode) or single spaceId
     if (params?.spaceIds && params.spaceIds.length > 0) {
-      // Query all, filter client-side (Arkiv doesn't support OR queries)
-      queryBuilder = queryBuilder.limit(limit);
+      // Query all, filter client-side (OR queries are not used here)
     } else {
       // Use provided spaceId or default to SPACE_ID from config
       const spaceId = params?.spaceId || SPACE_ID;
-      queryBuilder = queryBuilder.where(eq('spaceId', spaceId));
+      queryBuilder = queryBuilder.where(eqAttr('space_id', spaceId));
     }
 
     let result: any = null;
@@ -236,14 +226,12 @@ export async function listOffers(params?: {
 
     try {
       [result, txHashResult] = await Promise.all([
-        queryBuilder.withAttributes(true).withPayload(true).limit(limit).fetch(),
-        publicClient
-          .buildQuery()
-          .where(eq('type', 'offer_txhash'))
-          .withAttributes(true)
-          .withPayload(true)
-          .limit(limit)
-          .fetch(),
+        fetchAll(queryBuilder, limit, publicClient),
+        fetchAll(
+          arkivSelect(undefined, publicClient).where(eqAttr('type', 'offer_txhash')),
+          limit,
+          publicClient
+        ),
       ]);
     } catch (fetchError: any) {
       console.error('[listOffers] Arkiv query failed:', {
@@ -271,15 +259,8 @@ export async function listOffers(params?: {
     const txHashMap: Record<string, string> = {};
     const txHashEntities = txHashResult?.entities || [];
     txHashEntities.forEach((entity: any) => {
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
-      const offerKey = getAttr('offerKey');
+      const getAttr = (key: string): string => readAttr(entity, key);
+      const offerKey = getAttr('offer_key');
       if (offerKey) {
         let payload: any = {};
         try {
@@ -317,17 +298,10 @@ export async function listOffers(params?: {
         console.error('Error decoding payload:', e);
       }
 
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (key: string): string => readAttr(entity, key);
 
       // Get TTL from attributes (stored when created), fallback to default for backward compatibility
-      const ttlSecondsAttr = getAttr('ttlSeconds');
+      const ttlSecondsAttr = getAttr('ttl_seconds');
       const ttlSeconds = ttlSecondsAttr ? parseInt(ttlSecondsAttr, 10) : OFFER_TTL_SECONDS;
 
       // Get skill_id if available (arkiv-native)
@@ -338,19 +312,19 @@ export async function listOffers(params?: {
         wallet: getAttr('wallet') || payload.wallet || '',
         skill: getAttr('skill') || payload.skill || '', // Legacy: may be empty if only skill_id exists
         skill_id: skill_id, // Arkiv-native: skill entity key (preferred)
-        spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
-        createdAt: getAttr('createdAt') || payload.createdAt || '',
+        spaceId: getAttr('space_id') || payload.spaceId || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
+        createdAt: getAttr('created_at') || payload.createdAt || '',
         status: getAttr('status') || payload.status || 'active',
         message: payload.message || '',
         availabilityWindow: payload.availabilityWindow || '',
-        availabilityKey: getAttr('availabilityKey') || undefined,
-        isPaid: payload.isPaid === true || getAttr('isPaid') === 'true',
+        availabilityKey: getAttr('availability_key') || undefined,
+        isPaid: payload.isPaid === true || getAttr('is_paid') === 'true',
         cost: payload.cost || getAttr('cost') || undefined,
-        paymentAddress: payload.paymentAddress || getAttr('paymentAddress') || undefined,
+        paymentAddress: payload.paymentAddress || getAttr('payment_address') || undefined,
         ttlSeconds: isNaN(ttlSeconds) ? OFFER_TTL_SECONDS : ttlSeconds, // Ensure valid number
         txHash:
           txHashMap[entity.key] ||
-          getAttr('txHash') ||
+          getAttr('tx_hash') ||
           payload.txHash ||
           (entity as any).txHash ||
           undefined,
@@ -445,21 +419,20 @@ export async function listOffers(params?: {
  */
 export async function listOffersForWallet(wallet: string, spaceId?: string): Promise<Offer[]> {
   const publicClient = getPublicClient();
-  const query = publicClient.buildQuery();
-  let queryBuilder = query.where(eq('type', 'offer')).where(eq('wallet', wallet.toLowerCase()));
+  const query = arkivSelect(undefined, publicClient);
+  let queryBuilder = query
+    .where(eqAttr('type', 'offer'))
+    .where(eqAttr('wallet', wallet.toLowerCase()));
 
   // Use provided spaceId or default to SPACE_ID from config
   const finalSpaceId = spaceId || SPACE_ID;
-  queryBuilder = queryBuilder.where(eq('spaceId', finalSpaceId));
+  queryBuilder = queryBuilder.where(eqAttr('space_id', finalSpaceId));
 
   const [result, txHashResult] = await Promise.all([
-    queryBuilder.withAttributes(true).withPayload(true).limit(100).fetch(),
-    publicClient
-      .buildQuery()
-      .where(eq('type', 'offer_txhash'))
-      .where(eq('wallet', wallet.toLowerCase()))
-      .withAttributes(true)
-      .withPayload(true)
+    queryBuilder.limit(100).fetch(),
+    arkivSelect(undefined, publicClient)
+      .where(eqAttr('type', 'offer_txhash'))
+      .where(eqAttr('wallet', wallet.toLowerCase()))
       .limit(100)
       .fetch(),
   ]);
@@ -475,15 +448,8 @@ export async function listOffersForWallet(wallet: string, spaceId?: string): Pro
   const txHashMap: Record<string, string> = {};
   const txHashEntities = txHashResult?.entities || [];
   txHashEntities.forEach((entity: any) => {
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
-    const offerKey = getAttr('offerKey');
+    const getAttr = (key: string): string => readAttr(entity, key);
+    const offerKey = getAttr('offer_key');
     if (offerKey) {
       let payload: any = {};
       try {
@@ -521,17 +487,10 @@ export async function listOffersForWallet(wallet: string, spaceId?: string): Pro
       console.error('Error decoding payload:', e);
     }
 
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (key: string): string => readAttr(entity, key);
 
     // Get TTL from attributes (stored when created), fallback to default for backward compatibility
-    const ttlSecondsAttr = getAttr('ttlSeconds');
+    const ttlSecondsAttr = getAttr('ttl_seconds');
     const ttlSeconds = ttlSecondsAttr ? parseInt(ttlSecondsAttr, 10) : OFFER_TTL_SECONDS;
 
     // Get skill_id if available (arkiv-native)
@@ -542,19 +501,19 @@ export async function listOffersForWallet(wallet: string, spaceId?: string): Pro
       wallet: getAttr('wallet') || payload.wallet || '',
       skill: getAttr('skill') || payload.skill || '', // Legacy: may be empty if only skill_id exists
       skill_id: skill_id, // Arkiv-native: skill entity key (preferred)
-      spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
-      createdAt: getAttr('createdAt') || payload.createdAt || '',
+      spaceId: getAttr('space_id') || payload.spaceId || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
+      createdAt: getAttr('created_at') || payload.createdAt || '',
       status: getAttr('status') || payload.status || 'active',
       message: payload.message || '',
       availabilityWindow: payload.availabilityWindow || '',
-      availabilityKey: getAttr('availabilityKey') || undefined,
-      isPaid: payload.isPaid === true || getAttr('isPaid') === 'true',
+      availabilityKey: getAttr('availability_key') || undefined,
+      isPaid: payload.isPaid === true || getAttr('is_paid') === 'true',
       cost: payload.cost || getAttr('cost') || undefined,
-      paymentAddress: payload.paymentAddress || getAttr('paymentAddress') || undefined,
+      paymentAddress: payload.paymentAddress || getAttr('payment_address') || undefined,
       ttlSeconds: isNaN(ttlSeconds) ? OFFER_TTL_SECONDS : ttlSeconds, // Ensure valid number
       txHash:
         txHashMap[entity.key] ||
-        getAttr('txHash') ||
+        getAttr('tx_hash') ||
         payload.txHash ||
         (entity as any).txHash ||
         undefined,
@@ -606,28 +565,19 @@ export async function listOffersForWallet(wallet: string, spaceId?: string): Pro
 export async function getOfferByKey(key: string): Promise<Offer | null> {
   try {
     const publicClient = getPublicClient();
-    const result = await publicClient
-      .buildQuery()
-      .where(eq('type', 'offer'))
-      .where(eq('key', key))
-      .withAttributes(true)
-      .withPayload(true)
-      .limit(1)
-      .fetch();
-
-    if (!result?.entities || !Array.isArray(result.entities) || result.entities.length === 0) {
+    const entity = await getEntityByKey(key, publicClient);
+    if (
+      !entity ||
+      readAttr(entity, 'type') !== 'offer' ||
+      readAttr(entity, 'project') !== PROJECT
+    ) {
       return null;
     }
 
-    const entity = result.entities[0];
-
     // Fetch txHash
-    const txHashResult = await publicClient
-      .buildQuery()
-      .where(eq('type', 'offer_txhash'))
-      .where(eq('offerKey', key))
-      .withAttributes(true)
-      .withPayload(true)
+    const txHashResult = await arkivSelect(undefined, publicClient)
+      .where(eqAttr('type', 'offer_txhash'))
+      .where(eqAttr('offer_key', key))
       .limit(1)
       .fetch();
 
@@ -654,14 +604,7 @@ export async function getOfferByKey(key: string): Promise<Offer | null> {
       }
     }
 
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (key: string): string => readAttr(entity, key);
 
     let payload: any = {};
     try {
@@ -678,7 +621,7 @@ export async function getOfferByKey(key: string): Promise<Offer | null> {
       console.error('[getOfferByKey] Error decoding payload:', e);
     }
 
-    const ttlSeconds = parseInt(getAttr('ttlSeconds')) || OFFER_TTL_SECONDS;
+    const ttlSeconds = parseInt(getAttr('ttl_seconds')) || OFFER_TTL_SECONDS;
 
     return {
       key: entity.key,
@@ -686,17 +629,17 @@ export async function getOfferByKey(key: string): Promise<Offer | null> {
       skill: getAttr('skill') || payload.skill || '',
       skill_id: getAttr('skill_id') || payload.skill_id || undefined,
       skill_label: getAttr('skill_label') || payload.skill_label || undefined,
-      spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID,
-      createdAt: getAttr('createdAt') || payload.createdAt || '',
+      spaceId: getAttr('space_id') || payload.spaceId || SPACE_ID,
+      createdAt: getAttr('created_at') || payload.createdAt || '',
       status: getAttr('status') || payload.status || 'active',
       message: payload.message || '',
       availabilityWindow: payload.availabilityWindow || '',
-      availabilityKey: getAttr('availabilityKey') || payload.availabilityKey || undefined,
+      availabilityKey: getAttr('availability_key') || payload.availabilityKey || undefined,
       isPaid: payload.isPaid === true,
       cost: payload.cost || undefined,
       paymentAddress: payload.paymentAddress || undefined,
       ttlSeconds: isNaN(ttlSeconds) ? OFFER_TTL_SECONDS : ttlSeconds,
-      txHash: txHash || getAttr('txHash') || payload.txHash || undefined,
+      txHash: txHash || getAttr('tx_hash') || payload.txHash || undefined,
     };
   } catch (error: any) {
     console.error('[getOfferByKey] Error:', error);

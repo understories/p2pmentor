@@ -16,6 +16,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { CURRENT_WALLET } from '@/lib/config';
+import { ARKIV_EXPLORER_BASE_URL } from '@/lib/arkiv/explorer';
 
 export interface TransactionHistoryItem {
   txHash: string;
@@ -295,7 +296,7 @@ export function AllTransactionsList({
 
   // Build Arkiv explorer address URL
   const arkivExplorerAddressUrl = CURRENT_WALLET
-    ? `https://explorer.braga.hoodi.arkiv.network/address/${CURRENT_WALLET}?tab=txs`
+    ? `${ARKIV_EXPLORER_BASE_URL}/address/${CURRENT_WALLET}?tab=txs`
     : null;
 
   return (

@@ -7,11 +7,17 @@
  * Reference: refs/click-navigation-tracking-plan.md
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { MAX_ATTR_STRING_BYTES } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { createArkivEntity } from './write';
 import type { NavigationMetric } from '@/lib/metrics/navigation';
 import { SPACE_ID } from '@/lib/config';
+
+/** Short string for an attribute, or undefined when it exceeds the attribute limit (kept in payload) */
+const attrIfFits = (value?: string): string | undefined =>
+  value && new TextEncoder().encode(value).length <= MAX_ATTR_STRING_BYTES ? value : undefined;
 
 export type NavigationMetricEntity = {
   key: string;
@@ -37,45 +43,40 @@ export async function createNavigationMetric({
   spaceId?: string;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const createdAt = metric.createdAt || new Date().toISOString();
 
   const payload = {
     aggregates: metric.aggregates,
+    page: metric.page,
     createdAt,
   };
 
-  // Navigation metrics persist for 90 days (same as client perf metrics)
-  const expiresIn = 7776000; // 90 days in seconds
+  // Navigation metrics use the type default lifetime (see lib/arkiv/schema.ts)
 
   const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify(payload)),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'navigation_metric' },
-        { key: 'page', value: metric.page },
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: createdAt },
-      ],
-      expiresIn,
+    return await createArkivEntity(walletClient, {
+      type: 'navigation_metric',
+      attributes: {
+        page: attrIfFits(metric.page), // Full page is also in the payload
+        space_id: spaceId,
+        created_at: createdAt,
+      },
+      payload,
     });
   });
 
   // Store txHash in separate entity for reliable querying
   try {
     await handleTransactionWithTimeout(async () => {
-      return await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify({ txHash })),
-        contentType: 'application/json',
-        attributes: [
-          { key: 'type', value: 'navigation_metric_txhash' },
-          { key: 'metricKey', value: entityKey },
-          { key: 'txHash', value: txHash },
-          { key: 'spaceId', value: spaceId },
-          { key: 'createdAt', value: createdAt },
-        ],
-        expiresIn,
+      return await createArkivEntity(walletClient, {
+        type: 'navigation_metric_txhash',
+        attributes: {
+          metric_key: entityKey,
+          tx_hash: txHash,
+          space_id: spaceId,
+          created_at: createdAt,
+        },
+        payload: { txHash },
       });
     });
   } catch (error: any) {
@@ -103,19 +104,8 @@ export async function listNavigationMetrics({
 
     // Fetch metric entities and txHash entities in parallel
     const [result, txHashResult] = await Promise.all([
-      publicClient
-        .buildQuery()
-        .where(eq('type', 'navigation_metric'))
-        .withAttributes(true)
-        .withPayload(true)
-        .limit(limit || 100)
-        .fetch(),
-      publicClient
-        .buildQuery()
-        .where(eq('type', 'navigation_metric_txhash'))
-        .withAttributes(true)
-        .withPayload(true)
-        .fetch(),
+      fetchAll(arkivSelect('navigation_metric', publicClient), limit || 100, publicClient),
+      fetchAll(arkivSelect('navigation_metric_txhash', publicClient), 1000, publicClient),
     ]);
 
     if (!result || !result.entities || !Array.isArray(result.entities)) {
@@ -127,15 +117,8 @@ export async function listNavigationMetrics({
     const txHashMap: Record<string, string> = {};
     if (txHashResult?.entities && Array.isArray(txHashResult.entities)) {
       txHashResult.entities.forEach((entity: any) => {
-        const attrs = entity.attributes || {};
-        const getAttr = (key: string): string => {
-          if (Array.isArray(attrs)) {
-            const attr = attrs.find((a: any) => a.key === key);
-            return String(attr?.value || '');
-          }
-          return String(attrs[key] || '');
-        };
-        const metricKey = getAttr('metricKey');
+        const getAttr = (key: string): string => readAttr(entity, key);
+        const metricKey = getAttr('metric_key');
         if (metricKey) {
           try {
             const payload =
@@ -159,27 +142,7 @@ export async function listNavigationMetrics({
     const metrics: NavigationMetricEntity[] = [];
     result.entities.forEach((entity: any) => {
       try {
-        const attrs = entity.attributes || {};
-        const getAttr = (key: string): string => {
-          if (Array.isArray(attrs)) {
-            const attr = attrs.find((a: any) => a.key === key);
-            return String(attr?.value || '');
-          }
-          return String(attrs[key] || '');
-        };
-
-        const entityPage = getAttr('page');
-        const createdAt = getAttr('createdAt');
-
-        // Filter by page if specified
-        if (page && entityPage !== page) {
-          return;
-        }
-
-        // Filter by since date if specified
-        if (since && createdAt < since) {
-          return;
-        }
+        const getAttr = (key: string): string => readAttr(entity, key);
 
         // Parse payload
         let payload: any = {};
@@ -191,6 +154,19 @@ export async function listNavigationMetrics({
                 ? entity.payload
                 : JSON.stringify(entity.payload);
           payload = JSON.parse(decoded);
+        }
+
+        const entityPage = payload.page || getAttr('page');
+        const createdAt = getAttr('created_at');
+
+        // Filter by page if specified
+        if (page && entityPage !== page) {
+          return;
+        }
+
+        // Filter by since date if specified
+        if (since && createdAt < since) {
+          return;
         }
 
         const aggregates = payload.aggregates || [];

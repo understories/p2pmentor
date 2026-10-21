@@ -81,14 +81,10 @@ Implementation: `lib/arkiv/questDefinition.ts` - `createQuestDefinition()` creat
 Fetch latest version of a quest:
 
 ```typescript
-const query = publicClient.buildQuery();
-const result = await query
-  .where(eq('type', 'quest_definition'))
-  .where(eq('questId', 'arkiv_builder'))
-  .where(eq('spaceId', 'global'))
-  .where(eq('status', 'active'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('quest_definition')
+  .where(eqAttr('quest_id', 'arkiv_builder'))
+  .where(eqAttr('space_id', 'global'))
+  .where(eqAttr('status', 'active'))
   .limit(100)
   .fetch();
 
@@ -101,15 +97,11 @@ const latestQuest = result.entities.sort(
 Fetch quest by specific version:
 
 ```typescript
-const query = publicClient.buildQuery();
-const result = await query
-  .where(eq('type', 'quest_definition'))
-  .where(eq('questId', 'arkiv_builder'))
-  .where(eq('version', '1'))
-  .where(eq('spaceId', 'global'))
-  .where(eq('status', 'active'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('quest_definition')
+  .where(eqAttr('quest_id', 'arkiv_builder'))
+  .where(eqAttr('version', '1'))
+  .where(eqAttr('space_id', 'global'))
+  .where(eqAttr('status', 'active'))
   .limit(1)
   .fetch();
 ```
@@ -117,14 +109,10 @@ const result = await query
 List all quests by track:
 
 ```typescript
-const query = publicClient.buildQuery();
-const result = await query
-  .where(eq('type', 'quest_definition'))
-  .where(eq('track', 'arkiv'))
-  .where(eq('spaceId', 'global'))
-  .where(eq('status', 'active'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('quest_definition')
+  .where(eqAttr('track', 'arkiv'))
+  .where(eqAttr('space_id', 'global'))
+  .where(eqAttr('status', 'active'))
   .limit(100)
   .fetch();
 

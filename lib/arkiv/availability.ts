@@ -10,7 +10,9 @@
  * Supports both legacy text format and new structured WeeklyAvailability format.
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { PROJECT, eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, getAttr as readAttr, getEntityByKey } from '@/lib/arkiv/read';
+import { createArkivEntity } from './write';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
 import { SPACE_ID } from '@/lib/config';
@@ -652,10 +654,8 @@ export async function createAvailability({
   spaceId?: string;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const createdAt = new Date().toISOString();
-  // Use 30 days expiration (like mentor-graph example)
-  const expiresIn = 2592000; // 30 days in seconds
+  // Lifetime: availability type default (see lib/arkiv/schema.ts)
 
   // Determine if structured or legacy format
   let timeBlocksString: string;
@@ -678,32 +678,28 @@ export async function createAvailability({
     availabilityVersion = 'legacy';
   }
 
-  // Build attributes array
-  const attributes: Array<{ key: string; value: string }> = [
-    { key: 'type', value: 'availability' },
-    { key: 'wallet', value: wallet.toLowerCase() },
-    { key: 'spaceId', value: spaceId },
-    { key: 'createdAt', value: createdAt },
-    { key: 'timezone', value: timezone },
-    { key: 'availabilityVersion', value: availabilityVersion },
-  ];
+  // Build attributes
+  const attributes = {
+    wallet: wallet.toLowerCase(),
+    space_id: spaceId,
+    created_at: createdAt,
+    timezone,
+    availability_version: availabilityVersion,
+  };
 
   // Add signer metadata (U1.x.2: Central Signer Metadata)
   const { addSignerMetadata } = await import('./signer-metadata');
   const attributesWithSigner = addSignerMetadata(attributes, privateKey);
 
   const result = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(
-        JSON.stringify({
-          timeBlocks: timeBlocksString,
-          timezone,
-          createdAt,
-        })
-      ),
-      contentType: 'application/json',
+    return await createArkivEntity(walletClient, {
+      type: 'availability',
       attributes: attributesWithSigner,
-      expiresIn: expiresIn,
+      payload: {
+        timeBlocks: timeBlocksString,
+        timezone,
+        createdAt,
+      },
     });
   });
 
@@ -723,20 +719,16 @@ export async function createAvailability({
 
   // Create separate txhash entity (like mentor-graph pattern)
   // Don't wait for this one - it's optional metadata
-  walletClient.createEntity({
-    payload: enc.encode(
-      JSON.stringify({
-        txHash,
-      })
-    ),
-    contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'availability_txhash' },
-      { key: 'availabilityKey', value: entityKey },
-      { key: 'wallet', value: wallet.toLowerCase() },
-      { key: 'spaceId', value: spaceId },
-    ],
-    expiresIn: expiresIn,
+  createArkivEntity(walletClient, {
+    type: 'availability_txhash',
+    attributes: {
+      availability_key: entityKey,
+      wallet: wallet.toLowerCase(),
+      space_id: spaceId,
+    },
+    payload: { txHash },
+  }).catch((error: any) => {
+    console.warn('[createAvailability] Failed to create availability_txhash entity:', error);
   });
 
   return { key: entityKey, txHash };
@@ -766,28 +758,23 @@ export async function deleteAvailability({
   spaceId?: string;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const createdAt = new Date().toISOString();
-  // Deletion markers should persist as long as the original entity (30 days)
-  const expiresIn = 2592000; // 30 days in seconds
+  // Deletion markers should persist as long as the original entity
+  // (default lifetime, same as availability; see lib/arkiv/schema.ts)
 
   const result = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(
-        JSON.stringify({
-          deletedAt: createdAt,
-          availabilityKey,
-        })
-      ),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'availability_deletion' },
-        { key: 'availabilityKey', value: availabilityKey },
-        { key: 'wallet', value: wallet.toLowerCase() },
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: createdAt },
-      ],
-      expiresIn: expiresIn,
+    return await createArkivEntity(walletClient, {
+      type: 'availability_deletion',
+      attributes: {
+        availability_key: availabilityKey,
+        wallet: wallet.toLowerCase(),
+        space_id: spaceId,
+        created_at: createdAt,
+      },
+      payload: {
+        deletedAt: createdAt,
+        availabilityKey,
+      },
     });
   });
 
@@ -806,31 +793,20 @@ export async function listAvailabilityForWallet(
   spaceId?: string
 ): Promise<Availability[]> {
   const publicClient = getPublicClient();
-  const query = publicClient.buildQuery();
+  const query = arkivSelect('availability', publicClient);
 
   // Use provided spaceId or default to SPACE_ID from config
   const finalSpaceId = spaceId || SPACE_ID;
 
   let queryBuilder = query
-    .where(eq('type', 'availability'))
-    .where(eq('wallet', wallet.toLowerCase()))
-    .where(eq('spaceId', finalSpaceId));
+    .where(eqAttr('wallet', wallet.toLowerCase()))
+    .where(eqAttr('space_id', finalSpaceId));
 
   const [result, txHashResult, deletionResult] = await Promise.all([
-    queryBuilder.withAttributes(true).withPayload(true).limit(100).fetch(),
-    publicClient
-      .buildQuery()
-      .where(eq('type', 'availability_txhash'))
-      .withAttributes(true)
-      .withPayload(true)
-      .limit(100)
-      .fetch(),
-    publicClient
-      .buildQuery()
-      .where(eq('type', 'availability_deletion'))
-      .where(eq('wallet', wallet.toLowerCase()))
-      .withAttributes(true)
-      .withPayload(true)
+    queryBuilder.limit(100).fetch(),
+    arkivSelect('availability_txhash', publicClient).limit(100).fetch(),
+    arkivSelect('availability_deletion', publicClient)
+      .where(eqAttr('wallet', wallet.toLowerCase()))
       .limit(100)
       .fetch(),
   ]);
@@ -838,15 +814,8 @@ export async function listAvailabilityForWallet(
   // Build txHash map
   const txHashMap: Record<string, string> = {};
   txHashResult.entities.forEach((entity: any) => {
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
-    const availabilityKey = getAttr('availabilityKey');
+    const getAttr = (key: string): string => readAttr(entity, key);
+    const availabilityKey = getAttr('availability_key');
     if (availabilityKey) {
       let payload: any = {};
       try {
@@ -872,15 +841,8 @@ export async function listAvailabilityForWallet(
   const deletedKeys = new Set<string>();
   if (deletionResult?.entities && Array.isArray(deletionResult.entities)) {
     deletionResult.entities.forEach((entity: any) => {
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
-      const availabilityKey = getAttr('availabilityKey');
+      const getAttr = (key: string): string => readAttr(entity, key);
+      const availabilityKey = getAttr('availability_key');
       if (availabilityKey) {
         deletedKeys.add(availabilityKey);
       }
@@ -908,22 +870,15 @@ export async function listAvailabilityForWallet(
         console.error('Error decoding payload:', e);
       }
 
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (key: string): string => readAttr(entity, key);
 
-      const availabilityVersion = getAttr('availabilityVersion') || 'legacy';
+      const availabilityVersion = getAttr('availability_version') || 'legacy';
 
       return {
         key: entity.key,
         wallet: getAttr('wallet'),
-        spaceId: getAttr('spaceId') || SPACE_ID,
-        createdAt: getAttr('createdAt'),
+        spaceId: getAttr('space_id') || SPACE_ID,
+        createdAt: getAttr('created_at'),
         timeBlocks: payload.timeBlocks || '',
         timezone: payload.timezone || getAttr('timezone') || '',
         availabilityVersion: (availabilityVersion === '1.0' ? '1.0' : 'legacy') as '1.0' | 'legacy',
@@ -941,18 +896,15 @@ export async function listAvailabilityForWallet(
  */
 export async function getAvailabilityByKey(key: string): Promise<Availability | null> {
   const publicClient = getPublicClient();
-  const query = publicClient.buildQuery();
-  const result = await query
-    .where(eq('type', 'availability'))
-    .where(eq('key', key))
-    .withAttributes(true)
-    .withPayload(true)
-    .limit(1)
-    .fetch();
+  const entity = await getEntityByKey(key, publicClient);
+  if (
+    !entity ||
+    readAttr(entity, 'type') !== 'availability' ||
+    readAttr(entity, 'project') !== PROJECT
+  ) {
+    return null;
+  }
 
-  if (result.entities.length === 0) return null;
-
-  const entity = result.entities[0];
   let payload: any = {};
   try {
     if (entity.payload) {
@@ -968,22 +920,15 @@ export async function getAvailabilityByKey(key: string): Promise<Availability | 
     console.error('Error decoding payload:', e);
   }
 
-  const attrs = entity.attributes || {};
-  const getAttr = (key: string): string => {
-    if (Array.isArray(attrs)) {
-      const attr = attrs.find((a: any) => a.key === key);
-      return String(attr?.value || '');
-    }
-    return String(attrs[key] || '');
-  };
+  const getAttr = (key: string): string => readAttr(entity, key);
 
-  const availabilityVersion = getAttr('availabilityVersion') || 'legacy';
+  const availabilityVersion = getAttr('availability_version') || 'legacy';
 
   return {
     key: entity.key,
     wallet: getAttr('wallet'),
-    spaceId: getAttr('spaceId') || SPACE_ID,
-    createdAt: getAttr('createdAt'),
+    spaceId: getAttr('space_id') || SPACE_ID,
+    createdAt: getAttr('created_at'),
     timeBlocks: payload.timeBlocks || '',
     timezone: payload.timezone || getAttr('timezone') || '',
     availabilityVersion: (availabilityVersion === '1.0' ? '1.0' : 'legacy') as '1.0' | 'legacy',

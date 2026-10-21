@@ -105,7 +105,7 @@ A full version of a mentorship platform.
 
    **Getting an Arkiv Private Key and Testnet Tokens:**
 
-   p2pmentor uses the Arkiv network (Braga testnet) for data storage. You'll need a private key to interact with the network.
+   p2pmentor uses the Arkiv network (Tiramisu testnet) for data storage. You'll need a private key to interact with the network.
 
    1. **Create your Arkiv account and get your private key:**
 
@@ -116,21 +116,25 @@ A full version of a mentorship platform.
 
       **⚠️ Security Warning:** Never share your private key or commit it to version control. The account you create is for **Arkiv Testnet/sandbox use only**. Never use it on any Mainnet.
 
-   2. **Add Braga testnet to MetaMask (optional, for testing):**
+   2. **Add the Tiramisu testnet to MetaMask (optional, for testing):**
 
-      - Network Name: `Braga DB-Chain`
-      - RPC URL: `https://braga.hoodi.arkiv.network/rpc`
-      - Chain ID: `60138453102`
+      - Network Name: `Arkiv Tiramisu Testnet`
+      - RPC URL: `https://rpc.tiramisu.db-chain.testnet.arkiv.network`
+      - Chain ID: `7738577` (`0x7614d1`)
       - Currency Symbol: `GLM`
-      - Block Explorer: [Braga Explorer](https://explorer.braga.hoodi.arkiv.network)
+      - Block Explorer: [Arkiv Explorer](https://tiramisu.explorer.arkiv.network)
 
-      Or use the [Add Network to Wallet](https://arkiv.network/dev) link from the Arkiv dev portal.
+      The app's "Add Arkiv Tiramisu Testnet to Wallet" button on `/auth` adds it for you.
 
    3. **Get testnet tokens:**
 
-      Visit the [Braga faucet](https://braga.hoodi.arkiv.network/faucet/) to receive test GLM for your wallet address. Braga uses GLM as the native gas token.
+      Visit the [Arkiv Hub faucet](https://hub.arkiv.network/faucet) (sign in with a wallet) to receive test GLM. GLM is Tiramisu's native gas token. To fund a server signing wallet, request GLM to a browser wallet and transfer it to the signer address.
 
-   4. **Set your private key in `.env.local`:**
+   4. **(Recommended) Create an RPC access key:**
+
+      Create a key at [hub.arkiv.network/api-keys](https://hub.arkiv.network/api-keys) and set `ARKIV_API_KEY` (server-only). Without it, RPC access is anonymous and rate-limited.
+
+   5. **Set your private key in `.env.local`:**
       ```bash
       ARKIV_PRIVATE_KEY=0x...your_private_key_from_arkiv...
       ```

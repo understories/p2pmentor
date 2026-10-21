@@ -2,7 +2,7 @@
  * Notification State API route
  *
  * Handles updating notification state (read/unread/archived).
- * Uses Pattern B (updateEntity) to update notification in place.
+ * Uses Pattern B (entity replaced in place via patchEntity) to update notification state.
  *
  * Replaces old /api/notifications/preferences route.
  */

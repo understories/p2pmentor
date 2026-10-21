@@ -5,10 +5,78 @@
  * Each beta code has a usage limit (e.g., 50 uses).
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
-import { getPrivateKey, SPACE_ID } from '@/lib/config';
+import { getPrivateKey, SERVER_SIGNER_ADDRESS, SPACE_ID } from '@/lib/config';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { createArkivEntity } from './write';
+
+/**
+ * Start a beta_code_usage query.
+ * beta_code_usage entities are only written with the server key (getPrivateKey()),
+ * so reads are scoped to the server signer when it is configured.
+ */
+function selectBetaCodeUsage(publicClient: ReturnType<typeof getPublicClient>) {
+  const q = arkivSelect('beta_code_usage', publicClient);
+  return SERVER_SIGNER_ADDRESS ? q.createdBy(SERVER_SIGNER_ADDRESS) : q;
+}
+
+/**
+ * Write a beta_code_usage entity (new version) plus its txhash entity.
+ * beta_code_usage is append-only: each change is a new entity.
+ */
+async function writeBetaCodeUsage(
+  walletClient: ReturnType<typeof getWalletClientFromPrivateKey>,
+  {
+    code,
+    usageCount,
+    limit,
+    spaceId,
+    createdAt,
+    payload,
+    logPrefix,
+  }: {
+    code: string;
+    usageCount: number;
+    limit: number;
+    spaceId: string;
+    createdAt: string;
+    payload: Record<string, unknown>;
+    logPrefix: string;
+  }
+): Promise<{ key: string; txHash: string }> {
+  const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
+    return await createArkivEntity(walletClient, {
+      type: 'beta_code_usage',
+      attributes: {
+        code,
+        usage_count: String(usageCount),
+        limit: String(limit),
+        space_id: spaceId,
+        created_at: createdAt,
+      },
+      payload,
+    });
+  });
+
+  // Create txHash entity
+  try {
+    await createArkivEntity(walletClient, {
+      type: 'beta_code_usage_txhash',
+      attributes: {
+        beta_code_key: entityKey,
+        code,
+        space_id: spaceId,
+      },
+      payload: { txHash },
+    });
+  } catch (error: any) {
+    console.warn(`[${logPrefix}] Failed to create txhash entity:`, error);
+  }
+
+  return { key: entityKey, txHash };
+}
 
 export type BetaCodeUsage = {
   key: string;
@@ -32,7 +100,6 @@ export async function trackBetaCodeUsage(
 ): Promise<{ key: string; txHash: string }> {
   const privateKey = getPrivateKey();
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const spaceId = SPACE_ID;
   const createdAt = new Date().toISOString();
   const normalizedCode = code.toLowerCase().trim();
@@ -64,40 +131,15 @@ export async function trackBetaCodeUsage(
       createdAt: existing.createdAt,
     };
 
-    const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
-      return await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify(payload)),
-        contentType: 'application/json',
-        attributes: [
-          { key: 'type', value: 'beta_code_usage' },
-          { key: 'code', value: normalizedCode },
-          { key: 'usageCount', value: String(newUsageCount) },
-          { key: 'limit', value: String(limit) },
-          { key: 'spaceId', value: spaceId },
-          { key: 'createdAt', value: createdAt },
-        ],
-        expiresIn: 31536000, // 1 year
-      });
+    return await writeBetaCodeUsage(walletClient, {
+      code: normalizedCode,
+      usageCount: newUsageCount,
+      limit,
+      spaceId,
+      createdAt,
+      payload,
+      logPrefix: 'trackBetaCodeUsage',
     });
-
-    // Create txHash entity
-    try {
-      await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify({ txHash })),
-        contentType: 'application/json',
-        attributes: [
-          { key: 'type', value: 'beta_code_usage_txhash' },
-          { key: 'betaCodeKey', value: entityKey },
-          { key: 'code', value: normalizedCode },
-          { key: 'spaceId', value: spaceId },
-        ],
-        expiresIn: 31536000,
-      });
-    } catch (error: any) {
-      console.warn('[trackBetaCodeUsage] Failed to create txhash entity:', error);
-    }
-
-    return { key: entityKey, txHash };
   } else {
     // Create new beta code usage entity
     const payload = {
@@ -108,40 +150,15 @@ export async function trackBetaCodeUsage(
       lastUsedAt: createdAt,
     };
 
-    const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
-      return await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify(payload)),
-        contentType: 'application/json',
-        attributes: [
-          { key: 'type', value: 'beta_code_usage' },
-          { key: 'code', value: normalizedCode },
-          { key: 'usageCount', value: '1' },
-          { key: 'limit', value: String(limit) },
-          { key: 'spaceId', value: spaceId },
-          { key: 'createdAt', value: createdAt },
-        ],
-        expiresIn: 31536000, // 1 year
-      });
+    return await writeBetaCodeUsage(walletClient, {
+      code: normalizedCode,
+      usageCount: 1,
+      limit,
+      spaceId,
+      createdAt,
+      payload,
+      logPrefix: 'trackBetaCodeUsage',
     });
-
-    // Create txHash entity
-    try {
-      await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify({ txHash })),
-        contentType: 'application/json',
-        attributes: [
-          { key: 'type', value: 'beta_code_usage_txhash' },
-          { key: 'betaCodeKey', value: entityKey },
-          { key: 'code', value: normalizedCode },
-          { key: 'spaceId', value: spaceId },
-        ],
-        expiresIn: 31536000,
-      });
-    } catch (error: any) {
-      console.warn('[trackBetaCodeUsage] Failed to create txhash entity:', error);
-    }
-
-    return { key: entityKey, txHash };
   }
 }
 
@@ -160,13 +177,11 @@ export async function getBetaCodeUsage(
   const finalSpaceId = spaceId || SPACE_ID;
 
   try {
-    let queryBuilder = publicClient
-      .buildQuery()
-      .where(eq('type', 'beta_code_usage'))
-      .where(eq('code', normalizedCode))
-      .where(eq('spaceId', finalSpaceId));
+    let queryBuilder = selectBetaCodeUsage(publicClient)
+      .where(eqAttr('code', normalizedCode))
+      .where(eqAttr('space_id', finalSpaceId));
 
-    const result = await queryBuilder.withAttributes(true).withPayload(true).limit(1).fetch();
+    const result = await queryBuilder.limit(1).fetch();
 
     if (!result?.entities || result.entities.length === 0) {
       return null;
@@ -188,23 +203,12 @@ export async function getBetaCodeUsage(
       console.error('Error decoding beta code payload:', e);
     }
 
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (key: string): string => readAttr(entity, key);
 
     // Get txHash
-    const txHashResult = await publicClient
-      .buildQuery()
-      .where(eq('type', 'beta_code_usage_txhash'))
-      .where(eq('betaCodeKey', entity.key))
-      .where(eq('spaceId', finalSpaceId))
-      .withAttributes(true)
-      .withPayload(true)
+    const txHashResult = await arkivSelect('beta_code_usage_txhash', publicClient)
+      .where(eqAttr('beta_code_key', entity.key))
+      .where(eqAttr('space_id', finalSpaceId))
       .limit(1)
       .fetch();
 
@@ -228,9 +232,9 @@ export async function getBetaCodeUsage(
     return {
       key: entity.key,
       code: getAttr('code') || payload.code || normalizedCode,
-      usageCount: parseInt(getAttr('usageCount') || payload.usageCount || '0', 10),
+      usageCount: parseInt(getAttr('usage_count') || payload.usageCount || '0', 10),
       limit: parseInt(getAttr('limit') || payload.limit || '50', 10),
-      createdAt: getAttr('createdAt') || payload.createdAt || new Date().toISOString(),
+      createdAt: getAttr('created_at') || payload.createdAt || new Date().toISOString(),
       txHash,
     };
   } catch (error: any) {
@@ -292,7 +296,6 @@ export async function syncBetaCodeUsageCount(code: string, spaceId?: string): Pr
     // Create new entity with correct usageCount
     const privateKey = getPrivateKey();
     const walletClient = getWalletClientFromPrivateKey(privateKey);
-    const enc = new TextEncoder();
     const createdAt = new Date().toISOString();
 
     const payload = {
@@ -303,38 +306,15 @@ export async function syncBetaCodeUsageCount(code: string, spaceId?: string): Pr
       createdAt: existing?.createdAt || createdAt,
     };
 
-    const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
-      return await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify(payload)),
-        contentType: 'application/json',
-        attributes: [
-          { key: 'type', value: 'beta_code_usage' },
-          { key: 'code', value: normalizedCode },
-          { key: 'usageCount', value: String(actualWalletCount) },
-          { key: 'limit', value: String(limit) },
-          { key: 'spaceId', value: finalSpaceId },
-          { key: 'createdAt', value: createdAt },
-        ],
-        expiresIn: 31536000, // 1 year
-      });
+    await writeBetaCodeUsage(walletClient, {
+      code: normalizedCode,
+      usageCount: actualWalletCount,
+      limit,
+      spaceId: finalSpaceId,
+      createdAt,
+      payload,
+      logPrefix: 'syncBetaCodeUsageCount',
     });
-
-    // Create txHash entity
-    try {
-      await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify({ txHash })),
-        contentType: 'application/json',
-        attributes: [
-          { key: 'type', value: 'beta_code_usage_txhash' },
-          { key: 'betaCodeKey', value: entityKey },
-          { key: 'code', value: normalizedCode },
-          { key: 'spaceId', value: finalSpaceId },
-        ],
-        expiresIn: 31536000,
-      });
-    } catch (error: any) {
-      console.warn('[syncBetaCodeUsageCount] Failed to create txhash entity:', error);
-    }
   }
 
   return actualWalletCount;
@@ -354,14 +334,12 @@ export async function listAllBetaCodeUsage(spaceId?: string): Promise<BetaCodeUs
   const finalSpaceId = spaceId || SPACE_ID;
 
   try {
-    const result = await publicClient
-      .buildQuery()
-      .where(eq('type', 'beta_code_usage'))
-      .where(eq('spaceId', finalSpaceId))
-      .withAttributes(true)
-      .withPayload(true)
-      .limit(1000) // Get all beta code usage entities
-      .fetch();
+    // Get all beta code usage entities
+    const result = await fetchAll(
+      selectBetaCodeUsage(publicClient).where(eqAttr('space_id', finalSpaceId)),
+      1000,
+      publicClient
+    );
 
     if (!result?.entities || !Array.isArray(result.entities)) {
       return [];
@@ -384,21 +362,14 @@ export async function listAllBetaCodeUsage(spaceId?: string): Promise<BetaCodeUs
         console.error('[listAllBetaCodeUsage] Error decoding payload:', e);
       }
 
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (key: string): string => readAttr(entity, key);
 
       return {
         key: entity.key,
         code: getAttr('code') || payload.code || '',
-        usageCount: parseInt(getAttr('usageCount') || payload.usageCount || '0', 10),
+        usageCount: parseInt(getAttr('usage_count') || payload.usageCount || '0', 10),
         limit: parseInt(getAttr('limit') || payload.limit || '50', 10),
-        createdAt: getAttr('createdAt') || payload.createdAt || new Date().toISOString(),
+        createdAt: getAttr('created_at') || payload.createdAt || new Date().toISOString(),
         lastUsedAt: payload.lastUsedAt,
       };
     });
@@ -431,13 +402,9 @@ export async function listAllBetaCodeUsage(spaceId?: string): Promise<BetaCodeUs
     const txHashResults = await Promise.all(
       allKeys.map(async (key) => {
         try {
-          const txHashResult = await publicClient
-            .buildQuery()
-            .where(eq('type', 'beta_code_usage_txhash'))
-            .where(eq('betaCodeKey', key))
-            .where(eq('spaceId', finalSpaceId))
-            .withAttributes(true)
-            .withPayload(true)
+          const txHashResult = await arkivSelect('beta_code_usage_txhash', publicClient)
+            .where(eqAttr('beta_code_key', key))
+            .where(eqAttr('space_id', finalSpaceId))
             .limit(1)
             .fetch();
 

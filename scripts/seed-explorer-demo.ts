@@ -46,6 +46,7 @@ import { listUserProfiles } from '../lib/arkiv/profile';
 
 // CRITICAL: Target spaceId - must match environment variable
 const TARGET_SPACE_ID = 'local-dev-seed';
+import { ARKIV_EXPLORER_BASE_URL } from '@/lib/arkiv/explorer';
 
 // Rate limiting delay (ms)
 const DELAY_MS = 400;
@@ -427,9 +428,11 @@ async function seedExplorerDemo() {
       console.log('💡 Tips for resolving errors:');
       console.log('   - "Transaction conflict": Wait 30-60 seconds and run the script again');
       console.log('   - "Rate limit": Wait a few minutes between runs');
-      console.log('   - "Insufficient funds": Fund the signing wallet on Braga testnet');
       console.log(
-        '   - Check Arkiv explorer for pending transactions: https://explorer.braga.hoodi.arkiv.network\n'
+        '   - "Insufficient funds": Fund the signing wallet on the Arkiv Tiramisu testnet (faucet: https://hub.arkiv.network/faucet)'
+      );
+      console.log(
+        `   - Check Arkiv explorer for pending transactions: ${ARKIV_EXPLORER_BASE_URL}\n`
       );
     }
 

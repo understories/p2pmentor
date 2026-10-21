@@ -8,9 +8,11 @@
  * Week 4 (Feb 22-29) - Reliability pass
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr, parsePayload } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { createArkivEntity } from './write';
 import { SPACE_ID } from '../config';
 
 export type TelemetryEventType =
@@ -54,7 +56,7 @@ export async function logTelemetryEvent({
   lagMs,
   privateKey,
   spaceId = SPACE_ID,
-  ttlSeconds = 7776000, // 90 days
+  ttlSeconds = 7776000, // 90 days (operational telemetry, shorter than the type default)
 }: {
   eventType: TelemetryEventType;
   questId: string;
@@ -73,16 +75,14 @@ export async function logTelemetryEvent({
 
   try {
     const walletClient = getWalletClientFromPrivateKey(privateKey);
-    const enc = new TextEncoder();
 
-    const attributes = [
-      { key: 'type', value: 'quest_telemetry' },
-      { key: 'eventType', value: eventType },
-      { key: 'questId', value: questId },
-      { key: 'stepId', value: stepId },
-      { key: 'spaceId', value: finalSpaceId },
-      { key: 'createdAt', value: createdAt },
-    ];
+    const attributes = {
+      event_type: eventType,
+      quest_id: questId,
+      step_id: stepId,
+      space_id: finalSpaceId,
+      created_at: createdAt,
+    };
 
     const sanitizedMessage = errorMessage
       ? errorMessage.slice(0, 200).replace(/0x[a-fA-F0-9]{20,}/g, '0x...')
@@ -97,27 +97,25 @@ export async function logTelemetryEvent({
     };
 
     const result = await handleTransactionWithTimeout(async () => {
-      return await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify(payload)),
-        contentType: 'application/json',
+      return await createArkivEntity(walletClient, {
+        type: 'quest_telemetry',
         attributes,
-        expiresIn: ttlSeconds,
+        payload,
+        lifetimeSeconds: ttlSeconds,
       });
     });
 
     const { entityKey, txHash } = result;
 
-    walletClient
-      .createEntity({
-        payload: enc.encode(JSON.stringify({ txHash })),
-        contentType: 'application/json',
-        attributes: [
-          { key: 'type', value: 'quest_telemetry_txhash' },
-          { key: 'entityKey', value: entityKey },
-          { key: 'spaceId', value: finalSpaceId },
-        ],
-        expiresIn: ttlSeconds,
-      })
+    createArkivEntity(walletClient, {
+      type: 'quest_telemetry_txhash',
+      attributes: {
+        entity_key: entityKey,
+        space_id: finalSpaceId,
+      },
+      payload: { txHash },
+      lifetimeSeconds: ttlSeconds,
+    })
       .catch((err: any) => {
         console.warn('[logTelemetryEvent] txHash entity failed (non-blocking):', err?.message);
       });
@@ -149,55 +147,42 @@ export async function getTelemetryEvents({
 
   try {
     const publicClient = getPublicClient();
-    const query = publicClient.buildQuery();
+    const query = arkivSelect('quest_telemetry', publicClient);
 
-    let queryBuilder = query
-      .where(eq('type', 'quest_telemetry'))
-      .where(eq('spaceId', finalSpaceId));
+    let queryBuilder = query.where(eqAttr('space_id', finalSpaceId));
 
     if (eventType) {
-      queryBuilder = queryBuilder.where(eq('eventType', eventType));
+      queryBuilder = queryBuilder.where(eqAttr('event_type', eventType));
     }
     if (questId) {
-      queryBuilder = queryBuilder.where(eq('questId', questId));
+      queryBuilder = queryBuilder.where(eqAttr('quest_id', questId));
     }
     if (stepId) {
-      queryBuilder = queryBuilder.where(eq('stepId', stepId));
+      queryBuilder = queryBuilder.where(eqAttr('step_id', stepId));
     }
 
-    const result = await queryBuilder.withAttributes(true).withPayload(true).limit(limit).fetch();
+    const result = await fetchAll(queryBuilder, limit, publicClient);
 
     if (!result || !result.entities || !Array.isArray(result.entities)) {
       return [];
     }
 
     return result.entities.map((entity: any) => {
-      const getAttr = (key: string) => entity.attributes?.find((a: any) => a.key === key)?.value;
+      const getAttr = (key: string) => readAttr(entity, key);
 
-      let payload: any = {};
-      try {
-        if (entity.payload) {
-          const payloadStr =
-            typeof entity.payload === 'string'
-              ? entity.payload
-              : new TextDecoder().decode(entity.payload);
-          payload = JSON.parse(payloadStr);
-        }
-      } catch (e) {
-        console.warn('[getTelemetryEvents] Failed to parse payload:', e);
-      }
+      const payload: any = parsePayload(entity);
 
       return {
         key: entity.key || '',
-        eventType: (getAttr('eventType') || 'step_completion_error') as TelemetryEventType,
-        questId: getAttr('questId') || '',
-        stepId: getAttr('stepId') || '',
+        eventType: (getAttr('event_type') || 'step_completion_error') as TelemetryEventType,
+        questId: getAttr('quest_id') || '',
+        stepId: getAttr('step_id') || '',
         errorType: payload.errorType,
         errorMessage: payload.errorMessage,
         retryCount: payload.retryCount,
         lagMs: payload.lagMs,
-        createdAt: getAttr('createdAt') || '',
-        spaceId: getAttr('spaceId') || finalSpaceId,
+        createdAt: getAttr('created_at') || '',
+        spaceId: getAttr('space_id') || finalSpaceId,
         txHash: entity.txHash,
       };
     });
@@ -283,36 +268,25 @@ export async function listAllTelemetryEvents({
     const publicClient = getPublicClient();
 
     const fetchForSpace = async (spaceId: string): Promise<QuestTelemetryEvent[]> => {
-      const result = await publicClient
-        .buildQuery()
-        .where(eq('type', 'quest_telemetry'))
-        .where(eq('spaceId', spaceId))
-        .withAttributes(true)
-        .withPayload(false)
-        .limit(limit)
-        .fetch();
+      const result = await fetchAll(
+        arkivSelect('quest_telemetry', publicClient).where(eqAttr('space_id', spaceId)),
+        limit,
+        publicClient
+      );
 
       if (!result?.entities || !Array.isArray(result.entities)) return [];
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const getAttr = (entity: any, key: string): string => {
-        const attrs = entity.attributes || {};
-        if (Array.isArray(attrs)) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (entity: any, key: string): string => readAttr(entity, key);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return result.entities.map((entity: any) => ({
         key: entity.key,
-        eventType: getAttr(entity, 'eventType') as TelemetryEventType,
-        questId: getAttr(entity, 'questId'),
-        stepId: getAttr(entity, 'stepId'),
-        createdAt: getAttr(entity, 'createdAt'),
-        spaceId: getAttr(entity, 'spaceId'),
+        eventType: getAttr(entity, 'event_type') as TelemetryEventType,
+        questId: getAttr(entity, 'quest_id'),
+        stepId: getAttr(entity, 'step_id'),
+        createdAt: getAttr(entity, 'created_at'),
+        spaceId: getAttr(entity, 'space_id'),
         txHash: entity.txHash || undefined,
       }));
     };

@@ -131,23 +131,11 @@ To get complete feedback state:
 ```typescript
 // Query feedback, resolutions, and responses in parallel
 const [feedbackResult, resolutionResult, responseResult] = await Promise.all([
-  publicClient
-    .buildQuery()
-    .where(eq('type', 'app_feedback'))
-    .withAttributes(true)
-    .withPayload(true)
+  arkivSelect('app_feedback')
     .fetch(),
-  publicClient
-    .buildQuery()
-    .where(eq('type', 'app_feedback_resolution'))
-    .withAttributes(true)
-    .withPayload(true)
+  arkivSelect('app_feedback_resolution')
     .fetch(),
-  publicClient
-    .buildQuery()
-    .where(eq('type', 'admin_response'))
-    .withAttributes(true)
-    .withPayload(true)
+  arkivSelect('admin_response')
     .fetch(),
 ]);
 
@@ -238,8 +226,8 @@ const { key, txHash } = await resolveAppFeedback({
 ```typescript
 // ✅ Correct: Normalize when storing
 attributes: [
-  { key: 'wallet', value: wallet.toLowerCase() },
-  { key: 'resolvedBy', value: resolvedByWallet.toLowerCase() },
+  { wallet: wallet.toLowerCase() },
+  { resolved_by: resolvedByWallet.toLowerCase() },
   // ...
 ];
 
@@ -272,30 +260,14 @@ export async function listAppFeedback({
 
   // Fetch feedback, txHash, resolution, and response entities in parallel
   const [result, txHashResult, resolutionResult, responseResult] = await Promise.all([
-    publicClient
-      .buildQuery()
-      .where(eq('type', 'app_feedback'))
-      .withAttributes(true)
-      .withPayload(true)
+    arkivSelect('app_feedback')
       .limit(limit || 100)
       .fetch(),
-    publicClient
-      .buildQuery()
-      .where(eq('type', 'app_feedback_txhash'))
-      .withAttributes(true)
-      .withPayload(true)
+    arkivSelect('app_feedback_txhash')
       .fetch(),
-    publicClient
-      .buildQuery()
-      .where(eq('type', 'app_feedback_resolution'))
-      .withAttributes(true)
-      .withPayload(true)
+    arkivSelect('app_feedback_resolution')
       .fetch(),
-    publicClient
-      .buildQuery()
-      .where(eq('type', 'admin_response'))
-      .withAttributes(true)
-      .withPayload(true)
+    arkivSelect('admin_response')
       .fetch(),
   ]);
 
@@ -360,12 +332,8 @@ export async function getAppFeedbackByKey(key: string): Promise<AppFeedback | nu
   const publicClient = getPublicClient();
 
   // Query feedback by key
-  const result = await publicClient
-    .buildQuery()
-    .where(eq('type', 'app_feedback'))
-    .where(eq('key', key))
-    .withAttributes(true)
-    .withPayload(true)
+  const result = await arkivSelect('app_feedback')
+    .where(eqAttr('key', key))
     .limit(1)
     .fetch();
 
@@ -375,28 +343,16 @@ export async function getAppFeedbackByKey(key: string): Promise<AppFeedback | nu
 
   // Fetch txHash, resolution, and response in parallel
   const [txHashResult, resolutionResult, responseResult] = await Promise.all([
-    publicClient
-      .buildQuery()
-      .where(eq('type', 'app_feedback_txhash'))
-      .where(eq('feedbackKey', key))
-      .withAttributes(true)
-      .withPayload(true)
+    arkivSelect('app_feedback_txhash')
+      .where(eqAttr('feedback_key', key))
       .limit(1)
       .fetch(),
-    publicClient
-      .buildQuery()
-      .where(eq('type', 'app_feedback_resolution'))
-      .where(eq('feedbackKey', key))
-      .withAttributes(true)
-      .withPayload(true)
+    arkivSelect('app_feedback_resolution')
+      .where(eqAttr('feedback_key', key))
       .limit(1)
       .fetch(),
-    publicClient
-      .buildQuery()
-      .where(eq('type', 'admin_response'))
-      .where(eq('feedbackKey', key))
-      .withAttributes(true)
-      .withPayload(true)
+    arkivSelect('admin_response')
+      .where(eqAttr('feedback_key', key))
       .limit(1)
       .fetch(),
   ]);
@@ -475,13 +431,13 @@ export async function createAppFeedback({
     ),
     contentType: 'application/json',
     attributes: [
-      { key: 'type', value: 'app_feedback' },
-      { key: 'wallet', value: wallet.toLowerCase() }, // Normalize!
-      { key: 'page', value: page },
-      { key: 'feedbackType', value: feedbackType }, // 'feedback' or 'issue'
-      { key: 'spaceId', value: spaceId },
-      { key: 'createdAt', value: createdAt },
-      ...(rating ? [{ key: 'rating', value: String(rating) }] : []),
+      { type: 'app_feedback' },
+      { wallet: wallet.toLowerCase() }, // Normalize!
+      { page: page },
+      { feedback_type: feedbackType }, // 'feedback' or 'issue'
+      { space_id: spaceId },
+      { created_at: createdAt },
+      ...(rating ? [{ rating: String(rating) }] : []),
     ],
     expiresIn,
   });
@@ -491,10 +447,10 @@ export async function createAppFeedback({
     payload: enc.encode(JSON.stringify({ txHash })),
     contentType: 'application/json',
     attributes: [
-      { key: 'type', value: 'app_feedback_txhash' },
-      { key: 'feedbackKey', value: entityKey },
-      { key: 'wallet', value: wallet.toLowerCase() }, // Normalize!
-      { key: 'spaceId', value: spaceId },
+      { type: 'app_feedback_txhash' },
+      { feedback_key: entityKey },
+      { wallet: wallet.toLowerCase() }, // Normalize!
+      { space_id: spaceId },
     ],
     expiresIn,
   });
@@ -576,11 +532,11 @@ export async function resolveAppFeedback({
       ),
       contentType: 'application/json',
       attributes: [
-        { key: 'type', value: 'app_feedback_resolution' },
-        { key: 'feedbackKey', value: feedbackKey },
-        { key: 'resolvedBy', value: resolvedByWallet.toLowerCase() }, // Normalize!
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: resolvedAt },
+        { type: 'app_feedback_resolution' },
+        { feedback_key: feedbackKey },
+        { resolved_by: resolvedByWallet.toLowerCase() }, // Normalize!
+        { space_id: spaceId },
+        { created_at: resolvedAt },
       ],
       expiresIn,
     });
@@ -589,11 +545,7 @@ export async function resolveAppFeedback({
   // Get feedback to find the user wallet
   try {
     const publicClient = getPublicClient();
-    const result = await publicClient
-      .buildQuery()
-      .where(eq('type', 'app_feedback'))
-      .withAttributes(true)
-      .withPayload(true)
+    const result = await arkivSelect('app_feedback')
       .limit(1000)
       .fetch();
 
@@ -708,15 +660,15 @@ export async function createFeedback({
     ),
     contentType: 'application/json',
     attributes: [
-      { key: 'type', value: 'session_feedback' },
-      { key: 'sessionKey', value: sessionKey },
-      { key: 'mentorWallet', value: mentorWallet.toLowerCase() }, // Normalize!
-      { key: 'learnerWallet', value: learnerWallet.toLowerCase() }, // Normalize!
-      { key: 'feedbackFrom', value: feedbackFrom.toLowerCase() }, // Normalize!
-      { key: 'feedbackTo', value: feedbackTo.toLowerCase() }, // Normalize!
-      { key: 'spaceId', value: spaceId },
-      { key: 'createdAt', value: createdAt },
-      ...(rating ? [{ key: 'rating', value: String(rating) }] : []),
+      { type: 'session_feedback' },
+      { session_key: sessionKey },
+      { mentor_wallet: mentorWallet.toLowerCase() }, // Normalize!
+      { learner_wallet: learnerWallet.toLowerCase() }, // Normalize!
+      { feedback_from: feedbackFrom.toLowerCase() }, // Normalize!
+      { feedback_to: feedbackTo.toLowerCase() }, // Normalize!
+      { space_id: spaceId },
+      { created_at: createdAt },
+      ...(rating ? [{ rating: String(rating) }] : []),
     ],
     expiresIn: 31536000, // 1 year
   });

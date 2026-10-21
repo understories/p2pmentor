@@ -76,12 +76,8 @@ import { eq } from '@arkiv-network/sdk/query';
 import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'perf_snapshot'))
-  .where(eq('operation', 'buildNetworkGraphData'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('perf_snapshot')
+  .where(eqAttr('operation', 'buildNetworkGraphData'))
   .limit(20)
   .fetch();
 
@@ -93,12 +89,8 @@ const snapshots = result.entities
 ### Get Latest Snapshot
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'perf_snapshot'))
-  .where(eq('operation', 'buildNetworkGraphData'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('perf_snapshot')
+  .where(eqAttr('operation', 'buildNetworkGraphData'))
   .limit(1)
   .fetch();
 

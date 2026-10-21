@@ -50,12 +50,8 @@ import { eq } from '@arkiv-network/sdk/query';
 import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'onboarding_event'))
-  .where(eq('wallet', walletAddress.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('onboarding_event')
+  .where(eqAttr('wallet', walletAddress.toLowerCase()))
   .limit(100)
   .fetch();
 
@@ -68,12 +64,9 @@ const events = result.entities
 
 ```typescript
 async function hasEventOccurred(wallet: string, eventType: OnboardingEventType): Promise<boolean> {
-  const result = await publicClient
-    .buildQuery()
-    .where(eq('type', 'onboarding_event'))
-    .where(eq('wallet', wallet.toLowerCase()))
-    .where(eq('eventType', eventType))
-    .withAttributes(true)
+  const result = await arkivSelect('onboarding_event')
+    .where(eqAttr('wallet', wallet.toLowerCase()))
+    .where(eqAttr('event_type', eventType))
     .limit(1)
     .fetch();
 

@@ -17,6 +17,7 @@ import { getPerfSummary, getPerfSamplesFiltered } from '@/lib/metrics/perf';
 import { listDxMetrics } from '@/lib/arkiv/dxMetrics';
 import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
 import { getPublicClient } from '@/lib/arkiv/client';
+import { getArkivExplorerTxUrl } from '@/lib/arkiv/explorer';
 
 /**
  * POST /api/admin/perf-snapshots
@@ -385,7 +386,7 @@ export async function POST(request: Request) {
         timestamp,
         operation,
         method,
-        explorer: `https://explorer.braga.hoodi.arkiv.network/tx/${txHash}`,
+        explorer: getArkivExplorerTxUrl(txHash),
       },
     });
   } catch (error: any) {
@@ -427,7 +428,7 @@ export async function POST(request: Request) {
             timestamp: new Date().toISOString(),
             operation: op,
             method: meth,
-            explorer: `https://explorer.braga.hoodi.arkiv.network/tx/${txHashMatch[0]}`,
+            explorer: getArkivExplorerTxUrl(txHashMatch[0]),
             pending: true,
           },
           message: 'Snapshot transaction submitted. It will appear once confirmed.',

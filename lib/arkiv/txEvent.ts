@@ -13,6 +13,7 @@ import { getWalletClientFromPrivateKey } from './client';
 import { SPACE_ID } from '@/lib/config';
 import { handleTransactionWithTimeout } from './transaction-utils';
 import { addSignerMetadata } from './signer-metadata';
+import { createArkivEntity } from './write';
 
 export type TxEventEntityType = 'profile' | 'ask' | 'offer' | 'skill';
 export type TxEventOperation = 'create' | 'update' | 'write';
@@ -49,31 +50,24 @@ export async function createTxEvent({
 }: CreateTxEventParams): Promise<{ key: string; txHash: string } | null> {
   try {
     const walletClient = getWalletClientFromPrivateKey(privateKey);
-    const enc = new TextEncoder();
     const createdAt = new Date().toISOString();
 
-    // Map entityType to Arkiv entity type name
-    const arkivEntityType = entityType === 'profile' ? 'user_profile' : entityType;
-
     // Build attributes (queryable fields)
-    const attributes: Array<{ key: string; value: string }> = [
-      { key: 'type', value: 'tx_event' },
-      { key: 'txhash', value: txHash },
-      { key: 'entity_type', value: entityType },
-      { key: 'entity_key', value: entityKey },
-      { key: 'space_id', value: spaceId },
-      { key: 'op', value: operation },
-      { key: 'created_at', value: createdAt },
-    ];
-
-    // Add wallet attribute if provided (some entities like skills may not have a wallet)
-    if (wallet) {
-      attributes.push({ key: 'wallet', value: wallet.toLowerCase() });
-    }
-
     // Add signer metadata (U1.x.2: Central Signer Metadata)
     // This tracks which wallet signed the tx_event entity creation (the signing wallet)
-    const attributesWithSigner = addSignerMetadata(attributes, privateKey);
+    const attributes = addSignerMetadata(
+      {
+        txhash: txHash,
+        entity_type: entityType,
+        entity_key: entityKey,
+        space_id: spaceId,
+        op: operation,
+        created_at: createdAt,
+        // Some entities (like skills) may not have a wallet
+        wallet: wallet ? wallet.toLowerCase() : undefined,
+      },
+      privateKey
+    );
 
     // Build payload (user-facing content)
     const payload = {
@@ -85,11 +79,10 @@ export async function createTxEvent({
     // Create tx_event entity (non-blocking - errors are logged but don't throw)
     // This is best-effort - the main entity write already succeeded
     const result = await handleTransactionWithTimeout(async () => {
-      return await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify(payload)),
-        contentType: 'application/json',
-        attributes: attributesWithSigner,
-        expiresIn: 31536000, // 1 year (same as main entities)
+      return await createArkivEntity(walletClient, {
+        type: 'tx_event',
+        attributes,
+        payload,
       });
     });
 

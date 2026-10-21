@@ -7,9 +7,17 @@
  * Reference: refs/meta-learning-quest-implementation-plan.md
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import {
+  arkivSelect,
+  fetchAll,
+  getAttr as readAttr,
+  getEntityByKey,
+  parsePayload,
+} from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { createArkivEntity } from './write';
 import { SPACE_ID } from '../config';
 
 export type MetaLearningArtifact = {
@@ -95,15 +103,11 @@ export async function createMetaLearningArtifact({
 
     // Check for existing artifact with same idempotency key
     const publicClient = getPublicClient();
-    const existingResult = await publicClient
-      .buildQuery()
-      .where(eq('type', 'meta_learning_artifact'))
-      .where(eq('wallet', normalizedWallet))
-      .where(eq('questId', questId))
-      .where(eq('targetKey', normalizedTargetKey))
-      .where(eq('stepId', stepId))
-      .withAttributes(true)
-      .withPayload(true)
+    const existingResult = await arkivSelect('meta_learning_artifact', publicClient)
+      .where(eqAttr('wallet', normalizedWallet))
+      .where(eqAttr('quest_id', questId))
+      .where(eqAttr('target_key', normalizedTargetKey))
+      .where(eqAttr('step_id', stepId))
       .limit(100)
       .fetch();
 
@@ -138,7 +142,6 @@ export async function createMetaLearningArtifact({
       throw new Error('Failed to get wallet client');
     }
 
-    const enc = new TextEncoder();
     const now = new Date().toISOString();
 
     const payload = {
@@ -152,37 +155,35 @@ export async function createMetaLearningArtifact({
     };
 
     const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
-      return await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify(payload)),
-        contentType: 'application/json',
-        attributes: [
-          { key: 'type', value: 'meta_learning_artifact' },
-          { key: 'wallet', value: normalizedWallet },
-          { key: 'questId', value: questId },
-          { key: 'stepId', value: stepId },
-          { key: 'artifactType', value: artifactType },
-          { key: 'targetKey', value: normalizedTargetKey },
-          { key: 'spaceId', value: spaceId },
-          { key: 'createdAt', value: now },
-        ],
-        expiresIn: ttlSeconds,
+      return await createArkivEntity(walletClient, {
+        type: 'meta_learning_artifact',
+        attributes: {
+          wallet: normalizedWallet,
+          quest_id: questId,
+          step_id: stepId,
+          artifact_type: artifactType,
+          target_key: normalizedTargetKey,
+          space_id: spaceId,
+          created_at: now,
+        },
+        payload,
+        lifetimeSeconds: ttlSeconds, // User-chosen TTL
       });
     });
 
     // Create txhash entity
     try {
       await handleTransactionWithTimeout(async () => {
-        return await walletClient.createEntity({
-          payload: enc.encode(JSON.stringify({})),
-          contentType: 'application/json',
-          attributes: [
-            { key: 'type', value: 'meta_learning_artifact_txhash' },
-            { key: 'artifactKey', value: entityKey },
-            { key: 'txHash', value: txHash },
-            { key: 'spaceId', value: spaceId },
-            { key: 'createdAt', value: now },
-          ],
-          expiresIn: ttlSeconds,
+        return await createArkivEntity(walletClient, {
+          type: 'meta_learning_artifact_txhash',
+          attributes: {
+            artifact_key: entityKey,
+            tx_hash: txHash,
+            space_id: spaceId,
+            created_at: now,
+          },
+          payload: {},
+          lifetimeSeconds: ttlSeconds,
         });
       });
     } catch (error) {
@@ -216,17 +217,15 @@ export async function getMetaLearningProgress({
     const publicClient = getPublicClient();
     const normalizedWallet = wallet.toLowerCase();
 
-    let queryBuilder = publicClient
-      .buildQuery()
-      .where(eq('type', 'meta_learning_artifact'))
-      .where(eq('wallet', normalizedWallet))
-      .where(eq('questId', questId));
+    let queryBuilder = arkivSelect('meta_learning_artifact', publicClient)
+      .where(eqAttr('wallet', normalizedWallet))
+      .where(eqAttr('quest_id', questId));
 
     if (targetKey) {
-      queryBuilder = queryBuilder.where(eq('targetKey', targetKey.toLowerCase()));
+      queryBuilder = queryBuilder.where(eqAttr('target_key', targetKey.toLowerCase()));
     }
 
-    const result = await queryBuilder.withAttributes(true).withPayload(true).limit(1000).fetch();
+    const result = await fetchAll(queryBuilder, 1000, publicClient);
 
     if (!result?.entities || !Array.isArray(result.entities) || result.entities.length === 0) {
       return {
@@ -241,21 +240,14 @@ export async function getMetaLearningProgress({
     }
 
     // Helper to get attribute value
-    const getAttr = (entity: any, key: string): string => {
-      const attrs = entity.attributes || {};
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    const getAttr = (entity: any, key: string): string => readAttr(entity, key);
 
     // Parse artifacts
     const artifacts: MetaLearningArtifact[] = [];
     const now = Date.now();
     for (const entity of result.entities) {
       try {
-        const createdAt = getAttr(entity, 'createdAt');
+        const createdAt = getAttr(entity, 'created_at');
         if (!createdAt) {
           continue; // Skip entities without createdAt
         }
@@ -286,10 +278,10 @@ export async function getMetaLearningProgress({
         artifacts.push({
           key: entity.key,
           wallet: getAttr(entity, 'wallet'),
-          questId: getAttr(entity, 'questId'),
-          stepId: getAttr(entity, 'stepId'),
-          artifactType: getAttr(entity, 'artifactType'),
-          targetKey: getAttr(entity, 'targetKey'),
+          questId: getAttr(entity, 'quest_id'),
+          stepId: getAttr(entity, 'step_id'),
+          artifactType: getAttr(entity, 'artifact_type'),
+          targetKey: getAttr(entity, 'target_key'),
           createdAt,
           txHash: (entity as any).txHash || undefined,
         });
@@ -449,42 +441,22 @@ export async function checkMetaLearningCompletion({
         // Parse payload to get completedAt timestamps
         const publicClient = getPublicClient();
         const [sessionEntity, spacingEntity] = await Promise.all([
-          publicClient
-            .buildQuery()
-            .where(eq('type', 'meta_learning_artifact'))
-            .where(eq('key', sessionArtifact.key))
-            .withPayload(true)
-            .limit(1)
-            .fetch(),
-          publicClient
-            .buildQuery()
-            .where(eq('type', 'meta_learning_artifact'))
-            .where(eq('key', spacingArtifact.key))
-            .withPayload(true)
-            .limit(1)
-            .fetch(),
+          getEntityByKey(sessionArtifact.key, publicClient),
+          getEntityByKey(spacingArtifact.key, publicClient),
         ]);
 
         try {
-          const sessionPayload = sessionEntity?.entities?.[0]?.payload;
-          const spacingPayload = spacingEntity?.entities?.[0]?.payload;
+          const isArtifact = (e: typeof sessionEntity) =>
+            !!e && readAttr(e, 'type') === 'meta_learning_artifact';
 
-          if (sessionPayload && spacingPayload) {
-            const sessionDecoded =
-              sessionPayload instanceof Uint8Array
-                ? new TextDecoder().decode(sessionPayload)
-                : typeof sessionPayload === 'string'
-                  ? sessionPayload
-                  : JSON.stringify(sessionPayload);
-            const sessionData = JSON.parse(sessionDecoded);
-
-            const spacingDecoded =
-              spacingPayload instanceof Uint8Array
-                ? new TextDecoder().decode(spacingPayload)
-                : typeof spacingPayload === 'string'
-                  ? spacingPayload
-                  : JSON.stringify(spacingPayload);
-            const spacingData = JSON.parse(spacingDecoded);
+          if (
+            isArtifact(sessionEntity) &&
+            isArtifact(spacingEntity) &&
+            sessionEntity?.payload &&
+            spacingEntity?.payload
+          ) {
+            const sessionData = parsePayload<any>(sessionEntity);
+            const spacingData = parsePayload<any>(spacingEntity);
 
             const sessionCompletedAt = sessionData.data?.completedAt || sessionArtifact.createdAt;
             const spacingCompletedAt = spacingData.data?.completedAt || spacingArtifact.createdAt;
@@ -565,35 +537,25 @@ export async function listMetaLearningArtifacts({
     const publicClient = getPublicClient();
 
     const fetchForSpace = async (spaceId: string): Promise<MetaLearningArtifact[]> => {
-      const result = await publicClient
-        .buildQuery()
-        .where(eq('type', 'meta_learning_artifact'))
-        .where(eq('spaceId', spaceId))
-        .withAttributes(true)
-        .withPayload(false)
-        .limit(limit)
-        .fetch();
+      const result = await fetchAll(
+        arkivSelect('meta_learning_artifact', publicClient).where(eqAttr('space_id', spaceId)),
+        limit,
+        publicClient
+      );
 
       if (!result?.entities || !Array.isArray(result.entities)) return [];
 
-      const getAttr = (entity: any, key: string): string => {
-        const attrs = entity.attributes || {};
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (entity: any, key: string): string => readAttr(entity, key);
 
       return result.entities.map((entity: any) => ({
         key: entity.key,
         wallet: getAttr(entity, 'wallet'),
-        questId: getAttr(entity, 'questId'),
-        stepId: getAttr(entity, 'stepId'),
-        artifactType: getAttr(entity, 'artifactType'),
-        targetKey: getAttr(entity, 'targetKey'),
-        createdAt: getAttr(entity, 'createdAt'),
-        spaceId: getAttr(entity, 'spaceId'),
+        questId: getAttr(entity, 'quest_id'),
+        stepId: getAttr(entity, 'step_id'),
+        artifactType: getAttr(entity, 'artifact_type'),
+        targetKey: getAttr(entity, 'target_key'),
+        createdAt: getAttr(entity, 'created_at'),
+        spaceId: getAttr(entity, 'space_id'),
         txHash: (entity as any).txHash || undefined,
       }));
     };

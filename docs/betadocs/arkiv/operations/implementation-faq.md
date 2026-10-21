@@ -61,12 +61,8 @@ export async function getProfileByWallet(wallet: string): Promise<UserProfile | 
 // lib/arkiv/profile.ts:544-553
 export async function listUserProfilesForWallet(wallet: string): Promise<UserProfile[]> {
   const publicClient = getPublicClient();
-  const query = publicClient.buildQuery();
-  const result = await query
-    .where(eq('type', 'user_profile'))
-    .where(eq('wallet', wallet.toLowerCase()))
-    .withAttributes(true)
-    .withPayload(true)
+    const result = await arkivSelect('user_profile')
+    .where(eqAttr('wallet', wallet.toLowerCase()))
     .limit(100)
     .fetch();
   // ... parse and return
@@ -258,7 +254,7 @@ const ttl = Math.floor(ttlRaw); // Ensure integer
 const result = await walletClient.createEntity({
   // ...
   attributes: [
-    { key: 'ttlSeconds', value: String(ttl) }, // For client-side filtering
+    { ttl_seconds: String(ttl) }, // For client-side filtering
     // ...
   ],
   expiresIn: ttl, // For Arkiv-level cleanup
@@ -277,13 +273,9 @@ const result = await walletClient.createEntity({
 // lib/arkiv/profile.ts:645-720
 export async function checkUsernameExists(username: string): Promise<UserProfile[]> {
   const publicClient = getPublicClient();
-  const query = publicClient.buildQuery();
-
-  const result = await query
-    .where(eq('type', 'user_profile'))
-    .where(eq('username', username.trim()))
-    .withAttributes(true)
-    .withPayload(true)
+  
+  const result = await arkivSelect('user_profile')
+    .where(eqAttr('username', username.trim()))
     .limit(100)
     .fetch();
 

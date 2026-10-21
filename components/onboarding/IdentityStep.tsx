@@ -11,6 +11,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import { checkUsernameExists } from '@/lib/arkiv/profile';
+import { ARKIV_EXPLORER_BASE_URL } from '@/lib/arkiv/explorer';
 
 interface IdentityStepProps {
   wallet: string;
@@ -184,7 +185,7 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
           All data you enter here is stored on the Arkiv network. This means it is visible and
           verifiable on their{' '}
           <a
-            href="https://explorer.braga.hoodi.arkiv.network/"
+            href={ARKIV_EXPLORER_BASE_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="text-green-400 underline hover:text-green-300"

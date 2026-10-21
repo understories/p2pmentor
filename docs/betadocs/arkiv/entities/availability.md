@@ -87,21 +87,14 @@ Implementation: `lib/arkiv/availability.ts` - `createAvailability()` detects for
 Fetch availability for a wallet:
 
 ```typescript
-const query = publicClient.buildQuery();
-const result = await query
-  .where(eq('type', 'availability'))
-  .where(eq('wallet', wallet.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('availability')
+  .where(eqAttr('wallet', wallet.toLowerCase()))
   .limit(100)
   .fetch();
 
 // Filter out deleted availability (arkiv-native deletion pattern)
-const deletionQuery = publicClient.buildQuery();
-const deletions = await deletionQuery
-  .where(eq('type', 'availability_deletion'))
-  .where(eq('wallet', wallet.toLowerCase()))
-  .withAttributes(true)
+const deletions = await arkivSelect('availability_deletion')
+  .where(eqAttr('wallet', wallet.toLowerCase()))
   .limit(100)
   .fetch();
 

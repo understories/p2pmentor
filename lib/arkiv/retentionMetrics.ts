@@ -8,9 +8,10 @@
  * Reference: refs/doc/beta_metrics_QUESTIONS.md Question 6
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { arkivSelect, fetchAll, getAttr as readAttr } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { createArkivEntity } from './write';
 import { keccak256, toBytes } from 'viem';
 import { listUserProfiles } from './profile';
 import { listAsks } from './asks';
@@ -210,7 +211,6 @@ export async function createRetentionCohort({
   spaceId?: string;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const createdAt = cohort.createdAt || new Date().toISOString();
 
   const payload = {
@@ -224,41 +224,36 @@ export async function createRetentionCohort({
     createdAt,
   };
 
-  // Retention cohorts persist for analysis (1 year)
-  const expiresIn = 31536000; // 1 year in seconds
+  // Retention cohorts use the type default lifetime (see lib/arkiv/schema.ts)
 
   const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify(payload)),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'retention_cohort' },
-        { key: 'cohortDate', value: cohort.cohortDate },
-        { key: 'period', value: cohort.period },
-        { key: 'day0', value: String(cohort.day0) },
-        ...(cohort.day1 !== undefined ? [{ key: 'day1', value: String(cohort.day1) }] : []),
-        ...(cohort.day7 !== undefined ? [{ key: 'day7', value: String(cohort.day7) }] : []),
-        ...(cohort.day14 !== undefined ? [{ key: 'day14', value: String(cohort.day14) }] : []),
-        ...(cohort.day30 !== undefined ? [{ key: 'day30', value: String(cohort.day30) }] : []),
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: createdAt },
-      ],
-      expiresIn,
+    return await createArkivEntity(walletClient, {
+      type: 'retention_cohort',
+      attributes: {
+        cohort_date: cohort.cohortDate,
+        period: cohort.period,
+        day0: String(cohort.day0),
+        day1: cohort.day1 !== undefined ? String(cohort.day1) : undefined,
+        day7: cohort.day7 !== undefined ? String(cohort.day7) : undefined,
+        day14: cohort.day14 !== undefined ? String(cohort.day14) : undefined,
+        day30: cohort.day30 !== undefined ? String(cohort.day30) : undefined,
+        space_id: spaceId,
+        created_at: createdAt,
+      },
+      payload,
     });
   });
 
   // Store txHash
   try {
-    await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify({ txHash })),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'retention_cohort_txhash' },
-        { key: 'cohortKey', value: entityKey },
-        { key: 'cohortDate', value: cohort.cohortDate },
-        { key: 'spaceId', value: spaceId },
-      ],
-      expiresIn,
+    await createArkivEntity(walletClient, {
+      type: 'retention_cohort_txhash',
+      attributes: {
+        cohort_key: entityKey,
+        cohort_date: cohort.cohortDate,
+        space_id: spaceId,
+      },
+      payload: { txHash },
     });
   } catch (error: any) {
     console.warn('[retentionMetrics] Failed to create txhash entity:', error);
@@ -283,19 +278,8 @@ export async function listRetentionCohorts({
     const publicClient = getPublicClient();
 
     const [result, txHashResult] = await Promise.all([
-      publicClient
-        .buildQuery()
-        .where(eq('type', 'retention_cohort'))
-        .withAttributes(true)
-        .withPayload(true)
-        .limit(limit || 100)
-        .fetch(),
-      publicClient
-        .buildQuery()
-        .where(eq('type', 'retention_cohort_txhash'))
-        .withAttributes(true)
-        .withPayload(true)
-        .fetch(),
+      fetchAll(arkivSelect('retention_cohort', publicClient), limit || 100, publicClient),
+      fetchAll(arkivSelect('retention_cohort_txhash', publicClient), 1000, publicClient),
     ]);
 
     if (!result?.entities || !Array.isArray(result.entities)) {
@@ -306,15 +290,8 @@ export async function listRetentionCohorts({
     const txHashMap: Record<string, string> = {};
     if (txHashResult?.entities && Array.isArray(txHashResult.entities)) {
       txHashResult.entities.forEach((entity: any) => {
-        const attrs = entity.attributes || {};
-        const getAttr = (key: string): string => {
-          if (Array.isArray(attrs)) {
-            const attr = attrs.find((a: any) => a.key === key);
-            return String(attr?.value || '');
-          }
-          return String(attrs[key] || '');
-        };
-        const cohortKey = getAttr('cohortKey');
+        const getAttr = (key: string): string => readAttr(entity, key);
+        const cohortKey = getAttr('cohort_key');
         try {
           if (entity.payload) {
             const decoded =
@@ -350,18 +327,11 @@ export async function listRetentionCohorts({
         console.error('[listRetentionCohorts] Error decoding payload:', e);
       }
 
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (key: string): string => readAttr(entity, key);
 
       return {
         key: entity.key,
-        cohortDate: getAttr('cohortDate') || payload.cohortDate,
+        cohortDate: getAttr('cohort_date') || payload.cohortDate,
         period: (getAttr('period') || payload.period || 'daily') as 'daily' | 'weekly' | 'monthly',
         day0: payload.day0 || parseInt(getAttr('day0'), 10),
         day1:
@@ -388,7 +358,7 @@ export async function listRetentionCohorts({
             : getAttr('day30')
               ? parseInt(getAttr('day30'), 10)
               : undefined,
-        createdAt: getAttr('createdAt') || payload.createdAt,
+        createdAt: getAttr('created_at') || payload.createdAt,
         txHash: txHashMap[entity.key] || payload.txHash || undefined,
       };
     });

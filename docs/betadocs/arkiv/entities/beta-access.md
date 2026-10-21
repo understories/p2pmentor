@@ -41,12 +41,8 @@ import { eq } from '@arkiv-network/sdk/query';
 import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'beta_access'))
-  .where(eq('wallet', walletAddress.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('beta_access')
+  .where(eqAttr('wallet', walletAddress.toLowerCase()))
   .limit(1)
   .fetch();
 
@@ -57,12 +53,8 @@ const hasAccess = result.entities.length > 0;
 
 ```typescript
 const normalizedCode = code.toLowerCase().trim();
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'beta_access'))
-  .where(eq('code', normalizedCode))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('beta_access')
+  .where(eqAttr('code', normalizedCode))
   .limit(100)
   .fetch();
 
@@ -76,13 +68,9 @@ const grants = result.entities.map((e) => ({
 
 ```typescript
 const normalizedCode = code.toLowerCase().trim();
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'beta_access'))
-  .where(eq('wallet', walletAddress.toLowerCase()))
-  .where(eq('code', normalizedCode))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('beta_access')
+  .where(eqAttr('wallet', walletAddress.toLowerCase()))
+  .where(eqAttr('code', normalizedCode))
   .limit(1)
   .fetch();
 

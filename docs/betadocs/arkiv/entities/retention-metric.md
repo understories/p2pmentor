@@ -69,12 +69,8 @@ import { eq } from '@arkiv-network/sdk/query';
 import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'retention_cohort'))
-  .where(eq('period', 'weekly'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('retention_cohort')
+  .where(eqAttr('period', 'weekly'))
   .limit(20)
   .fetch();
 

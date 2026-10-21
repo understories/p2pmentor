@@ -27,6 +27,7 @@ import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import type { GardenNote } from '@/lib/arkiv/gardenNote';
 import type { UserProfile } from '@/lib/arkiv/profile';
+import { getArkivExplorerTxUrl } from '@/lib/arkiv/explorer';
 
 export default function ProfileGardenNotesPage() {
   const params = useParams();
@@ -445,7 +446,7 @@ export default function ProfileGardenNotesPage() {
                               <>
                                 <span className="text-gray-400 dark:text-gray-500">·</span>
                                 <a
-                                  href={`https://explorer.braga.hoodi.arkiv.network/tx/${note.txHash}`}
+                                  href={getArkivExplorerTxUrl(note.txHash)}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="flex items-center gap-1 font-medium text-green-600 hover:underline dark:text-green-400"
@@ -492,7 +493,7 @@ export default function ProfileGardenNotesPage() {
                       </span>
                       {note.txHash && note.txHash !== 'undefined' && (
                         <a
-                          href={`https://explorer.braga.hoodi.arkiv.network/tx/${note.txHash}`}
+                          href={getArkivExplorerTxUrl(note.txHash)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="font-medium text-green-600 hover:underline dark:text-green-400"

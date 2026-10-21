@@ -5,7 +5,7 @@
  * All entities should have "View on Arkiv" links to teach users about blockchain.
  */
 
-export const ARKIV_EXPLORER_BASE_URL = 'https://explorer.braga.hoodi.arkiv.network';
+export const ARKIV_EXPLORER_BASE_URL = 'https://tiramisu.explorer.arkiv.network';
 
 /**
  * Generate link to view transaction on Arkiv Explorer
@@ -25,6 +25,16 @@ export function getArkivExplorerTxUrl(txHash: string): string {
  */
 export function getArkivExplorerEntityUrl(entityKey: string): string {
   return `${ARKIV_EXPLORER_BASE_URL}/entity/${entityKey}`;
+}
+
+/**
+ * Generate link to view an address (wallet) on Arkiv Explorer
+ *
+ * @param address - Wallet address
+ * @returns Full URL to address on Arkiv Explorer
+ */
+export function getArkivExplorerAddressUrl(address: string): string {
+  return `${ARKIV_EXPLORER_BASE_URL}/address/${address}`;
 }
 
 /**

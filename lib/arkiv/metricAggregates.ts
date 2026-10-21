@@ -7,12 +7,18 @@
  * Reference: refs/doc/beta_metrics_QUESTIONS.md Questions 2, 4, 11
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { MAX_ATTR_STRING_BYTES } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { createArkivEntity } from './write';
 import { listDxMetrics } from './dxMetrics';
 import { listClientPerfMetrics } from './clientPerfMetric';
 import { SPACE_ID } from '@/lib/config';
+
+/** Short string for an attribute, or undefined when it exceeds the attribute limit (kept in payload) */
+const attrIfFits = (value?: string): string | undefined =>
+  value && new TextEncoder().encode(value).length <= MAX_ATTR_STRING_BYTES ? value : undefined;
 
 export type PercentileMetrics = {
   p50: number;
@@ -92,7 +98,6 @@ export async function createMetricAggregate({
   spaceId?: string;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const createdAt = aggregate.createdAt || new Date().toISOString();
 
   const payload = {
@@ -110,40 +115,35 @@ export async function createMetricAggregate({
     createdAt,
   };
 
-  // Aggregates persist for long-term analysis (1 year)
-  const expiresIn = 31536000; // 1 year in seconds
+  // Aggregates use the type default lifetime (see lib/arkiv/schema.ts)
 
   const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify(payload)),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'metric_aggregate' },
-        { key: 'date', value: aggregate.date },
-        { key: 'period', value: aggregate.period },
-        ...(aggregate.operation ? [{ key: 'operation', value: aggregate.operation }] : []),
-        ...(aggregate.source ? [{ key: 'source', value: aggregate.source }] : []),
-        ...(aggregate.route ? [{ key: 'route', value: aggregate.route }] : []),
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: createdAt },
-      ],
-      expiresIn,
+    return await createArkivEntity(walletClient, {
+      type: 'metric_aggregate',
+      attributes: {
+        date: aggregate.date,
+        period: aggregate.period,
+        operation: aggregate.operation,
+        source: aggregate.source,
+        route: attrIfFits(aggregate.route), // Full route is also in the payload
+        space_id: spaceId,
+        created_at: createdAt,
+      },
+      payload,
     });
   });
 
   // Store txHash
   try {
-    await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify({ txHash })),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'metric_aggregate_txhash' },
-        { key: 'aggregateKey', value: entityKey },
-        { key: 'date', value: aggregate.date },
-        { key: 'period', value: aggregate.period },
-        { key: 'spaceId', value: spaceId },
-      ],
-      expiresIn,
+    await createArkivEntity(walletClient, {
+      type: 'metric_aggregate_txhash',
+      attributes: {
+        aggregate_key: entityKey,
+        date: aggregate.date,
+        period: aggregate.period,
+        space_id: spaceId,
+      },
+      payload: { txHash },
     });
   } catch (error: any) {
     console.warn('[metricAggregates] Failed to create txhash entity:', error);
@@ -174,19 +174,8 @@ export async function listMetricAggregates({
     const publicClient = getPublicClient();
 
     const [result, txHashResult] = await Promise.all([
-      publicClient
-        .buildQuery()
-        .where(eq('type', 'metric_aggregate'))
-        .withAttributes(true)
-        .withPayload(true)
-        .limit(limit || 100)
-        .fetch(),
-      publicClient
-        .buildQuery()
-        .where(eq('type', 'metric_aggregate_txhash'))
-        .withAttributes(true)
-        .withPayload(true)
-        .fetch(),
+      fetchAll(arkivSelect('metric_aggregate', publicClient), limit || 100, publicClient),
+      fetchAll(arkivSelect('metric_aggregate_txhash', publicClient), 1000, publicClient),
     ]);
 
     if (!result?.entities || !Array.isArray(result.entities)) {
@@ -197,15 +186,8 @@ export async function listMetricAggregates({
     const txHashMap: Record<string, string> = {};
     if (txHashResult?.entities && Array.isArray(txHashResult.entities)) {
       txHashResult.entities.forEach((entity: any) => {
-        const attrs = entity.attributes || {};
-        const getAttr = (key: string): string => {
-          if (Array.isArray(attrs)) {
-            const attr = attrs.find((a: any) => a.key === key);
-            return String(attr?.value || '');
-          }
-          return String(attrs[key] || '');
-        };
-        const aggregateKey = getAttr('aggregateKey');
+        const getAttr = (key: string): string => readAttr(entity, key);
+        const aggregateKey = getAttr('aggregate_key');
         try {
           if (entity.payload) {
             const decoded =
@@ -241,14 +223,7 @@ export async function listMetricAggregates({
         console.error('[listMetricAggregates] Error decoding payload:', e);
       }
 
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (key: string): string => readAttr(entity, key);
 
       return {
         key: entity.key,
@@ -256,14 +231,14 @@ export async function listMetricAggregates({
         period: (getAttr('period') || payload.period || 'daily') as 'daily' | 'weekly',
         operation: getAttr('operation') || payload.operation || undefined,
         source: (getAttr('source') || payload.source) as 'graphql' | 'arkiv' | undefined,
-        route: getAttr('route') || payload.route || undefined,
+        route: payload.route || getAttr('route') || undefined,
         percentiles: payload.percentiles || undefined,
         errorRate: payload.errorRate || undefined,
         fallbackRate: payload.fallbackRate || undefined,
         totalRequests: payload.totalRequests || undefined,
         successfulRequests: payload.successfulRequests || undefined,
         failedRequests: payload.failedRequests || undefined,
-        createdAt: getAttr('createdAt') || payload.createdAt,
+        createdAt: getAttr('created_at') || payload.createdAt,
         txHash: txHashMap[entity.key] || payload.txHash || undefined,
       };
     });

@@ -12,7 +12,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { connectWallet } from '@/lib/auth/metamask';
 import { connectWalletConnect } from '@/lib/auth/walletconnect';
-import { braga } from '@arkiv-network/sdk/chains';
+import { ARKIV_ADD_CHAIN_PARAMS } from '@/lib/arkiv/chain';
+import { ARKIV_EXPLORER_BASE_URL } from '@/lib/arkiv/explorer';
 import { BackButton } from '@/components/BackButton';
 import { setWalletType } from '@/lib/wallet/getWalletClient';
 import {
@@ -660,7 +661,7 @@ export default function AuthPage() {
     }
   };
 
-  const handleAddBragaNetwork = async () => {
+  const handleAddArkivNetwork = async () => {
     if (!window.ethereum) {
       setError('MetaMask not installed');
       return;
@@ -670,23 +671,13 @@ export default function AuthPage() {
     setError('');
 
     try {
-      const chainIdHex = `0x${braga.id.toString(16)}`;
-
       // Always call wallet_addEthereumChain directly - MetaMask will handle:
       // - If network doesn't exist: Show add network prompt
       // - If network already exists: Show appropriate message or switch to it
       // This ensures MetaMask always opens and handles the state appropriately
       await window.ethereum.request({
         method: 'wallet_addEthereumChain',
-        params: [
-          {
-            chainId: chainIdHex,
-            chainName: braga.name,
-            nativeCurrency: braga.nativeCurrency,
-            rpcUrls: braga.rpcUrls.default.http,
-            blockExplorerUrls: [braga.blockExplorers.default.url],
-          },
-        ],
+        params: [ARKIV_ADD_CHAIN_PARAMS],
       });
 
       // If we get here, the network was added or already exists
@@ -716,7 +707,7 @@ export default function AuthPage() {
           !errorMessage.toLowerCase().includes('duplicate')
         ) {
           // Only show unexpected errors
-          setError(errorMessage || 'Failed to add Braga testnet');
+          setError(errorMessage || 'Failed to add Arkiv Tiramisu testnet');
         } else {
           // Network is already added or user cancelled - clear error
           setError('');
@@ -740,19 +731,19 @@ export default function AuthPage() {
           Choose your authentication method:
         </p>
 
-        {/* Add Braga Testnet Button */}
+        {/* Add Arkiv Tiramisu Testnet Button */}
         {mounted && window.ethereum && (
           <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
             <p className="mb-2 text-sm text-blue-800 dark:text-blue-300">
-              <strong>First time?</strong> Add Braga testnet to your wallet:
+              <strong>First time?</strong> Add the Arkiv Tiramisu testnet to your wallet:
             </p>
             <button
-              onClick={handleAddBragaNetwork}
+              onClick={handleAddArkivNetwork}
               disabled={addingNetwork}
               className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
               title="Don't worry: you do not need any funds in your wallet to use our app. In fact, we recommend using a wallet without any funds as your profile wallet. Read more in the betadocs"
             >
-              {addingNetwork ? 'Adding Network...' : 'Add Braga Testnet to Wallet'}
+              {addingNetwork ? 'Adding Network...' : 'Add Arkiv Tiramisu Testnet to Wallet'}
             </button>
           </div>
         )}
@@ -806,7 +797,7 @@ export default function AuthPage() {
                     className="flex-1 rounded-lg border border-purple-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-purple-700 dark:bg-gray-800 dark:text-gray-100"
                     onKeyDown={(e) => {
                       if (
-                        e.key === 'Enter' &&
+                        e.key === 'enter' &&
                         !isConnecting &&
                         !isActivatingReviewMode &&
                         !isVerifyingPassword &&
@@ -994,12 +985,12 @@ export default function AuthPage() {
           <p className="mt-2 text-sm leading-relaxed text-yellow-700 dark:text-yellow-400">
             This is a beta environment on{' '}
             <a
-              href="https://braga.hoodi.arkiv.network"
+              href="https://arkiv.network"
               target="_blank"
               rel="noopener noreferrer"
               className="text-yellow-800 underline hover:text-yellow-900 dark:text-yellow-300 dark:hover:text-yellow-200"
             >
-              Braga testnet
+              Arkiv Tiramisu testnet
             </a>
             . You do not need any funds to use the application.{' '}
             <a
@@ -1016,7 +1007,7 @@ export default function AuthPage() {
             Blockchain data is immutable and transparent by design. All data inputted on this beta
             is viewable on the{' '}
             <a
-              href="https://explorer.braga.hoodi.arkiv.network"
+              href={ARKIV_EXPLORER_BASE_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="text-yellow-800 underline hover:text-yellow-900 dark:text-yellow-300 dark:hover:text-yellow-200"

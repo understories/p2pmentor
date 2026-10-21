@@ -200,21 +200,15 @@ Session state is computed from session entity plus confirmation/rejection entiti
 Fetch sessions for a wallet (as mentor or learner):
 
 ```typescript
-const query = publicClient.buildQuery();
-const result = await query
-  .where(eq('type', 'session'))
-  .where(eq('mentorWallet', wallet.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('session')
+  .where(eqAttr('mentor_wallet', wallet.toLowerCase()))
   .limit(100)
   .fetch();
 
 // Also query as learner
 const learnerResult = await query
-  .where(eq('type', 'session'))
-  .where(eq('learnerWallet', wallet.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
+  .where(eqAttr('type', 'session'))
+  .where(eqAttr('learner_wallet', wallet.toLowerCase()))
   .limit(100)
   .fetch();
 ```
@@ -223,16 +217,14 @@ Fetch confirmations/rejections for session:
 
 ```typescript
 const confirmations = await query
-  .where(eq('type', 'session_confirmation'))
-  .where(eq('sessionKey', sessionKey))
-  .withAttributes(true)
+  .where(eqAttr('type', 'session_confirmation'))
+  .where(eqAttr('session_key', sessionKey))
   .limit(10)
   .fetch();
 
 const rejections = await query
-  .where(eq('type', 'session_rejection'))
-  .where(eq('sessionKey', sessionKey))
-  .withAttributes(true)
+  .where(eqAttr('type', 'session_rejection'))
+  .where(eqAttr('session_key', sessionKey))
   .limit(10)
   .fetch();
 ```

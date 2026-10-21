@@ -66,16 +66,14 @@ Wallet addresses must be normalized to lowercase for storage and query operation
 ```typescript
 // Entity creation
 attributes: [
-  { key: 'wallet', value: wallet.toLowerCase() },
+  { wallet: wallet.toLowerCase() },
   // ...
 ];
 
 // Querying
 const normalizedWallet = wallet.toLowerCase();
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'user_profile'))
-  .where(eq('wallet', normalizedWallet))
+const result = await arkivSelect('user_profile')
+  .where(eqAttr('wallet', normalizedWallet))
   .fetch();
 
 // Helper function

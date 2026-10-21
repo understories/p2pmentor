@@ -62,13 +62,9 @@ import { eq } from '@arkiv-network/sdk/query';
 import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'garden_note'))
-  .where(eq('channel', 'public_garden_board'))
-  .where(eq('visibility', 'public'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('garden_note')
+  .where(eqAttr('channel', 'public_garden_board'))
+  .where(eqAttr('visibility', 'public'))
   .limit(100)
   .fetch();
 
@@ -81,12 +77,8 @@ const notes = result.entities
 ### Get Notes by Author
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'garden_note'))
-  .where(eq('authorWallet', walletAddress.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('garden_note')
+  .where(eqAttr('author_wallet', walletAddress.toLowerCase()))
   .limit(100)
   .fetch();
 ```
@@ -94,11 +86,7 @@ const result = await publicClient
 ### Get Notes by Tag
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'garden_note'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('garden_note')
   .limit(1000)
   .fetch();
 
@@ -111,11 +99,7 @@ const notesWithTag = result.entities
 ### Get Threaded Replies
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'garden_note'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('garden_note')
   .limit(1000)
   .fetch();
 

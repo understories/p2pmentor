@@ -90,11 +90,11 @@ async function revokeGrant(grantKey: string, revokedBy: string) {
   const { key, txHash } = await createEntity({
     type: 'review_mode_grant_revocation',
     attributes: [
-      { key: 'type', value: 'review_mode_grant_revocation' },
-      { key: 'entityKey', value: grantKey },
-      { key: 'revokedAt', value: revocationMarker.revokedAt },
-      { key: 'revokedBy', value: revocationMarker.revokedBy },
-      { key: 'spaceId', value: SPACE_ID },
+      { type: 'review_mode_grant_revocation' },
+      { entity_key: grantKey },
+      { revoked_at: revocationMarker.revokedAt },
+      { revoked_by: revocationMarker.revokedBy },
+      { space_id: SPACE_ID },
     ],
     payload: enc.encode(JSON.stringify(revocationMarker)),
     expiresIn: 15768000, // 6 months (same as grant)
@@ -106,12 +106,9 @@ async function revokeGrant(grantKey: string, revokedBy: string) {
 
 // Query pattern: Check for revocation before granting access
 async function isGrantRevoked(grantKey: string): Promise<boolean> {
-  const result = await publicClient
-    .buildQuery()
-    .where(eq('type', 'review_mode_grant_revocation'))
-    .where(eq('entityKey', grantKey))
-    .where(eq('spaceId', SPACE_ID))
-    .withAttributes(true)
+  const result = await arkivSelect('review_mode_grant_revocation')
+    .where(eqAttr('entity_key', grantKey))
+    .where(eqAttr('space_id', SPACE_ID))
     .limit(1)
     .fetch();
 

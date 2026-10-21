@@ -8,10 +8,12 @@
  * original entity is revoked.
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
-import { SPACE_ID, getPrivateKey } from '@/lib/config';
+import { SPACE_ID, SERVER_SIGNER_ADDRESS, getPrivateKey } from '@/lib/config';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { createArkivEntity } from './write';
 
 export type RevocationMarker = {
   key: string;
@@ -34,7 +36,7 @@ export type RevocationMarker = {
  * @param revokedBy - Wallet address that is revoking (normalized to lowercase)
  * @param reason - Optional reason for revocation
  * @param spaceId - Optional space ID (defaults to SPACE_ID)
- * @param expiresIn - Optional TTL in seconds (defaults to 6 months, same as grants)
+ * @param lifetimeSeconds - Optional lifetime in seconds (defaults to the type default lifetime)
  * @returns Revocation marker key and transaction hash
  */
 export async function createRevocationMarker({
@@ -43,14 +45,14 @@ export async function createRevocationMarker({
   revokedBy,
   reason,
   spaceId = SPACE_ID,
-  expiresIn = 15768000, // 6 months (same as grants)
+  lifetimeSeconds,
 }: {
   originalType: string;
   entityKey: string;
   revokedBy: string;
   reason?: string;
   spaceId?: string;
-  expiresIn?: number;
+  lifetimeSeconds?: number;
 }): Promise<{ key: string; txHash: string }> {
   const privateKey = getPrivateKey();
   if (!privateKey) {
@@ -58,7 +60,6 @@ export async function createRevocationMarker({
   }
 
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const revokedAt = new Date().toISOString();
   const normalizedRevokedBy = revokedBy.toLowerCase().trim();
   const finalSpaceId = spaceId || SPACE_ID;
@@ -74,28 +75,24 @@ export async function createRevocationMarker({
     spaceId: finalSpaceId,
   };
 
-  const attributes: Array<{ key: string; value: string }> = [
-    { key: 'type', value: revocationType },
-    { key: 'entityKey', value: entityKey },
-    { key: 'revokedAt', value: revokedAt },
-    { key: 'revokedBy', value: normalizedRevokedBy },
-    { key: 'spaceId', value: finalSpaceId },
-  ];
-
-  if (reason) {
-    attributes.push({ key: 'reason', value: reason });
-  }
+  // Attributes: short, queryable fields only (reason is payload-only)
+  const attributes = {
+    entity_key: entityKey,
+    revoked_at: revokedAt,
+    revoked_by: normalizedRevokedBy,
+    space_id: finalSpaceId,
+  };
 
   // Add signer metadata
   const { addSignerMetadata } = await import('./signer-metadata');
   const attributesWithSigner = addSignerMetadata(attributes, privateKey);
 
   const result = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify(payload)),
-      contentType: 'application/json',
+    return await createArkivEntity(walletClient, {
+      type: revocationType,
       attributes: attributesWithSigner,
-      expiresIn,
+      payload,
+      lifetimeSeconds,
     });
   });
 
@@ -126,12 +123,12 @@ export async function isEntityRevoked({
   const revocationType = `${originalType}_revocation`;
 
   try {
-    const result = await publicClient
-      .buildQuery()
-      .where(eq('type', revocationType))
-      .where(eq('entityKey', entityKey))
-      .where(eq('spaceId', finalSpaceId))
-      .withAttributes(true)
+    // Revocation markers are only written with the server key: scope to the server signer
+    const baseQuery = arkivSelect(revocationType, publicClient);
+    const query = SERVER_SIGNER_ADDRESS ? baseQuery.createdBy(SERVER_SIGNER_ADDRESS) : baseQuery;
+    const result = await query
+      .where(eqAttr('entity_key', entityKey))
+      .where(eqAttr('space_id', finalSpaceId))
       .limit(1)
       .fetch();
 

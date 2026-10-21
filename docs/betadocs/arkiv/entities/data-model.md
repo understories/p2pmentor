@@ -324,12 +324,8 @@
 All queries use Arkiv SDK query builder:
 
 ```typescript
-const query = publicClient.buildQuery();
-const result = await query
-  .where(eq('type', 'user_profile'))
-  .where(eq('wallet', walletAddress))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('user_profile')
+  .where(eqAttr('wallet', walletAddress))
   .limit(100)
   .fetch();
 ```

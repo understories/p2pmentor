@@ -34,13 +34,9 @@ When a reviewer requests review mode access, the app server issues a `review_mod
 **Query Pattern:**
 
 ```typescript
-const query = publicClient
-  .buildQuery()
-  .where(eq('type', 'review_mode_grant'))
-  .where(eq('subject_wallet', walletAddress.toLowerCase()))
-  .where(eq('space_id', spaceId))
-  .withAttributes(true)
-  .withPayload(true)
+const query = arkivSelect('review_mode_grant')
+  .where(eqAttr('subject_wallet', walletAddress.toLowerCase()))
+  .where(eqAttr('space_id', spaceId))
   .limit(100)
   .fetch();
 

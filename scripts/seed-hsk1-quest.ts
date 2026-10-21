@@ -98,9 +98,7 @@ async function seedHSK1Quest() {
     console.log(`   Entity Key: ${result.key}`);
     console.log(`   Transaction Hash: ${result.txHash}`);
     console.log(`   Space ID: ${targetSpaceId}`);
-    console.log(
-      `\n   View on Arkiv: https://explorer.braga.hoodi.arkiv.network/entity/${result.key}`
-    );
+    console.log(`\n   View on Arkiv: ${ARKIV_EXPLORER_BASE_URL}/entity/${result.key}`);
   } else {
     console.error('❌ Failed to create quest');
     process.exit(1);
@@ -111,3 +109,4 @@ seedHSK1Quest().catch((error) => {
   console.error('Error seeding quest:', error);
   process.exit(1);
 });
+import { ARKIV_EXPLORER_BASE_URL } from '@/lib/arkiv/explorer';

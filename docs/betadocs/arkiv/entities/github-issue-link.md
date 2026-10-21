@@ -43,12 +43,8 @@ import { eq } from '@arkiv-network/sdk/query';
 import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'github_issue_link'))
-  .where(eq('feedbackKey', feedbackKey))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('github_issue_link')
+  .where(eqAttr('feedback_key', feedbackKey))
   .limit(1)
   .fetch();
 
@@ -60,11 +56,7 @@ const link = result.entities[0]
 ### Get All Issue Links
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'github_issue_link'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('github_issue_link')
   .limit(100)
   .fetch();
 
@@ -77,11 +69,7 @@ const links = result.entities.map((e) => ({
 ### Get Links by Repository
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'github_issue_link'))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('github_issue_link')
   .limit(1000)
   .fetch();
 

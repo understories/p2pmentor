@@ -5,7 +5,8 @@
  * Handles different entity types appropriately.
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, getAttr as readAttr } from '@/lib/arkiv/read';
 import { getPublicClient } from '@/lib/arkiv/client';
 import { getTransactionMetadata } from '@/lib/explorer/txMeta';
 import { getArkivExplorerTxUrl, getArkivExplorerEntityUrl } from '@/lib/arkiv/explorer';
@@ -87,17 +88,13 @@ export async function getEntityTransactionHistory(
     const publicClient = getPublicClient();
     const txHashType = `${entityType}_txhash`;
 
-    // Determine the attribute key based on entity type
+    // Determine the attribute key based on entity type (ask_key / offer_key / skill_key)
     const entityKeyAttr =
-      entityType === 'ask' ? 'askKey' : entityType === 'offer' ? 'offerKey' : 'skillKey';
+      entityType === 'ask' ? 'ask_key' : entityType === 'offer' ? 'offer_key' : 'skill_key';
 
     // Query all txhash entities for this entity key
-    const result = await publicClient
-      .buildQuery()
-      .where(eq('type', txHashType))
-      .where(eq(entityKeyAttr, entityKey))
-      .withAttributes(true)
-      .withPayload(true)
+    const result = await arkivSelect(txHashType, publicClient)
+      .where(eqAttr(entityKeyAttr, entityKey))
       .limit(100)
       .fetch();
 
@@ -132,16 +129,8 @@ export async function getEntityTransactionHistory(
       const metadata = await getTransactionMetadata(txHash);
 
       // Get createdAt from attributes
-      const attrs = txHashEntity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
-      const createdAt = getAttr('createdAt') || new Date().toISOString();
+      const getAttr = (key: string): string => readAttr(txHashEntity, key);
+      const createdAt = getAttr('created_at') || new Date().toISOString();
 
       transactions.push({
         txHash,
@@ -217,27 +206,24 @@ export async function getAllTransactions(params?: {
     // Query each space separately and combine results
     // IMPORTANT: Create a new query builder for each space (query builders are stateful)
     const queryPromises = spaceIdsToQuery.map((spaceId) => {
-      const query = publicClient.buildQuery();
-      let queryBuilder = query.where(eq('type', 'tx_event'));
-      queryBuilder = queryBuilder.where(eq('space_id', spaceId));
+      let queryBuilder = arkivSelect('tx_event', publicClient);
+      queryBuilder = queryBuilder.where(eqAttr('space_id', spaceId));
 
       // Apply other filters to each query
       if (params?.entityType) {
-        queryBuilder = queryBuilder.where(eq('entity_type', params.entityType));
+        queryBuilder = queryBuilder.where(eqAttr('entity_type', params.entityType));
       }
       if (params?.txHash) {
-        queryBuilder = queryBuilder.where(eq('txhash', params.txHash));
+        queryBuilder = queryBuilder.where(eqAttr('txhash', params.txHash));
       }
       if (params?.wallet) {
-        queryBuilder = queryBuilder.where(eq('wallet', params.wallet.toLowerCase()));
+        queryBuilder = queryBuilder.where(eqAttr('wallet', params.wallet.toLowerCase()));
       }
       if (params?.entityKey) {
-        queryBuilder = queryBuilder.where(eq('entity_key', params.entityKey));
+        queryBuilder = queryBuilder.where(eqAttr('entity_key', params.entityKey));
       }
 
       return queryBuilder
-        .withAttributes(true)
-        .withPayload(true)
         .limit(limit * 2) // Overfetch for status filtering
         .fetch();
     });
@@ -299,15 +285,7 @@ export async function getAllTransactions(params?: {
 
     for (const txEvent of allEntities) {
       // Extract attributes
-      const attrs = txEvent.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (key: string): string => readAttr(txEvent, key);
 
       const entitySpaceId = getAttr('space_id');
       if (!entitiesBySpace[entitySpaceId]) {

@@ -74,12 +74,8 @@ Implementation: `lib/arkiv/offers.ts` - `createOffer()` stores `ttlSeconds` in a
 Fetch offers by wallet:
 
 ```typescript
-const query = publicClient.buildQuery();
-const result = await query
-  .where(eq('type', 'offer'))
-  .where(eq('wallet', wallet.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('offer')
+  .where(eqAttr('wallet', wallet.toLowerCase()))
   .limit(100)
   .fetch();
 ```
@@ -87,12 +83,8 @@ const result = await query
 Fetch offers by skill:
 
 ```typescript
-const query = publicClient.buildQuery();
-const result = await query
-  .where(eq('type', 'offer'))
-  .where(eq('skill_id', skillId))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('offer')
+  .where(eqAttr('skill_id', skillId))
   .limit(100)
   .fetch();
 ```

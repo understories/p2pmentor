@@ -82,13 +82,9 @@ import { eq, and } from '@arkiv-network/sdk/query';
 import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'auth_identity'))
-  .where(eq('subtype', 'passkey'))
-  .where(eq('wallet', walletAddress.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('auth_identity')
+  .where(eqAttr('subtype', 'passkey'))
+  .where(eqAttr('wallet', walletAddress.toLowerCase()))
   .limit(10)
   .fetch();
 
@@ -102,13 +98,9 @@ const passkeys = result.entities.map((e) => ({
 ### Get Backup Wallet
 
 ```typescript
-const result = await publicClient
-  .buildQuery()
-  .where(eq('type', 'auth_identity'))
-  .where(eq('subtype', 'backup_wallet'))
-  .where(eq('wallet', walletAddress.toLowerCase()))
-  .withAttributes(true)
-  .withPayload(true)
+const result = await arkivSelect('auth_identity')
+  .where(eqAttr('subtype', 'backup_wallet'))
+  .where(eqAttr('wallet', walletAddress.toLowerCase()))
   .limit(1)
   .fetch();
 

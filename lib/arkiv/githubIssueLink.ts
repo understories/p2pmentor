@@ -7,9 +7,11 @@
  * Reference: refs/doc/beta_metrics_QUESTIONS.md Question 9
  */
 
-import { eq } from '@arkiv-network/sdk/query';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, fetchAll, getAttr as readAttr } from '@/lib/arkiv/read';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { createArkivEntity } from './write';
 import { SPACE_ID } from '@/lib/config';
 
 export type GitHubIssueLink = {
@@ -41,7 +43,6 @@ export async function createGitHubIssueLink({
   spaceId?: string;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const createdAt = new Date().toISOString();
 
   const payload = {
@@ -52,38 +53,32 @@ export async function createGitHubIssueLink({
     createdAt,
   };
 
-  // GitHub issue links persist for record keeping (1 year)
-  const expiresIn = 31536000; // 1 year in seconds
-
+  // GitHub issue links persist for record keeping (type default lifetime from schema.ts)
+  // issue_url is payload-only (URLs never go in attributes)
   const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify(payload)),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'github_issue_link' },
-        { key: 'feedbackKey', value: feedbackKey },
-        { key: 'issueNumber', value: String(issueNumber) },
-        { key: 'issueUrl', value: issueUrl },
-        { key: 'repository', value: repository },
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: createdAt },
-      ],
-      expiresIn,
+    return await createArkivEntity(walletClient, {
+      type: 'github_issue_link',
+      attributes: {
+        feedback_key: feedbackKey,
+        issue_number: String(issueNumber),
+        repository,
+        space_id: spaceId,
+        created_at: createdAt,
+      },
+      payload,
     });
   });
 
   // Store txHash
   try {
-    await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify({ txHash })),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'github_issue_link_txhash' },
-        { key: 'linkKey', value: entityKey },
-        { key: 'feedbackKey', value: feedbackKey },
-        { key: 'spaceId', value: spaceId },
-      ],
-      expiresIn,
+    await createArkivEntity(walletClient, {
+      type: 'github_issue_link_txhash',
+      attributes: {
+        link_key: entityKey,
+        feedback_key: feedbackKey,
+        space_id: spaceId,
+      },
+      payload: { txHash },
     });
   } catch (error: any) {
     console.warn('[githubIssueLink] Failed to create txhash entity:', error);
@@ -106,19 +101,16 @@ export async function listGitHubIssueLinks({
     const publicClient = getPublicClient();
 
     const [result, txHashResult] = await Promise.all([
-      publicClient
-        .buildQuery()
-        .where(eq('type', 'github_issue_link'))
-        .withAttributes(true)
-        .withPayload(true)
-        .limit(limit || 100)
-        .fetch(),
-      publicClient
-        .buildQuery()
-        .where(eq('type', 'github_issue_link_txhash'))
-        .withAttributes(true)
-        .withPayload(true)
-        .fetch(),
+      fetchAll(
+        feedbackKey
+          ? arkivSelect('github_issue_link', publicClient).where(
+              eqAttr('feedback_key', feedbackKey)
+            )
+          : arkivSelect('github_issue_link', publicClient),
+        limit || 100,
+        publicClient
+      ),
+      fetchAll(arkivSelect('github_issue_link_txhash', publicClient), 500, publicClient),
     ]);
 
     if (!result?.entities || !Array.isArray(result.entities)) {
@@ -129,15 +121,8 @@ export async function listGitHubIssueLinks({
     const txHashMap: Record<string, string> = {};
     if (txHashResult?.entities && Array.isArray(txHashResult.entities)) {
       txHashResult.entities.forEach((entity: any) => {
-        const attrs = entity.attributes || {};
-        const getAttr = (key: string): string => {
-          if (Array.isArray(attrs)) {
-            const attr = attrs.find((a: any) => a.key === key);
-            return String(attr?.value || '');
-          }
-          return String(attrs[key] || '');
-        };
-        const linkKey = getAttr('linkKey');
+        const getAttr = (key: string): string => readAttr(entity, key);
+        const linkKey = getAttr('link_key');
         try {
           if (entity.payload) {
             const decoded =
@@ -173,22 +158,15 @@ export async function listGitHubIssueLinks({
         console.error('[listGitHubIssueLinks] Error decoding payload:', e);
       }
 
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
+      const getAttr = (key: string): string => readAttr(entity, key);
 
       return {
         key: entity.key,
-        feedbackKey: getAttr('feedbackKey') || payload.feedbackKey,
-        issueNumber: payload.issueNumber || parseInt(getAttr('issueNumber'), 10),
-        issueUrl: getAttr('issueUrl') || payload.issueUrl,
+        feedbackKey: getAttr('feedback_key') || payload.feedbackKey,
+        issueNumber: payload.issueNumber || parseInt(getAttr('issue_number'), 10),
+        issueUrl: payload.issueUrl || getAttr('issue_url'),
         repository: getAttr('repository') || payload.repository,
-        createdAt: getAttr('createdAt') || payload.createdAt,
+        createdAt: getAttr('created_at') || payload.createdAt,
         txHash: txHashMap[entity.key] || payload.txHash || undefined,
       };
     });
