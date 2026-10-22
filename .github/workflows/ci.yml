@@ -100,7 +100,9 @@ jobs:
 
   e2e:
     name: E2E Tests
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest is Ubuntu 26.04, where Playwright's
+    # `install --with-deps chromium` is not supported.
+    runs-on: ubuntu-24.04
     needs: build
     steps:
       - uses: actions/checkout@v4
