@@ -11,9 +11,10 @@
  * Reference: refs/mentor-graph/src/arkiv/client.ts
  */
 
-import { createPublicClient, createWalletClient, http, custom } from '@arkiv-network/sdk';
-import { privateKeyToAccount } from '@arkiv-network/sdk/accounts';
-import { braga } from '@arkiv-network/sdk/chains';
+import { createPublicClient, createWalletClient } from '@arkiv-network/sdk';
+import { http, custom } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { tiramisu } from '@arkiv-network/sdk/chains';
 
 /**
  * Get public client for read operations
@@ -21,7 +22,7 @@ import { braga } from '@arkiv-network/sdk/chains';
  */
 export function getPublicClient() {
   return createPublicClient({
-    chain: braga,
+    chain: tiramisu,
     transport: http(),
   });
 }
@@ -30,11 +31,11 @@ export function getPublicClient() {
  * Get wallet client from private key (server-side use)
  *
  * @param privateKey - Private key in format 0x...
- * @returns Wallet client configured for Braga testnet
+ * @returns Wallet client configured for Tiramisu testnet
  */
 export function getWalletClientFromPrivateKey(privateKey: `0x${string}`) {
   return createWalletClient({
-    chain: braga,
+    chain: tiramisu,
     transport: http(),
     account: privateKeyToAccount(privateKey),
   });
@@ -46,7 +47,7 @@ export function getWalletClientFromPrivateKey(privateKey: `0x${string}`) {
  * This should only be called in browser context with MetaMask available.
  *
  * @param account - Wallet address from MetaMask
- * @returns Wallet client configured for Braga testnet
+ * @returns Wallet client configured for Tiramisu testnet
  * @throws Error if called outside browser or MetaMask not available
  *
  * Reference: refs/mentor-graph/src/arkiv/client.ts
@@ -57,7 +58,7 @@ export function getWalletClientFromMetaMask(account: `0x${string}`) {
   }
 
   return createWalletClient({
-    chain: braga,
+    chain: tiramisu,
     transport: custom(window.ethereum),
     account,
   });

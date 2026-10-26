@@ -106,7 +106,7 @@ For every feature that uses Arkiv, document:
 
 ### Chain Configuration
 
-- **Network**: Braga testnet
+- **Network**: Tiramisu testnet
 - **Chain ID**: From `@arkiv-network/sdk/chains`
 - **RPC**: Provided by Arkiv SDK
 

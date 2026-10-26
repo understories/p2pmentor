@@ -13,8 +13,9 @@
 import { getWalletClientFromMetaMask } from '@/lib/arkiv/client';
 import { getWalletClientFromPasskey } from './getWalletClientFromPasskey';
 import { getWalletConnectProvider } from './walletconnectProvider';
-import { createWalletClient, custom } from '@arkiv-network/sdk';
-import { braga } from '@arkiv-network/sdk/chains';
+import { createWalletClient } from '@arkiv-network/sdk';
+import { custom } from 'viem';
+import { tiramisu } from '@arkiv-network/sdk/chains';
 
 /**
  * Get wallet client from active wallet (auto-detects type)
@@ -87,7 +88,7 @@ export async function getWalletClient(walletAddress: `0x${string}`) {
 
     // Create wallet client with WalletConnect provider (EIP-1193 compliant)
     return createWalletClient({
-      chain: braga,
+      chain: tiramisu,
       transport: custom(provider),
       account: walletAddress,
     });

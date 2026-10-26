@@ -84,9 +84,9 @@ Fail-closed helpers for environment variables.
 
 - `requireEnv(name)` - Require an env var (throws if missing)
 - `getEnv(name, defaultValue)` - Get env var with default
-- `getArkivTarget()` - Get ARKIV_TARGET ('local' | 'braga')
+- `getArkivTarget()` - Get ARKIV_TARGET ('local' | 'tiramisu')
 - `isLocalTarget()` - Check if targeting local node
-- `isBragaTarget()` - Check if targeting Braga testnet
+- `isTiramisuTarget()` - Check if targeting Tiramisu testnet
 
 **Prohibits "cute fallbacks"** - makes it painful to hardcode values, easy to use config.
 
@@ -299,7 +299,7 @@ const result = await handleTransactionWithTimeout(async () => {
 
 ### Optional
 
-- `ARKIV_TARGET` - Target network: 'local' or 'braga' (default: 'braga')
+- `ARKIV_TARGET` - Target network: 'local' or 'tiramisu' (default: 'tiramisu')
 - `ARKIV_RPC_URL` - Custom RPC URL (overrides default for ARKIV_TARGET)
 
 ---
@@ -336,9 +336,9 @@ The default policy is designed for **server/worker contexts** (longer polling, c
 
 ## Testnet-Native Design
 
-This package is **testnet-native** (Braga-focused):
+This package is **testnet-native** (Tiramisu-focused):
 
-- Defaults to Braga testnet
+- Defaults to Tiramisu testnet
 - Supports local node for CI determinism
 - All examples use testnet addresses
 - Mainnet guidance is intentionally non-operational (checklist, not instructions)
@@ -374,7 +374,7 @@ Every template using Arkiv App Kit must pass a minimal conformance test that pro
 4. **TxHash companion entity is written** - If write succeeded, companion `*_txhash` entity is created (non-blocking)
 5. **Reconciliation distinguishes submitted vs indexed** - UI/API correctly represents "submitted" (txHash exists) vs "indexed" (queryable)
 
-This is not a full integration test suite - it's a minimal compliance check that ensures Arkiv-native patterns are followed. Templates should include a `scripts/conformance-test.ts` or similar that can run against local node or Braga testnet.
+This is not a full integration test suite - it's a minimal compliance check that ensures Arkiv-native patterns are followed. Templates should include a `scripts/conformance-test.ts` or similar that can run against local node or Tiramisu testnet.
 
 See `arkiv-nextjs-starter/scripts/smoke-test.ts` for a reference implementation.
 

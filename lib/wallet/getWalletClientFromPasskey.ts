@@ -55,7 +55,7 @@ export async function getWalletClientFromPasskey(userId: string, credentialID: s
 
   console.log('[getWalletClientFromPasskey] ✅ Arkiv wallet client created:', {
     address,
-    chain: walletClient.chain?.name || 'braga',
+    chain: walletClient.chain?.name || 'tiramisu',
   });
 
   // Note: privateKeyHex is kept in memory only for the lifetime of this function call

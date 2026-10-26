@@ -12,7 +12,7 @@
 'use client';
 
 import { EthereumProvider } from '@walletconnect/ethereum-provider';
-import { braga } from '@arkiv-network/sdk/chains';
+import { tiramisu } from '@arkiv-network/sdk/chains';
 import { isMobileBrowser } from './mobile-detection';
 
 /**
@@ -53,24 +53,24 @@ export async function connectWalletConnect(): Promise<`0x${string}`> {
       );
     }
 
-    // Initialize WalletConnect provider with Braga chain only
-    // Reuse braga config from SDK for consistency
+    // Initialize WalletConnect provider with Tiramisu chain only
+    // Reuse tiramisu config from SDK for consistency
     console.log('[WalletConnect] Initializing provider', {
       projectId: projectId ? `${projectId.substring(0, 8)}...` : 'missing',
-      chainId: braga.id,
-      chainName: braga.name,
-      rpcUrl: braga.rpcUrls.default.http[0],
+      chainId: tiramisu.id,
+      chainName: tiramisu.name,
+      rpcUrl: tiramisu.rpcUrls.default.http[0],
     });
 
     // Include Ethereum mainnet (1) as a fallback chain so wallets can connect
-    // Braga is a custom chain not in WalletConnect registry, so wallets may not recognize it
-    // We'll add Braga after connection using wallet_addEthereumChain
+    // Tiramisu is a custom chain not in WalletConnect registry, so wallets may not recognize it
+    // We'll add Tiramisu after connection using wallet_addEthereumChain
     const provider = await EthereumProvider.init({
       projectId,
-      chains: [1, braga.id], // Ethereum mainnet (1) + Braga
+      chains: [1, tiramisu.id], // Ethereum mainnet (1) + Tiramisu
       rpcMap: {
         1: 'https://eth.llamarpc.com', // Public Ethereum RPC
-        [braga.id]: braga.rpcUrls.default.http[0],
+        [tiramisu.id]: tiramisu.rpcUrls.default.http[0],
       },
       showQrModal: true, // Use built-in QR modal for Phase 0
       metadata: {
@@ -120,15 +120,15 @@ export async function connectWalletConnect(): Promise<`0x${string}`> {
       setWalletConnectProvider(null);
     });
 
-    // After connection, add Braga to wallet and switch to it
-    // This ensures wallets can add Braga even if they don't recognize it during connection
-    // We include Ethereum mainnet (1) in chains array so wallets can connect, then add Braga
+    // After connection, add Tiramisu to wallet and switch to it
+    // This ensures wallets can add Tiramisu even if they don't recognize it during connection
+    // We include Ethereum mainnet (1) in chains array so wallets can connect, then add Tiramisu
     try {
       const chainId = await provider.request({ method: 'eth_chainId' });
-      const expectedChainId = `0x${braga.id.toString(16)}`;
+      const expectedChainId = `0x${tiramisu.id.toString(16)}`;
 
       if (chainId !== expectedChainId) {
-        console.log('[WalletConnect] Not on Braga, attempting to add/switch to Braga');
+        console.log('[WalletConnect] Not on Tiramisu, attempting to add/switch to Tiramisu');
         const chainIdHex = expectedChainId;
 
         try {
@@ -137,38 +137,36 @@ export async function connectWalletConnect(): Promise<`0x${string}`> {
             method: 'wallet_switchEthereumChain',
             params: [{ chainId: chainIdHex }],
           });
-          console.log('[WalletConnect] Successfully switched to Braga');
+          console.log('[WalletConnect] Successfully switched to Tiramisu');
         } catch (switchError: any) {
           // If switch fails (chain doesn't exist), try to add it
-          // This will prompt the wallet to add Braga network
-          console.log('[WalletConnect] Switch failed, attempting to add Braga chain to wallet');
+          // This will prompt the wallet to add Tiramisu network
+          console.log('[WalletConnect] Switch failed, attempting to add Tiramisu chain to wallet');
           try {
             await provider.request({
               method: 'wallet_addEthereumChain',
               params: [
                 {
                   chainId: chainIdHex,
-                  chainName: braga.name,
-                  nativeCurrency: braga.nativeCurrency,
-                  rpcUrls: braga.rpcUrls.default.http,
-                  blockExplorerUrls: braga.blockExplorers?.default?.url
-                    ? [braga.blockExplorers.default.url]
-                    : [],
+                  chainName: tiramisu.name,
+                  nativeCurrency: tiramisu.nativeCurrency,
+                  rpcUrls: tiramisu.rpcUrls.default.http,
+                  blockExplorerUrls: ['https://tiramisu.explorer.arkiv.network'],
                 },
               ],
             });
-            console.log('[WalletConnect] Successfully added Braga chain to wallet');
+            console.log('[WalletConnect] Successfully added Tiramisu chain to wallet');
           } catch (addError: any) {
             // Non-critical - user may have rejected or wallet doesn't support adding chains
-            console.warn('[WalletConnect] Failed to add/switch to Braga (non-critical):', {
+            console.warn('[WalletConnect] Failed to add/switch to Tiramisu (non-critical):', {
               switchError: switchError?.message || switchError,
               addError: addError?.message || addError,
             });
-            // Connection still succeeds, user can manually switch to Braga later
+            // Connection still succeeds, user can manually switch to Tiramisu later
           }
         }
       } else {
-        console.log('[WalletConnect] Already on Braga chain');
+        console.log('[WalletConnect] Already on Tiramisu chain');
       }
     } catch (chainError) {
       // Non-critical - continue even if chain check fails
@@ -210,7 +208,7 @@ export async function connectWalletConnect(): Promise<`0x${string}`> {
       error?.message?.includes('namespaces')
     ) {
       throw new Error(
-        'WalletConnect session error. Please try again. If the issue persists, your wallet may not support the Braga testnet. Try using MetaMask instead.'
+        'WalletConnect session error. Please try again. If the issue persists, your wallet may not support the Tiramisu testnet. Try using MetaMask instead.'
       );
     }
 

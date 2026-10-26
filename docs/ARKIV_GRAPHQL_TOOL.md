@@ -96,7 +96,7 @@ const data = await graphRequest(`
          ↓
 ┌─────────────────┐
 │  Arkiv Indexer  │
-│  (braga RPC)  │
+│  (tiramisu RPC)  │
 └─────────────────┘
 ```
 
@@ -260,7 +260,7 @@ arkiv-graphql/
 import { createArkivGraphQLServer } from 'arkiv-graphql';
 
 const server = createArkivGraphQLServer({
-  arkivRpcUrl: 'https://braga.hoodi.arkiv.network/rpc',
+  arkivRpcUrl: 'https://rpc.tiramisu.db-chain.testnet.arkiv.network',
 });
 
 server.listen(4000);

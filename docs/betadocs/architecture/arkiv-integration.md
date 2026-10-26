@@ -77,7 +77,7 @@ A simpler architecture. Less infrastructure to manage. More resilient to failure
 
 Location: `lib/arkiv/client.ts`
 
-Provides a single entry point for Arkiv clients, hiding chain configuration and boilerplate (Braga testnet).
+Provides a single entry point for Arkiv clients, hiding chain configuration and boilerplate (Tiramisu testnet).
 
 ### Clients
 
@@ -90,7 +90,7 @@ Provides a single entry point for Arkiv clients, hiding chain configuration and 
 
 - Small surface area, minimal abstraction
 - Based on mentor-graph reference implementation, adjusted for p2pmentor
-- Uses `@arkiv-network/sdk` with Braga chain configuration
+- Uses `@arkiv-network/sdk` with Tiramisu chain configuration
 
 ## Entity-centric design
 

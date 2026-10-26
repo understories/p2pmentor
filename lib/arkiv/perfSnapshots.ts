@@ -19,7 +19,7 @@ export type PerfSnapshot = {
   method: 'arkiv' | 'graphql' | 'both'; // Which method was actually tested (may differ from requested)
   arkivMetadata?: {
     blockHeight?: number; // Arkiv block height at snapshot time
-    chainId?: number; // Chain ID (Braga testnet)
+    chainId?: number; // Chain ID (Tiramisu testnet)
     timestamp: string; // ISO timestamp when metadata was captured
   };
   graphql?: {

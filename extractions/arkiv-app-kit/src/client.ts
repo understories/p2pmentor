@@ -2,14 +2,15 @@
  * Arkiv client construction
  * 
  * Provides public and wallet clients for Arkiv operations.
- * Supports both local node and Braga testnet via ARKIV_TARGET.
+ * Supports both local node and Tiramisu testnet via ARKIV_TARGET.
  * 
  * Pattern: PAT-QUERY-001 (Indexer-Friendly Query Shapes)
  */
 
-import { createPublicClient, createWalletClient, http, custom } from "@arkiv-network/sdk";
-import { privateKeyToAccount } from "@arkiv-network/sdk/accounts";
-import { braga } from "@arkiv-network/sdk/chains";
+import { createPublicClient, createWalletClient } from "@arkiv-network/sdk";
+import { http, custom } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { tiramisu } from "@arkiv-network/sdk/chains";
 import { getArkivTarget, isLocalTarget } from './env';
 
 /**
@@ -23,8 +24,8 @@ function getRpcUrl(): string {
     return process.env.ARKIV_RPC_URL || 'http://localhost:8545';
   }
   
-  // Braga testnet (default)
-  return process.env.ARKIV_RPC_URL || 'https://braga.hoodi.arkiv.network/rpc';
+  // Tiramisu testnet (default)
+  return process.env.ARKIV_RPC_URL || tiramisu.rpcUrls.default.http[0];
 }
 
 /**
@@ -43,20 +44,20 @@ function getRpcUrl(): string {
  */
 export function getPublicClient() {
   return createPublicClient({
-    chain: braga,
+    chain: tiramisu,
     transport: http(getRpcUrl()),
   });
 }
 
 /**
  * Get wallet client from private key (server-side use)
- * 
+ *
  * Used for server-signed writes (Phase 0 pattern).
  * The private key should come from ARKIV_PRIVATE_KEY environment variable.
- * 
+ *
  * @param privateKey - Private key in format 0x...
  * @returns Wallet client configured for the target network
- * 
+ *
  * @example
  * ```ts
  * const privateKey = requireEnv('ARKIV_PRIVATE_KEY') as `0x${string}`;
@@ -65,7 +66,7 @@ export function getPublicClient() {
  */
 export function getWalletClientFromPrivateKey(privateKey: `0x${string}`) {
   return createWalletClient({
-    chain: braga,
+    chain: tiramisu,
     transport: http(getRpcUrl()),
     account: privateKeyToAccount(privateKey),
   });
@@ -73,13 +74,13 @@ export function getWalletClientFromPrivateKey(privateKey: `0x${string}`) {
 
 /**
  * Get wallet client from MetaMask (client-side use only)
- * 
+ *
  * This should only be called in browser context with MetaMask available.
- * 
+ *
  * @param account - Wallet address from MetaMask
  * @returns Wallet client configured for the target network
  * @throws Error if called outside browser or MetaMask not available
- * 
+ *
  * @example
  * ```ts
  * if (typeof window !== 'undefined' && window.ethereum) {
@@ -91,9 +92,9 @@ export function getWalletClientFromMetaMask(account: `0x${string}`) {
   if (typeof window === 'undefined' || !(window as any).ethereum) {
     throw new Error('MetaMask not available - this function must be called in browser context');
   }
-  
+
   return createWalletClient({
-    chain: braga,
+    chain: tiramisu,
     transport: custom((window as any).ethereum),
     account,
   });

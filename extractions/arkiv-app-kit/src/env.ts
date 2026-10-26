@@ -10,39 +10,39 @@
  * 
  * Controls which Arkiv network to target:
  * - 'local': Local node (for CI determinism)
- * - 'braga': Braga testnet (for ecosystem validation)
+ * - 'tiramisu': Tiramisu testnet (for ecosystem validation)
  */
-export type ArkivTarget = 'local' | 'braga';
+export type ArkivTarget = 'local' | 'tiramisu';
 
 /**
  * Get ARKIV_TARGET from environment
- * 
+ *
  * Validates that ARKIV_TARGET is one of the allowed values.
- * Defaults to 'braga' if not set (testnet-first).
- * 
+ * Defaults to 'tiramisu' if not set (testnet-first).
+ *
  * @returns Validated ARKIV_TARGET value
  * @throws Error if ARKIV_TARGET is set to an invalid value
  */
 export function getArkivTarget(): ArkivTarget {
   const target = process.env.ARKIV_TARGET;
-  
+
   if (!target) {
-    // Default to Braga (testnet-first)
-    return 'braga';
+    // Default to Tiramisu (testnet-first)
+    return 'tiramisu';
   }
-  
-  if (target !== 'local' && target !== 'braga') {
+
+  if (target !== 'local' && target !== 'tiramisu') {
     throw new Error(
-      `Invalid ARKIV_TARGET: "${target}". Must be "local" or "braga".`
+      `Invalid ARKIV_TARGET: "${target}". Must be "local" or "tiramisu".`
     );
   }
-  
+
   return target;
 }
 
 /**
  * Check if targeting local node
- * 
+ *
  * @returns True if ARKIV_TARGET is 'local'
  */
 export function isLocalTarget(): boolean {
@@ -50,12 +50,12 @@ export function isLocalTarget(): boolean {
 }
 
 /**
- * Check if targeting Braga testnet
- * 
- * @returns True if ARKIV_TARGET is 'braga'
+ * Check if targeting Tiramisu testnet
+ *
+ * @returns True if ARKIV_TARGET is 'tiramisu'
  */
-export function isBragaTarget(): boolean {
-  return getArkivTarget() === 'braga';
+export function isTiramisuTarget(): boolean {
+  return getArkivTarget() === 'tiramisu';
 }
 
 /**
@@ -99,7 +99,7 @@ export function requireEnv(name: string): string {
  * 
  * @example
  * ```ts
- * const rpcUrl = getEnv('ARKIV_RPC_URL', 'https://braga.hoodi.arkiv.network/rpc');
+ * const rpcUrl = getEnv('ARKIV_RPC_URL', 'https://rpc.tiramisu.db-chain.testnet.arkiv.network');
  * ```
  */
 export function getEnv(name: string, defaultValue: string): string {

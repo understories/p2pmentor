@@ -6,8 +6,9 @@
  * Reference: refs/mentor-graph/src/wallet.ts
  */
 
-import { createPublicClient, createWalletClient, custom, http } from '@arkiv-network/sdk';
-import { braga } from '@arkiv-network/sdk/chains';
+import { createPublicClient, createWalletClient } from '@arkiv-network/sdk';
+import { custom, http } from 'viem';
+import { tiramisu } from '@arkiv-network/sdk/chains';
 import 'viem/window';
 import { connectWithSDK, isSDKAvailable } from './metamask-sdk';
 import { isMobileBrowser } from './mobile-detection';
@@ -19,12 +20,12 @@ import { isMobileBrowser } from './mobile-detection';
  *
  * @throws Error if MetaMask is not installed
  */
-async function switchToBragaChain() {
+async function switchToTiramisuChain() {
   if (!window.ethereum) {
     throw new Error('MetaMask not installed');
   }
 
-  const chainIdHex = `0x${braga.id.toString(16)}`;
+  const chainIdHex = `0x${tiramisu.id.toString(16)}`;
 
   try {
     // Try to switch to the chain
@@ -40,10 +41,10 @@ async function switchToBragaChain() {
         params: [
           {
             chainId: chainIdHex,
-            chainName: braga.name,
-            nativeCurrency: braga.nativeCurrency,
-            rpcUrls: braga.rpcUrls.default.http,
-            blockExplorerUrls: [braga.blockExplorers.default.url],
+            chainName: tiramisu.name,
+            nativeCurrency: tiramisu.nativeCurrency,
+            rpcUrls: tiramisu.rpcUrls.default.http,
+            blockExplorerUrls: ['https://tiramisu.explorer.arkiv.network'],
           },
         ],
       });
@@ -87,7 +88,7 @@ export async function disconnectWallet(): Promise<void> {
 /**
  * Connect to MetaMask and return the connected wallet address
  *
- * Automatically switches to Braga testnet chain.
+ * Automatically switches to Tiramisu testnet chain.
  * Uses MetaMask SDK for mobile support, falls back to direct window.ethereum for desktop.
  * Forces account selection by revoking existing permissions first (if any),
  * then requesting permissions, which ensures the account selection dialog appears.
@@ -126,17 +127,17 @@ export async function connectWallet(): Promise<`0x${string}`> {
         address: `${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
       });
 
-      // Switch to Braga chain after connection
+      // Switch to Tiramisu chain after connection
       // Note: On mobile, chain switching happens in the MetaMask app
       if (window.ethereum) {
         try {
-          console.log('[MetaMask] Attempting to switch to Braga chain');
-          await switchToBragaChain();
-          console.log('[MetaMask] Successfully switched to Braga chain');
+          console.log('[MetaMask] Attempting to switch to Tiramisu chain');
+          await switchToTiramisuChain();
+          console.log('[MetaMask] Successfully switched to Tiramisu chain');
         } catch (error) {
           // Chain switching is not critical - user can switch manually
           // On mobile, user may need to switch in MetaMask app
-          console.warn('[MetaMask] Failed to switch to Braga chain:', error);
+          console.warn('[MetaMask] Failed to switch to Tiramisu chain:', error);
         }
       }
       return address;
@@ -175,10 +176,10 @@ export async function connectWallet(): Promise<`0x${string}`> {
 
   // First switch to the correct chain
   try {
-    await switchToBragaChain();
+    await switchToTiramisuChain();
   } catch (error) {
     // Chain switching failure is not critical - continue with connection
-    console.warn('Failed to switch to Braga chain, continuing with connection:', error);
+    console.warn('Failed to switch to Tiramisu chain, continuing with connection:', error);
   }
 
   // CRITICAL: Always force account selection on /auth page
@@ -307,12 +308,12 @@ export function createArkivClients(account?: `0x${string}`) {
   }
 
   const publicClient = createPublicClient({
-    chain: braga,
+    chain: tiramisu,
     transport: http(),
   });
 
   const walletClient = createWalletClient({
-    chain: braga,
+    chain: tiramisu,
     transport: custom(window.ethereum),
     account,
   });

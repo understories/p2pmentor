@@ -441,7 +441,7 @@ fix stuff
 
 - Every performance sample has `txHash`
 - All data queryable from Arkiv entities
-- Braga explorer links for verification
+- Tiramisu explorer links for verification
 - Clear data source in documentation
 
 ### Performance Data
@@ -851,18 +851,18 @@ When encountering complex bugs or issues that require careful investigation:
    const signingWalletAddress = account.address;
    ```
 
-2. **Check balance on Braga testnet:**
+2. **Check balance on Tiramisu testnet:**
 
-   - Use Arkiv Explorer: [https://explorer.braga.hoodi.arkiv.network](https://explorer.braga.hoodi.arkiv.network)
+   - Use Arkiv Explorer: [https://tiramisu.explorer.arkiv.network](https://tiramisu.explorer.arkiv.network)
    - Search for the signing wallet address
    - Verify balance is sufficient for transactions
 
 3. **If balance is low or zero, use the faucet:**
-   - **Faucet URL pattern:** `https://braga.hoodi.arkiv.network/faucet/?address={SIGNING_WALLET_ADDRESS}`
-   - **Example:** `https://braga.hoodi.arkiv.network/faucet/?address=0x4b6D14e3ad668a2273Ce3Cf9A22cda202f404c5F`
+   - **Faucet URL pattern:** `https://hub.arkiv.network/faucet?address={SIGNING_WALLET_ADDRESS}`
+   - **Example:** `https://hub.arkiv.network/faucet?address=0x4b6D14e3ad668a2273Ce3Cf9A22cda202f404c5F`
    - **Manual process only:** Do NOT automate faucet requests to avoid overloading the faucet
    - **Rate limits:** Follow Arkiv's faucet guidelines and rate limits
-   - **Amount:** Faucet pays test GLM (Braga native gas token)
+   - **Amount:** Faucet pays test GLM (Tiramisu native gas token)
 
 **Important Notes:**
 
@@ -876,13 +876,13 @@ When encountering complex bugs or issues that require careful investigation:
 
 ```bash
 # Derive address from private key (for manual faucet use)
-node -e "const { privateKeyToAccount } = require('@arkiv-network/sdk/accounts'); const pk = process.env.ARKIV_PRIVATE_KEY; if (!pk) { console.error('ARKIV_PRIVATE_KEY not set'); process.exit(1); } const account = privateKeyToAccount(pk); console.log('Signing wallet address:', account.address); console.log('Faucet URL:', \`https://braga.hoodi.arkiv.network/faucet/?address=\${account.address}\`);"
+node -e "const { privateKeyToAccount } = require('@arkiv-network/sdk/accounts'); const pk = process.env.ARKIV_PRIVATE_KEY; if (!pk) { console.error('ARKIV_PRIVATE_KEY not set'); process.exit(1); } const account = privateKeyToAccount(pk); console.log('Signing wallet address:', account.address); console.log('Faucet URL:', \`https://hub.arkiv.network/faucet?address=\${account.address}\`);"
 ```
 
 **Documentation Reference:**
 
 - See [Wallet Architecture](/docs/betadocs/arkiv/wallet-architecture) for details on profile wallet vs signing wallet
-- See [Braga Faucet](https://braga.hoodi.arkiv.network/faucet) for testnet token requests
+- See [Tiramisu Faucet](https://hub.arkiv.network/faucet) for testnet token requests
 
 ### Testing Standards
 

@@ -11,29 +11,28 @@ import {
   getWalletClientFromMetaMask,
 } from '@/lib/arkiv/client';
 
-/** Braga chain id (Arkiv current testnet). See docs.arkiv.network/networks/braga */
-const BRAGA_CHAIN_ID = 60138453102;
+/** Tiramisu chain id (Arkiv current testnet). See docs.arkiv.network */
+const TIRAMISU_CHAIN_ID = 7738577;
 
 /** Hardhat account #0 secret; built with template so CI `git grep` for `0x` + 64 hex does not false positive */
 const TEST_PRIVATE_KEY =
   `0x${'ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'}` as `0x${string}`;
 
-describe('Arkiv explorer URLs (Braga)', () => {
-  it('uses Braga explorer host', () => {
-    expect(ARKIV_EXPLORER_BASE_URL).toBe('https://explorer.braga.hoodi.arkiv.network');
+describe('Arkiv explorer URLs (Tiramisu)', () => {
+  it('uses Tiramisu explorer host', () => {
+    expect(ARKIV_EXPLORER_BASE_URL).toBe('https://tiramisu.explorer.arkiv.network');
+    expect(ARKIV_EXPLORER_BASE_URL).not.toMatch(/braga/i);
     expect(ARKIV_EXPLORER_BASE_URL).not.toMatch(/kaolin/i);
   });
 
   it('builds transaction URLs', () => {
     const hash = '0xabc123';
-    expect(getArkivExplorerTxUrl(hash)).toBe(
-      'https://explorer.braga.hoodi.arkiv.network/tx/0xabc123'
-    );
+    expect(getArkivExplorerTxUrl(hash)).toBe('https://tiramisu.explorer.arkiv.network/tx/0xabc123');
   });
 
   it('builds entity URLs', () => {
     expect(getArkivExplorerEntityUrl('ent_1')).toBe(
-      'https://explorer.braga.hoodi.arkiv.network/entity/ent_1'
+      'https://tiramisu.explorer.arkiv.network/entity/ent_1'
     );
   });
 
@@ -55,17 +54,17 @@ describe('Arkiv explorer URLs (Braga)', () => {
   });
 });
 
-describe('Arkiv client chain (Braga)', () => {
-  it('getPublicClient uses Braga id and GLM native currency', () => {
+describe('Arkiv client chain (Tiramisu)', () => {
+  it('getPublicClient uses Tiramisu id and GLM native currency', () => {
     const client = getPublicClient();
-    expect(Number(client.chain?.id)).toBe(BRAGA_CHAIN_ID);
-    expect(client.chain?.name).toMatch(/Braga/i);
+    expect(Number(client.chain?.id)).toBe(TIRAMISU_CHAIN_ID);
+    expect(client.chain?.name).toMatch(/Tiramisu/i);
     expect(client.chain?.nativeCurrency?.symbol).toBe('GLM');
   });
 
-  it('getWalletClientFromPrivateKey uses Braga', () => {
+  it('getWalletClientFromPrivateKey uses Tiramisu', () => {
     const wallet = getWalletClientFromPrivateKey(TEST_PRIVATE_KEY);
-    expect(Number(wallet.chain?.id)).toBe(BRAGA_CHAIN_ID);
+    expect(Number(wallet.chain?.id)).toBe(TIRAMISU_CHAIN_ID);
     expect(wallet.chain?.nativeCurrency?.symbol).toBe('GLM');
   });
 
